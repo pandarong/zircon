@@ -28,7 +28,7 @@ public:
     void EnforceFill();
 #endif
 
-    void Dump(bool dump_pages, bool dump_free_ranges);
+    void Dump(bool dump_pages, bool dump_free_ranges) const;
 
     // accessors
     const pmm_arena_info_t& info() const { return info_; }
