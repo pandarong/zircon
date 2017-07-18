@@ -45,7 +45,7 @@ LK_INIT_HOOK(pmm_fill, &pmm_enforce_fill, LK_INIT_LEVEL_VM);
 #endif
 
 paddr_t vm_page_to_paddr(const vm_page_t* page) {
-    return pmm_node.PageToPaddr(page);
+    return page->paddr;
 }
 
 vm_page_t* paddr_to_vm_page(paddr_t addr) {
@@ -181,14 +181,14 @@ static int cmd_pmm(int argc, const cmd_args* argv, uint32_t flags) {
         printf("not enough arguments\n");
     usage:
         printf("usage:\n");
-        printf("%s arenas\n", argv[0].str);
+        printf("%s dump\n", argv[0].str);
         if (!is_panic) {
             printf("%s free\n", argv[0].str);
         }
         return MX_ERR_INTERNAL;
     }
 
-    if (!strcmp(argv[1].str, "arenas")) {
+    if (!strcmp(argv[1].str, "dump")) {
         pmm_node.Dump(is_panic);
     } else if (is_panic) {
         // No other operations will work during a panic.

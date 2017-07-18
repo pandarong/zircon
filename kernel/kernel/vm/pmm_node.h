@@ -13,6 +13,9 @@
 
 #include "pmm_arena.h"
 
+#define PMM_ENABLE_FREE_FILL 0
+#define PMM_FREE_FILL_BYTE 0x42
+
 // per numa node collection of pmm arenas and worker threads
 class PmmNode {
 public:
@@ -24,7 +27,7 @@ public:
     paddr_t PageToPaddr(const vm_page_t* page) TA_NO_THREAD_SAFETY_ANALYSIS;
     vm_page_t* PaddrToPage(paddr_t addr) TA_NO_THREAD_SAFETY_ANALYSIS;
 
-    status_t AddArena(const pmm_arena_info_t* info);
+    // main allocator routines
     vm_page_t* AllocPage(uint alloc_flags, paddr_t* pa);
     size_t AllocPages(size_t count, uint alloc_flags, list_node* list);
     size_t AllocRange(paddr_t address, size_t count, list_node* list);
@@ -45,29 +48,36 @@ public:
     void EnforceFill() TA_NO_THREAD_SAFETY_ANALYSIS;
 #endif
 
-private:
-    uint64_t CountFreePagesLocked() const TA_REQ(lock_);
+    status_t AddArena(const pmm_arena_info_t* info);
 
+    // add new pages to the free queue. used when boostrapping a PmmArena
+    void AddFreePages(list_node *list);
+
+private:
     mxtl::Canary<mxtl::magic("PNOD")> canary_;
 
     mutable Mutex lock_;
 
     uint64_t arena_cumulative_size_ = 0;
+    uint64_t free_count_ = 0;
 
     mxtl::DoublyLinkedList<PmmArena*> arena_list_ TA_GUARDED(lock_);
-};
 
-// We don't need to hold the arena lock while executing this, since it is
-// only accesses values that are set once during system initialization.
-inline paddr_t PmmNode::PageToPaddr(const vm_page_t* page) TA_NO_THREAD_SAFETY_ANALYSIS {
-    for (const auto& a : arena_list_) {
-        // LTRACEF("testing page %p against arena %p\n", page, &a);
-        if (a.page_belongs_to_arena(page)) {
-            return a.page_address_from_arena(page);
-        }
-    }
-    return -1;
-}
+    // page queues
+    list_node free_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(free_list_);
+    list_node inactive_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(inactive_list_);
+    list_node active_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(active_list_);
+    list_node modified_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(modified_list_);
+    list_node wired_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(wired_list_);
+
+#if PMM_ENABLE_FREE_FILL
+    void FreeFill(vm_page_t* page);
+    void CheckFreeFill(vm_page_t* page);
+
+    bool enforce_fill_ = false;
+#endif
+
+};
 
 // We don't need to hold the arena lock while executing this, since it is
 // only accesses values that are set once during system initialization.
