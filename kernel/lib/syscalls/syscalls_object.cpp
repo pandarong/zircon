@@ -445,7 +445,7 @@ mx_status_t sys_object_get_info(mx_handle_t handle, uint32_t topic,
             pmm_count_total_states(state_count);
 
             size_t total = 0;
-            for (int i = 0; i < _VM_PAGE_STATE_COUNT; i++) {
+            for (unsigned int i = 0; i < _VM_PAGE_STATE_COUNT; i++) {
                 total += state_count[i];
             }
 

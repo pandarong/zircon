@@ -52,26 +52,32 @@ struct vm_page {
 
         uint8_t pad[0x38 - 0x20]; // pad out to 0x38 bytes
     };
+
+    // helper routines
+    bool is_free();
+
+    // state manipulation routines
+    void set_state_alloc();
+    void set_state_object(VmObject *obj, uint64_t offset);
 };
 
-// pmm will maintain pages of this size
-#define VM_PAGE_STRUCT_SIZE (sizeof(vm_page))
+// assert that the page structure isn't growing uncontrollably
 static_assert(sizeof(vm_page) == 0x38, "");
 
 enum vm_page_state {
     VM_PAGE_STATE_FREE,
     VM_PAGE_STATE_ALLOC,
+    VM_PAGE_STATE_OBJECT,
     VM_PAGE_STATE_WIRED,
     VM_PAGE_STATE_HEAP,
-    VM_PAGE_STATE_OBJECT,
     VM_PAGE_STATE_MMU, /* allocated to serve arch-specific mmu purposes */
 
     _VM_PAGE_STATE_COUNT
 };
 
 // helpers
-static inline bool page_is_free(const vm_page* page) {
-    return page->state == VM_PAGE_STATE_FREE;
+inline bool vm_page::is_free() {
+    return state == VM_PAGE_STATE_FREE;
 }
 
 const char* page_state_to_string(unsigned int state);

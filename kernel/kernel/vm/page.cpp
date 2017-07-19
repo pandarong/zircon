@@ -13,6 +13,9 @@
 #include <lib/console.h>
 #include <stdio.h>
 #include <string.h>
+#include <trace.h>
+
+#define LOCAL_TRACE 1
 
 const char* page_state_to_string(unsigned int state) {
     switch (state) {
@@ -31,6 +34,14 @@ const char* page_state_to_string(unsigned int state) {
     default:
         return "unknown";
     }
+}
+
+void vm_page::set_state_alloc() {
+    LTRACEF("page %p: prev state %s\n", this, page_state_to_string(state));
+
+    DEBUG_ASSERT(state == VM_PAGE_STATE_FREE);
+
+    state = VM_PAGE_STATE_ALLOC;
 }
 
 void dump_page(const vm_page* page) {

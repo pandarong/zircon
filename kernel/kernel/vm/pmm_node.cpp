@@ -80,9 +80,10 @@ vm_page* PmmNode::AllocPage(uint alloc_flags, paddr_t* pa) {
 
     free_count_--;
 
-    DEBUG_ASSERT(page_is_free(page));
+    DEBUG_ASSERT(page->is_free());
 
-    page->state = VM_PAGE_STATE_ALLOC;
+    page->set_state_alloc();
+
 #if PMM_ENABLE_FREE_FILL
     CheckFreeFill(page);
 #endif
@@ -119,7 +120,7 @@ size_t PmmNode::AllocPages(size_t count, uint alloc_flags, list_node* list) {
 
         free_count_--;
 
-        DEBUG_ASSERT(page_is_free(page));
+        DEBUG_ASSERT(page->is_free());
 #if PMM_ENABLE_FREE_FILL
         CheckFreeFill(page);
 #endif
@@ -151,7 +152,7 @@ size_t PmmNode::AllocRange(paddr_t address, size_t count, list_node* list) {
             if (!page)
                 break;
 
-            if (!page_is_free(page))
+            if (!page->is_free())
                 break;
 
             list_delete(&page->node);
@@ -196,7 +197,7 @@ size_t PmmNode::AllocContiguous(const size_t count, uint alloc_flags, uint8_t al
 
         /* remove the pages from the run out of the free list */
         for (size_t i = 0; i < count; i++, p++) {
-            DEBUG_ASSERT_MSG(page_is_free(p), "p %p state %u\n", p, p->state);
+            DEBUG_ASSERT_MSG(p->is_free(), "p %p state %u\n", p, p->state);
             DEBUG_ASSERT(list_in_list(&p->node));
 
             list_delete(&p->node);
@@ -233,7 +234,7 @@ size_t PmmNode::Free(list_node* list) {
         vm_page* page = list_remove_head_type(list, vm_page, free.node);
 
         DEBUG_ASSERT(page->state != VM_PAGE_STATE_OBJECT || page->object.pin_count == 0);
-        DEBUG_ASSERT(!page_is_free(page));
+        DEBUG_ASSERT(!page->is_free());
 
 #if PMM_ENABLE_FREE_FILL
         FreeFill(page);
