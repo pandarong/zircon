@@ -59,8 +59,8 @@ done_add:
 void PmmNode::AddFreePages(list_node *list) {
     LTRACEF("list %p\n", list);
 
-    vm_page_t *temp, *page;
-    list_for_every_entry_safe(list, page, temp, vm_page_t, node) {
+    vm_page *temp, *page;
+    list_for_every_entry_safe(list, page, temp, vm_page, node) {
         list_delete(&page->node);
         list_add_tail(&free_list_, &page->node);
         free_count_++;
@@ -69,10 +69,10 @@ void PmmNode::AddFreePages(list_node *list) {
     LTRACEF("free count now %" PRIu64 "\n", free_count_);
 }
 
-vm_page_t* PmmNode::AllocPage(uint alloc_flags, paddr_t* pa) {
+vm_page* PmmNode::AllocPage(uint alloc_flags, paddr_t* pa) {
     AutoLock al(&lock_);
 
-    vm_page_t* page = list_remove_head_type(&free_list_, vm_page_t, node);
+    vm_page* page = list_remove_head_type(&free_list_, vm_page, node);
     if (!page)
         return nullptr;
 
@@ -109,7 +109,7 @@ size_t PmmNode::AllocPages(size_t count, uint alloc_flags, list_node* list) {
 
     size_t allocated = 0;
     while (allocated < count) {
-        vm_page_t* page = list_remove_head_type(&free_list_, vm_page_t, node);
+        vm_page* page = list_remove_head_type(&free_list_, vm_page, node);
         if (!page)
             return allocated;
 
@@ -147,7 +147,7 @@ size_t PmmNode::AllocRange(paddr_t address, size_t count, list_node* list) {
     /* walk through the arenas, looking to see if the physical page belongs to it */
     for (auto& a : arena_list_) {
         while (allocated < count && a.address_in_arena(address)) {
-            vm_page_t* page = a.FindSpecific(address);
+            vm_page* page = a.FindSpecific(address);
             if (!page)
                 break;
 
@@ -187,7 +187,7 @@ size_t PmmNode::AllocContiguous(const size_t count, uint alloc_flags, uint8_t al
     AutoLock al(&lock_);
 
     for (auto& a : arena_list_) {
-        vm_page_t* p = a.FindFreeContiguous(count, alignment_log2);
+        vm_page* p = a.FindFreeContiguous(count, alignment_log2);
         if (!p)
             continue;
 
@@ -230,7 +230,7 @@ size_t PmmNode::Free(list_node* list) {
 
     uint count = 0;
     while (!list_is_empty(list)) {
-        vm_page_t* page = list_remove_head_type(list, vm_page_t, free.node);
+        vm_page* page = list_remove_head_type(list, vm_page, free.node);
 
         DEBUG_ASSERT(page->state != VM_PAGE_STATE_OBJECT || page->object.pin_count == 0);
         DEBUG_ASSERT(!page_is_free(page));
@@ -298,21 +298,21 @@ void PmmNode::Dump(bool is_panic) const TA_NO_THREAD_SAFETY_ANALYSIS {
 void PmmNode::EnforceFill() {
     DEBUG_ASSERT(!enforce_fill_);
 
-    vm_page_t* page;
-    list_for_every_entry (&free_list_, page, vm_page_t, node) {
+    vm_page* page;
+    list_for_every_entry (&free_list_, page, vm_page, node) {
         FreeFill(page);
     }
 
     enforce_fill_ = true;
 }
 
-void PmmNode::FreeFill(vm_page_t* page) {
+void PmmNode::FreeFill(vm_page* page) {
     void* kvaddr = paddr_to_kvaddr(page->paddr);
     DEBUG_ASSERT(is_kernel_address((vaddr_t)kvaddr));
     memset(kvaddr, PMM_FREE_FILL_BYTE, PAGE_SIZE);
 }
 
-void PmmNode::CheckFreeFill(vm_page_t* page) {
+void PmmNode::CheckFreeFill(vm_page* page) {
     uint8_t* kvaddr = static_cast<uint8_t*>(paddr_to_kvaddr(page->paddr));
     for (size_t j = 0; j < PAGE_SIZE; ++j) {
         ASSERT(!enforce_fill_ || *(kvaddr + j) == PMM_FREE_FILL_BYTE);

@@ -44,11 +44,11 @@ static void pmm_enforce_fill(uint level) {
 LK_INIT_HOOK(pmm_fill, &pmm_enforce_fill, LK_INIT_LEVEL_VM);
 #endif
 
-paddr_t vm_page_to_paddr(const vm_page_t* page) {
+paddr_t vm_page_to_paddr(const vm_page* page) {
     return page->paddr;
 }
 
-vm_page_t* paddr_to_vm_page(paddr_t addr) {
+vm_page* paddr_to_vm_page(paddr_t addr) {
     return pmm_node.PaddrToPage(addr);
 }
 
@@ -56,7 +56,7 @@ status_t pmm_add_arena(const pmm_arena_info_t* info) {
     return pmm_node.AddArena(info);
 }
 
-vm_page_t* pmm_alloc_page(uint alloc_flags, paddr_t* pa) {
+vm_page* pmm_alloc_page(uint alloc_flags, paddr_t* pa) {
     return pmm_node.AllocPage(alloc_flags, pa);
 }
 
@@ -80,7 +80,7 @@ void* pmm_alloc_kpages(size_t count, list_node* list, paddr_t* _pa) {
     paddr_t pa;
     /* fast path for single count allocations */
     if (count == 1) {
-        vm_page_t* p = pmm_node.AllocPage(PMM_ALLOC_FLAG_KMAP, &pa);
+        vm_page* p = pmm_node.AllocPage(PMM_ALLOC_FLAG_KMAP, &pa);
         if (!p)
             return nullptr;
 
@@ -103,11 +103,11 @@ void* pmm_alloc_kpages(size_t count, list_node* list, paddr_t* _pa) {
 }
 
 /* allocate a single page from a KMAP arena and return its virtual address */
-void* pmm_alloc_kpage(paddr_t* _pa, vm_page_t** _p) {
+void* pmm_alloc_kpage(paddr_t* _pa, vm_page** _p) {
     LTRACE_ENTRY;
 
     paddr_t pa;
-    vm_page_t* p = pmm_node.AllocPage(PMM_ALLOC_FLAG_KMAP, &pa);
+    vm_page* p = pmm_node.AllocPage(PMM_ALLOC_FLAG_KMAP, &pa);
     if (!p)
         return nullptr;
 
@@ -130,7 +130,7 @@ size_t pmm_free_kpages(void* _ptr, size_t count) {
     list_initialize(&list);
 
     while (count > 0) {
-        vm_page_t* p = paddr_to_vm_page(vaddr_to_paddr(ptr));
+        vm_page* p = paddr_to_vm_page(vaddr_to_paddr(ptr));
         if (p) {
             list_add_tail(&list, &p->free.node);
         }
@@ -146,7 +146,7 @@ size_t pmm_free(list_node* list) {
     return pmm_node.Free(list);
 }
 
-size_t pmm_free_page(vm_page_t* page) {
+size_t pmm_free_page(vm_page* page) {
     list_node list;
     list_initialize(&list);
 

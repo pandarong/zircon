@@ -38,13 +38,13 @@ public:
     // |state_count|. Does not zero out the entries first.
     void CountStates(size_t state_count[_VM_PAGE_STATE_COUNT]) const;
 
-    vm_page_t* get_page(size_t index) { return &page_array_[index]; }
+    vm_page* get_page(size_t index) { return &page_array_[index]; }
 
     // find a free run of contiguous pages
-    vm_page_t* FindFreeContiguous(size_t count, uint8_t alignment_log2);
+    vm_page* FindFreeContiguous(size_t count, uint8_t alignment_log2);
 
     // return a pointer to a specific page
-    vm_page_t* FindSpecific(paddr_t pa);
+    vm_page* FindSpecific(paddr_t pa);
 
     // helpers
     bool page_belongs_to_arena(const vm_page* page) const {
@@ -61,5 +61,5 @@ private:
     mxtl::Canary<mxtl::magic("PARN")> canary_;
 
     const pmm_arena_info_t info_;
-    vm_page_t* page_array_ = nullptr;
+    vm_page* page_array_ = nullptr;
 };

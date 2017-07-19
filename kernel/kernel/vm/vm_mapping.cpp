@@ -550,7 +550,7 @@ status_t VmMapping::PageFault(vaddr_t va, const uint pf_flags) {
 
     // fault in or grab an existing page
     paddr_t new_pa;
-    vm_page_t* page;
+    vm_page* page;
     status_t status = object_->GetPageLocked(vmo_offset, pf_flags, nullptr, &page, &new_pa);
     if (status < 0) {
         TRACEF("ERROR: failed to fault in or grab existing page\n");

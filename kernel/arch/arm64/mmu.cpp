@@ -273,7 +273,7 @@ void ArmArchVmAspace::FreePageTable(void* vaddr, paddr_t paddr, uint page_size_s
     LTRACEF("vaddr %p paddr 0x%lx page_size_shift %u\n", vaddr, paddr, page_size_shift);
 
     size_t size = 1U << page_size_shift;
-    vm_page_t* page;
+    vm_page* page;
 
     if (size >= PAGE_SIZE) {
         page = paddr_to_vm_page(paddr);
@@ -832,7 +832,7 @@ status_t ArmArchVmAspace::Destroy() {
 
     // XXX make sure it's not mapped
 
-    vm_page_t* page = paddr_to_vm_page(tt_phys_);
+    vm_page* page = paddr_to_vm_page(tt_phys_);
     DEBUG_ASSERT(page);
     pmm_free_page(page);
 

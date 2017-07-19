@@ -210,7 +210,7 @@ EptInfo::EptInfo() {
 }
 
 VmxPage::~VmxPage() {
-    vm_page_t* page = paddr_to_vm_page(pa_);
+    vm_page* page = paddr_to_vm_page(pa_);
     if (page != nullptr)
         pmm_free_page(page);
 }

@@ -204,7 +204,7 @@ static bool guest_physical_address_space_map_apic_page(void* context) {
 
     // Allocate a page to use as the APIC page.
     paddr_t paddr = 0;
-    vm_page_t* vm_page = pmm_alloc_page(0, &paddr);
+    vm_page* vm_page = pmm_alloc_page(0, &paddr);
     EXPECT_NONNULL(vm_page, "Uable to allocate a page\n");
 
     // Map APIC page in an arbitrary location.

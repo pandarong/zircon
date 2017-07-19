@@ -35,12 +35,12 @@ void ZeroPage(paddr_t pa) {
     arch_zero_page(ptr);
 }
 
-void ZeroPage(vm_page_t* p) {
+void ZeroPage(vm_page* p) {
     paddr_t pa = vm_page_to_paddr(p);
     ZeroPage(pa);
 }
 
-void InitializeVmPage(vm_page_t* p) {
+void InitializeVmPage(vm_page* p) {
     DEBUG_ASSERT(p->state == VM_PAGE_STATE_ALLOC);
     p->state = VM_PAGE_STATE_OBJECT;
     p->object.pin_count = 0;
@@ -177,13 +177,13 @@ size_t VmObjectPaged::AllocatedPagesInRange(uint64_t offset, uint64_t len) const
     return count;
 }
 
-status_t VmObjectPaged::AddPage(vm_page_t* p, uint64_t offset) {
+status_t VmObjectPaged::AddPage(vm_page* p, uint64_t offset) {
     AutoLock a(&lock_);
 
     return AddPageLocked(p, offset);
 }
 
-status_t VmObjectPaged::AddPageLocked(vm_page_t* p, uint64_t offset) {
+status_t VmObjectPaged::AddPageLocked(vm_page* p, uint64_t offset) {
     canary_.Assert();
     DEBUG_ASSERT(lock_.IsHeld());
 
@@ -227,7 +227,7 @@ mx_status_t VmObjectPaged::CreateFromROData(const void* data, size_t size, mxtl:
 
         for (size_t count = 0; count < size / PAGE_SIZE; count++) {
             paddr_t pa = start_paddr + count * PAGE_SIZE;
-            vm_page_t* page = paddr_to_vm_page(pa);
+            vm_page* page = paddr_to_vm_page(pa);
             ASSERT(page);
 
             if (page->state == VM_PAGE_STATE_WIRED) {
@@ -262,19 +262,19 @@ mx_status_t VmObjectPaged::CreateFromROData(const void* data, size_t size, mxtl:
 // Looks up the page at the requested offset, faulting it in if requested and necessary.  If
 // this VMO has a parent and the requested page isn't found, the parent will be searched.
 //
-// |free_list|, if not NULL, is a list of allocated but unused vm_page_t that
+// |free_list|, if not NULL, is a list of allocated but unused vm_page that
 // this function may allocate from.  This function will need at most one entry,
 // and will not fail if |free_list| is a non-empty list, faulting in was requested,
 // and offset is in range.
 status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
-                                      vm_page_t** const page_out, paddr_t* const pa_out) {
+                                      vm_page** const page_out, paddr_t* const pa_out) {
     canary_.Assert();
     DEBUG_ASSERT(lock_.IsHeld());
 
     if (offset >= size_)
         return MX_ERR_OUT_OF_RANGE;
 
-    vm_page_t* p;
+    vm_page* p;
     paddr_t pa;
 
     // see if we already have a page at that offset
@@ -318,9 +318,9 @@ status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_node*
 
             // if we're write faulting, we need to clone it and return the new page
             paddr_t pa_clone;
-            vm_page_t* p_clone = nullptr;
+            vm_page* p_clone = nullptr;
             if (free_list) {
-                p_clone = list_remove_head_type(free_list, vm_page_t, free.node);
+                p_clone = list_remove_head_type(free_list, vm_page, free.node);
                 if (p_clone) {
                     pa_clone = vm_page_to_paddr(p_clone);
                 }
@@ -375,7 +375,7 @@ status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_node*
 
     // allocate a page
     if (free_list) {
-        p = list_remove_head_type(free_list, vm_page_t, free.node);
+        p = list_remove_head_type(free_list, vm_page, free.node);
         if (p) {
             pa = vm_page_to_paddr(p);
         }
@@ -466,7 +466,7 @@ status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len, uint64_t* com
     // add them to the appropriate range of the object
     for (uint64_t o = offset; o < end; o += PAGE_SIZE) {
         // Don't commit if we already have this page
-        vm_page_t* p = page_list_.GetPage(o);
+        vm_page* p = page_list_.GetPage(o);
         if (p) {
             continue;
         }
@@ -549,7 +549,7 @@ status_t VmObjectPaged::CommitRangeContiguous(uint64_t offset, uint64_t len, uin
 
     // add them to the appropriate range of the object
     for (uint64_t o = offset; o < end; o += PAGE_SIZE) {
-        vm_page_t* p = list_remove_head_type(&page_list, vm_page_t, free.node);
+        vm_page* p = list_remove_head_type(&page_list, vm_page, free.node);
         ASSERT(p);
 
         InitializeVmPage(p);

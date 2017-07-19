@@ -212,8 +212,8 @@ static void platform_preserve_ramdisk(void) {
     }
 
     // mark all of the pages we allocated as WIRED
-    vm_page_t *p;
-    list_for_every_entry(&list, p, vm_page_t, free.node) {
+    vm_page *p;
+    list_for_every_entry(&list, p, vm_page, free.node) {
         p->state = VM_PAGE_STATE_WIRED;
     }
 

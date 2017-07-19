@@ -69,7 +69,7 @@ public:
     status_t SyncCache(const uint64_t offset, const uint64_t len) override;
 
     status_t GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
-                           vm_page_t**, paddr_t*) override
+                           vm_page**, paddr_t*) override
         // Calls a Locked method of the parent, which confuses analysis.
         TA_NO_THREAD_SAFETY_ANALYSIS;
 
@@ -100,11 +100,11 @@ private:
     status_t CacheOp(const uint64_t offset, const uint64_t len, const CacheOpType type);
 
     // add a page to the object
-    status_t AddPage(vm_page_t* p, uint64_t offset);
-    status_t AddPageLocked(vm_page_t* p, uint64_t offset) TA_REQ(lock_);
+    status_t AddPage(vm_page* p, uint64_t offset);
+    status_t AddPageLocked(vm_page* p, uint64_t offset) TA_REQ(lock_);
 
     // internal page list routine
-    void AddPageToArray(size_t index, vm_page_t* p);
+    void AddPageToArray(size_t index, vm_page* p);
 
     status_t PinLocked(uint64_t offset, uint64_t len) TA_REQ(lock_);
     void UnpinLocked(uint64_t offset, uint64_t len) TA_REQ(lock_);

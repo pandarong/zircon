@@ -19,7 +19,7 @@ class VmObject;
 #define VM_PAGE_OBJECT_MAX_PIN_COUNT ((1ul << VM_PAGE_OBJECT_PIN_COUNT_BITS) - 1)
 
 // core per page structure allocated at pmm arena creation time
-typedef struct vm_page {
+struct vm_page {
     struct list_node node;
     paddr_t paddr;
     // offset 0x18
@@ -52,11 +52,11 @@ typedef struct vm_page {
 
         uint8_t pad[0x38 - 0x20]; // pad out to 0x38 bytes
     };
-} vm_page_t;
+};
 
 // pmm will maintain pages of this size
-#define VM_PAGE_STRUCT_SIZE (sizeof(vm_page_t))
-static_assert(sizeof(vm_page_t) == 0x38, "");
+#define VM_PAGE_STRUCT_SIZE (sizeof(vm_page))
+static_assert(sizeof(vm_page) == 0x38, "");
 
 enum vm_page_state {
     VM_PAGE_STATE_FREE,
@@ -70,9 +70,9 @@ enum vm_page_state {
 };
 
 // helpers
-static inline bool page_is_free(const vm_page_t* page) {
+static inline bool page_is_free(const vm_page* page) {
     return page->state == VM_PAGE_STATE_FREE;
 }
 
 const char* page_state_to_string(unsigned int state);
-void dump_page(const vm_page_t* page);
+void dump_page(const vm_page* page);

@@ -33,7 +33,7 @@ const char* page_state_to_string(unsigned int state) {
     }
 }
 
-void dump_page(const vm_page_t* page) {
+void dump_page(const vm_page* page) {
     printf("page %p: address %#" PRIxPTR " state %s flags %#x\n", page, vm_page_to_paddr(page),
            page_state_to_string(page->state), page->flags);
 }

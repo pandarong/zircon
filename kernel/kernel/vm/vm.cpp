@@ -36,7 +36,7 @@ extern int __bss_start;
 extern int __bss_end;
 
 // boot time allocated page full of zeros
-vm_page_t* zero_page;
+vm_page* zero_page;
 paddr_t zero_page_paddr;
 
 namespace {
@@ -88,8 +88,8 @@ void MarkPagesInUse(vaddr_t va, size_t len) {
         pmm_alloc_range(start_pa, runlen / PAGE_SIZE, &list);
 
     // mark all of the pages we allocated as WIRED
-    vm_page_t* p;
-    list_for_every_entry (&list, p, vm_page_t, free.node) { p->state = VM_PAGE_STATE_WIRED; }
+    vm_page* p;
+    list_for_every_entry (&list, p, vm_page, free.node) { p->state = VM_PAGE_STATE_WIRED; }
 }
 
 status_t ProtectRegion(VmAspace* aspace, vaddr_t va, uint arch_mmu_flags) {

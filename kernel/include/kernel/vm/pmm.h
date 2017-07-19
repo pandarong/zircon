@@ -40,7 +40,7 @@ status_t pmm_add_arena(const pmm_arena_info_t* arena);
 size_t pmm_alloc_pages(size_t count, uint alloc_flags, list_node* list);
 
 // Allocate a single page of physical memory.
-vm_page_t* pmm_alloc_page(uint alloc_flags, paddr_t* pa);
+vm_page* pmm_alloc_page(uint alloc_flags, paddr_t* pa);
 
 // Allocate a specific range of physical pages, adding to the tail of the passed list.
 // Returns the number of pages allocated.
@@ -57,7 +57,7 @@ size_t pmm_alloc_contiguous(size_t count, uint alloc_flags, uint8_t align_log2, 
 size_t pmm_free(list_node* list);
 
 // Helper routine for the above.
-size_t pmm_free_page(vm_page_t* page);
+size_t pmm_free_page(vm_page* page);
 
 // Return count of unallocated physical pages in system
 uint64_t pmm_count_free_pages();
@@ -76,7 +76,7 @@ void pmm_count_total_states(size_t state_count[_VM_PAGE_STATE_COUNT]);
 void* pmm_alloc_kpages(size_t count, list_node* list, paddr_t* pa);
 
 // Same as above but a single page at a time
-void* pmm_alloc_kpage(paddr_t* pa, vm_page_t** p);
+void* pmm_alloc_kpage(paddr_t* pa, vm_page** p);
 
 size_t pmm_free_kpages(void* ptr, size_t count);
 
@@ -86,8 +86,8 @@ void* paddr_to_kvaddr(paddr_t pa);
 // virtual to physical
 paddr_t vaddr_to_paddr(const void* va);
 
-// vm_page_t to physical address
-paddr_t vm_page_to_paddr(const vm_page_t* page);
+// vm_page to physical address
+paddr_t vm_page_to_paddr(const vm_page* page);
 
-// paddr to vm_page_t
-vm_page_t* paddr_to_vm_page(paddr_t addr);
+// paddr to vm_page
+vm_page* paddr_to_vm_page(paddr_t addr);

@@ -68,7 +68,7 @@ void VmObjectPhysical::Dump(uint depth, bool verbose) {
 
 // get the physical address of a page at offset
 status_t VmObjectPhysical::GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
-                                         vm_page_t** _page, paddr_t* _pa) {
+                                         vm_page** _page, paddr_t* _pa) {
     canary_.Assert();
 
     if (_page)

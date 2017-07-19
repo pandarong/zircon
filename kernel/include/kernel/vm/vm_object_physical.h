@@ -37,7 +37,7 @@ public:
     void Dump(uint depth, bool verbose) override;
 
     status_t GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
-                           vm_page_t**, paddr_t* pa) override TA_REQ(lock_);
+                           vm_page**, paddr_t* pa) override TA_REQ(lock_);
 
     status_t GetMappingCachePolicy(uint32_t* cache_policy) override;
     status_t SetMappingCachePolicy(const uint32_t cache_policy) override;

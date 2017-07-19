@@ -549,7 +549,7 @@ void X86ArchVmAspace::UnmapEntry(X86ArchVmAspace* aspace, vaddr_t vaddr, volatil
  * @brief Allocating a new page table
  */
 static volatile pt_entry_t* _map_alloc_page(void) {
-    vm_page_t* p;
+    vm_page* p;
 
     pt_entry_t* page_ptr = static_cast<pt_entry_t*>(pmm_alloc_kpage(nullptr, &p));
     if (!page_ptr)
@@ -1277,7 +1277,7 @@ status_t X86ArchVmAspace::Init(vaddr_t base, size_t size, uint mmu_flags) {
         pt_virt_ = (pt_entry_t*)X86_PHYS_TO_VIRT(pt_phys_);
         LTRACEF("kernel aspace: pt phys %#" PRIxPTR ", virt %p\n", pt_phys_, pt_virt_);
     } else if (mmu_flags & ARCH_ASPACE_FLAG_GUEST_PASPACE) {
-        vm_page_t* p = pmm_alloc_page(0, &pt_phys_);
+        vm_page* p = pmm_alloc_page(0, &pt_phys_);
         if (p == nullptr) {
             TRACEF("error allocating top level page directory\n");
             return MX_ERR_NO_MEMORY;
@@ -1289,7 +1289,7 @@ status_t X86ArchVmAspace::Init(vaddr_t base, size_t size, uint mmu_flags) {
     } else {
         /* allocate a top level page table for the new address space */
         paddr_t pa;
-        vm_page_t* p;
+        vm_page* p;
         pt_virt_ = (pt_entry_t*)pmm_alloc_kpage(&pa, &p);
         if (!pt_virt_) {
             TRACEF("error allocating top level page directory\n");

@@ -24,11 +24,11 @@ public:
 
     DISALLOW_COPY_ASSIGN_AND_MOVE(PmmNode);
 
-    paddr_t PageToPaddr(const vm_page_t* page) TA_NO_THREAD_SAFETY_ANALYSIS;
-    vm_page_t* PaddrToPage(paddr_t addr) TA_NO_THREAD_SAFETY_ANALYSIS;
+    paddr_t PageToPaddr(const vm_page* page) TA_NO_THREAD_SAFETY_ANALYSIS;
+    vm_page* PaddrToPage(paddr_t addr) TA_NO_THREAD_SAFETY_ANALYSIS;
 
     // main allocator routines
-    vm_page_t* AllocPage(uint alloc_flags, paddr_t* pa);
+    vm_page* AllocPage(uint alloc_flags, paddr_t* pa);
     size_t AllocPages(size_t count, uint alloc_flags, list_node* list);
     size_t AllocRange(paddr_t address, size_t count, list_node* list);
     size_t AllocContiguous(size_t count, uint alloc_flags, uint8_t alignment_log2, paddr_t* pa, list_node* list);
@@ -71,8 +71,8 @@ private:
     list_node wired_list_ TA_GUARDED(lock_) = LIST_INITIAL_VALUE(wired_list_);
 
 #if PMM_ENABLE_FREE_FILL
-    void FreeFill(vm_page_t* page);
-    void CheckFreeFill(vm_page_t* page);
+    void FreeFill(vm_page* page);
+    void CheckFreeFill(vm_page* page);
 
     bool enforce_fill_ = false;
 #endif
@@ -81,7 +81,7 @@ private:
 
 // We don't need to hold the arena lock while executing this, since it is
 // only accesses values that are set once during system initialization.
-inline vm_page_t* PmmNode::PaddrToPage(paddr_t addr) TA_NO_THREAD_SAFETY_ANALYSIS {
+inline vm_page* PmmNode::PaddrToPage(paddr_t addr) TA_NO_THREAD_SAFETY_ANALYSIS {
     for (auto& a : arena_list_) {
         if (a.address_in_arena(addr)) {
             size_t index = (addr - a.base()) / PAGE_SIZE;

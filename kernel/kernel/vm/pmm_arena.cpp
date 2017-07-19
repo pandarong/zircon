@@ -32,7 +32,7 @@ void PmmArena::BootAllocArray(PmmNode *node) {
 
     memset(raw_page_array, 0, size);
 
-    page_array_ = (vm_page_t*)raw_page_array;
+    page_array_ = (vm_page*)raw_page_array;
 
     /* add them to the free list */
     list_node list;
@@ -48,7 +48,7 @@ void PmmArena::BootAllocArray(PmmNode *node) {
     node->AddFreePages(&list);
 }
 
-vm_page_t* PmmArena::FindSpecific(paddr_t pa) {
+vm_page* PmmArena::FindSpecific(paddr_t pa) {
     if (!address_in_arena(pa))
         return nullptr;
 
@@ -59,7 +59,7 @@ vm_page_t* PmmArena::FindSpecific(paddr_t pa) {
     return get_page(index);
 }
 
-vm_page_t* PmmArena::FindFreeContiguous(size_t count, uint8_t alignment_log2) {
+vm_page* PmmArena::FindFreeContiguous(size_t count, uint8_t alignment_log2) {
     /* walk the list starting at alignment boundaries.
      * calculate the starting offset into this arena, based on the
      * base address of the arena to handle the case where the arena
@@ -78,7 +78,7 @@ retry:
     /* search while we're still within the arena and have a chance of finding a slot
        (start + count < end of arena) */
     while ((start < size() / PAGE_SIZE) && ((start + count) <= size() / PAGE_SIZE)) {
-        vm_page_t* p = &page_array_[start];
+        vm_page* p = &page_array_[start];
         for (uint i = 0; i < count; i++) {
             if (!page_is_free(p)) {
                 /* this run is broken, break out of the inner loop.

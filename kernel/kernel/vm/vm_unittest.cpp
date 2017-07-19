@@ -18,16 +18,16 @@
 
 static const uint kArchRwFlags = ARCH_MMU_FLAG_PERM_READ | ARCH_MMU_FLAG_PERM_WRITE;
 
-// Allocates a single page, translates it to a vm_page_t and frees it.
+// Allocates a single page, translates it to a vm_page and frees it.
 static bool pmm_smoke_test(void* context) {
     BEGIN_TEST;
     paddr_t pa;
 
-    vm_page_t* page = pmm_alloc_page(0, &pa);
+    vm_page* page = pmm_alloc_page(0, &pa);
     EXPECT_NEQ(nullptr, page, "pmm_alloc single page");
     EXPECT_NEQ(0u, pa, "pmm_alloc single page");
 
-    vm_page_t* page2 = paddr_to_vm_page(pa);
+    vm_page* page2 = paddr_to_vm_page(pa);
     EXPECT_EQ(page2, page, "paddr_to_vm_page on single page");
 
     auto ret = pmm_free_page(page);
@@ -759,7 +759,7 @@ static bool vmo_cache_test(void* context) {
     BEGIN_TEST;
 
     paddr_t pa;
-    vm_page_t* vm_page = pmm_alloc_page(0, &pa);
+    vm_page* vm_page = pmm_alloc_page(0, &pa);
     auto ka = VmAspace::kernel_aspace();
     uint32_t cache_policy = ARCH_MMU_FLAG_UNCACHED_DEVICE;
     uint32_t cache_policy_get;
