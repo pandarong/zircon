@@ -32,6 +32,7 @@ public:
     size_t AllocPages(size_t count, uint alloc_flags, list_node* list);
     size_t AllocRange(paddr_t address, size_t count, list_node* list);
     size_t AllocContiguous(size_t count, uint alloc_flags, uint8_t alignment_log2, paddr_t* pa, list_node* list);
+    void Free(vm_page* page);
     size_t Free(list_node* list);
 
     uint64_t CountFreePages() const;

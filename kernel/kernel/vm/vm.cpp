@@ -89,7 +89,7 @@ void MarkPagesInUse(vaddr_t va, size_t len) {
 
     // mark all of the pages we allocated as WIRED
     vm_page* p;
-    list_for_every_entry (&list, p, vm_page, free.node) { p->state = VM_PAGE_STATE_WIRED; }
+    list_for_every_entry (&list, p, vm_page, queue_node) { pmm_page_set_state_wired(p); }
 }
 
 status_t ProtectRegion(VmAspace* aspace, vaddr_t va, uint arch_mmu_flags) {

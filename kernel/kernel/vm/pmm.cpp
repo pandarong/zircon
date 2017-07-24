@@ -85,7 +85,7 @@ void* pmm_alloc_kpages(size_t count, list_node* list, paddr_t* _pa) {
             return nullptr;
 
         if (list) {
-            list_add_tail(list, &p->free.node);
+            list_add_tail(list, &p->queue_node);
         }
     } else {
         size_t alloc_count = pmm_node.AllocContiguous(count, PMM_ALLOC_FLAG_KMAP, PAGE_SIZE_SHIFT, &pa, list);
@@ -132,7 +132,12 @@ size_t pmm_free_kpages(void* _ptr, size_t count) {
     while (count > 0) {
         vm_page* p = paddr_to_vm_page(vaddr_to_paddr(ptr));
         if (p) {
-            list_add_tail(&list, &p->free.node);
+            DEBUG_ASSERT(!p->is_free());
+
+            if (list_in_list(&p->queue_node))
+                list_delete(&p->queue_node);
+
+            list_add_tail(&list, &p->queue_node);
         }
 
         ptr += PAGE_SIZE;
@@ -147,12 +152,8 @@ size_t pmm_free(list_node* list) {
 }
 
 size_t pmm_free_page(vm_page* page) {
-    list_node list;
-    list_initialize(&list);
-
-    list_add_head(&list, &page->free.node);
-
-    return pmm_free(&list);
+    pmm_node.Free(page);
+    return 1;
 }
 
 uint64_t pmm_count_free_pages() {

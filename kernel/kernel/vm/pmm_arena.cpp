@@ -43,7 +43,7 @@ void PmmArena::BootAllocArray(PmmNode *node) {
         p.paddr = base() + i * PAGE_SIZE;
         p.state = VM_PAGE_STATE_FREE;
 
-        list_add_tail(&list, &p.node);
+        list_add_tail(&list, &p.queue_node);
     }
 
     node->AddFreePages(&list);
