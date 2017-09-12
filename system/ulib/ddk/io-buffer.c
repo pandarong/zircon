@@ -5,11 +5,14 @@
 #include <ddk/io-buffer.h>
 #include <ddk/debug.h>
 #include <ddk/driver.h>
+#include <zircon/assert.h>
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "internal.h"
 
 static zx_status_t io_buffer_init_common(io_buffer_t* buffer, zx_handle_t vmo_handle, size_t size,
                                          zx_off_t offset, uint32_t flags) {
@@ -40,8 +43,18 @@ static zx_status_t io_buffer_init_common(io_buffer_t* buffer, zx_handle_t vmo_ha
     }
 
     zx_paddr_t phys;
-    size_t lookup_size = size < PAGE_SIZE ? size : PAGE_SIZE;
-    status = zx_vmo_op_range(vmo_handle, ZX_VMO_OP_LOOKUP, 0, lookup_size, &phys, sizeof(phys));
+    if (io_default_bti == ZX_HANDLE_INVALID) {
+        size_t lookup_size = size < PAGE_SIZE ? size : PAGE_SIZE;
+        status = zx_vmo_op_range(vmo_handle, ZX_VMO_OP_LOOKUP, 0, lookup_size, &phys, sizeof(phys));
+    } else {
+        uint32_t actual_extents;
+        status = zx_bti_pin(io_default_bti, vmo_handle, 0, size,
+                            ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE,
+                            &phys, 1, &actual_extents);
+        // We should remove this assert by tracking the length of this array
+        // explicitly in buffer.
+        ZX_DEBUG_ASSERT(status != ZX_OK || actual_extents == 1);
+    }
     if (status != ZX_OK) {
         zxlogf(ERROR, "io_buffer: zx_vmo_op_range failed %d size: %zu\n", status, size);
         zx_vmar_unmap(zx_vmar_root_self(), virt, size);
@@ -146,6 +159,11 @@ zx_status_t io_buffer_init_physical(io_buffer_t* buffer, zx_paddr_t addr, size_t
 
 void io_buffer_release(io_buffer_t* buffer) {
     if (buffer->vmo_handle) {
+        if (io_default_bti != ZX_HANDLE_INVALID) {
+            zx_status_t status = zx_bti_unpin(io_default_bti, &buffer->phys, 1);
+            ZX_DEBUG_ASSERT(status == ZX_OK);
+        }
+
         zx_vmar_unmap(zx_vmar_root_self(), (uintptr_t)buffer->virt, buffer->size);
         zx_handle_close(buffer->vmo_handle);
         buffer->vmo_handle = ZX_HANDLE_INVALID;

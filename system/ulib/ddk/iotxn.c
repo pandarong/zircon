@@ -16,6 +16,8 @@
 #include <inttypes.h>
 #include <threads.h>
 
+#include "internal.h"
+
 #define TRACE 0
 
 #if TRACE
@@ -35,6 +37,7 @@
 #define IOTXN_PFLAG_MMAP       (1 << 3)   // we performed mmap() on this vmo
 #define IOTXN_PFLAG_FREE       (1 << 4)   // this txn has been released
 #define IOTXN_PFLAG_QUEUED     (1 << 5)   // transaction has been queued and not yet released
+#define IOTXN_PFLAG_BTI        (1 << 6)   // this data was pinned via the BTI interface
 
 #define IOTXN_STATE_MASK       (IOTXN_PFLAG_FREE | IOTXN_PFLAG_QUEUED)
 
@@ -44,6 +47,12 @@ static mtx_t free_list_mutex = MTX_INIT;
 static size_t free_list_length = 0;
 static size_t free_list_monitor_warned = 0;
 #endif
+
+zx_handle_t io_default_bti = ZX_HANDLE_INVALID;
+void iotxn_set_default_bti(zx_handle_t bti) {
+    // TODO: locking
+    io_default_bti = bti;
+}
 
 // This assert will fail if we attempt to access the buffer of a cloned txn after it has been completed
 #define ASSERT_BUFFER_VALID(priv) ZX_DEBUG_ASSERT(!(priv->flags & IOTXN_FLAG_DEAD))
@@ -89,6 +98,7 @@ static iotxn_t* find_in_free_list(uint32_t pflags, uint64_t data_size) {
 
 // return the iotxn into the free list
 static void iotxn_release_free_list(iotxn_t* txn) {
+    xprintf("iotxn_release_free_list txn %p\n", txn);
     zx_handle_t vmo_handle = txn->vmo_handle;
     uint64_t vmo_offset = txn->vmo_offset;
     uint64_t vmo_length = txn->vmo_length;
@@ -114,6 +124,12 @@ static void iotxn_release_free_list(iotxn_t* txn) {
     } else {
         if (do_free_phys(pflags)) {
             if (phys != NULL) {
+                if (pflags & IOTXN_PFLAG_BTI) {
+                    zx_status_t status = zx_bti_unpin(io_default_bti, phys, phys_count);
+                    if (status != ZX_OK) {
+                        printf("iotxn_release_free_list: bti unpin failed %d\n", status);
+                    }
+                }
                 free(phys);
             }
         }
@@ -138,15 +154,25 @@ static void iotxn_release_free_list(iotxn_t* txn) {
         free_list_monitor_warned = free_list_length;
     }
 #endif
+    xprintf("iotxn_release_free_list released txn %p old %#x new %#x\n", txn, pflags, txn->pflags);
     mtx_unlock(&free_list_mutex);
+}
 
-    xprintf("iotxn_release_free_list released txn %p\n", txn);
+static bool is_clone(iotxn_t* txn) {
+    return txn->release_cb == iotxn_release_free_list;
 }
 
 // free the iotxn
 static void iotxn_release_free(iotxn_t* txn) {
+    xprintf("iotxn_release_free txn %p\n", txn);
     if (do_free_phys(txn->pflags)) {
         if (txn->phys != NULL) {
+            if (txn->pflags & IOTXN_PFLAG_BTI) {
+                zx_status_t status = zx_bti_unpin(io_default_bti, txn->phys, txn->phys_count);
+                if (status != ZX_OK) {
+                    printf("iotxn_release_free: bti unpin failed %d\n", status);
+                }
+            }
             free(txn->phys);
         }
     }
@@ -163,17 +189,22 @@ static void iotxn_release_free(iotxn_t* txn) {
 
 // releases data for a statically allocated iotxn
 static void iotxn_release_static(iotxn_t* txn) {
-    uint32_t pflags = txn->pflags;
-
+    xprintf("iotxn_release_static txn %p\n", txn);
     if (do_free_phys(txn->pflags)) {
         // only free the scatter list if we called physmap()
         if (txn->phys != NULL) {
+            if (txn->pflags & IOTXN_PFLAG_BTI) {
+                zx_status_t status = zx_bti_unpin(io_default_bti, txn->phys, txn->phys_count);
+                if (status != ZX_OK) {
+                    printf("iotxn_release_static: bti unpin failed %d\n", status);
+                }
+            }
             free(txn->phys);
             txn->phys = NULL;
             txn->phys_count = 0;
         }
     }
-    if (pflags & IOTXN_PFLAG_MMAP) {
+    if (txn->pflags & IOTXN_PFLAG_MMAP) {
         // only unmap if we called mmap()
         if (txn->virt) {
             zx_vmar_unmap(zx_vmar_root_self(), (uintptr_t)txn->virt, txn->vmo_length);
@@ -187,6 +218,22 @@ void iotxn_complete(iotxn_t* txn, zx_status_t status, zx_off_t actual) {
 
     ZX_DEBUG_ASSERT((txn->pflags & IOTXN_STATE_MASK) == IOTXN_PFLAG_QUEUED);
     txn->pflags &= ~IOTXN_PFLAG_QUEUED;
+
+    // If this transaction is a clone, and it pinned memory, release it before
+    // we call the complete_cb, in case the parent txn tries to pin the memory
+    // afterwards.
+    if (is_clone(txn) && do_free_phys(txn->pflags) && (txn->pflags & IOTXN_PFLAG_BTI)) {
+        ZX_DEBUG_ASSERT(txn->phys);
+
+        zx_status_t status = zx_bti_unpin(io_default_bti, txn->phys, txn->phys_count);
+        if (status != ZX_OK) {
+            printf("iotxn_complete: bti unpin failed %d\n", status);
+        }
+        free(txn->phys);
+        txn->phys = NULL;
+        txn->phys_count = 0;
+        txn->pflags &= ~(IOTXN_PFLAG_BTI | IOTXN_PFLAG_PHYSMAP);
+    }
 
     txn->actual = actual;
     txn->status = status;
@@ -214,17 +261,30 @@ ssize_t iotxn_copyto(iotxn_t* txn, const void* data, size_t length, size_t offse
 static zx_status_t iotxn_physmap_contiguous(iotxn_t* txn) {
     txn->phys = txn->phys_inline;
 
-    // for contiguous buffers, commit the whole range but just map the first
-    // page
+    // for contiguous buffers, commit the whole range
     uint64_t page_offset = ROUNDDOWN(txn->vmo_offset, PAGE_SIZE);
     zx_status_t status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_COMMIT, page_offset, txn->vmo_length, NULL, 0);
     if (status != ZX_OK) {
         goto fail;
     }
 
-    status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_LOOKUP, page_offset, PAGE_SIZE, txn->phys, sizeof(zx_paddr_t));
-    if (status != ZX_OK) {
-        goto fail;
+    if (io_default_bti == ZX_HANDLE_INVALID) {
+        status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_LOOKUP, page_offset, PAGE_SIZE, txn->phys, sizeof(zx_paddr_t));
+        if (status != ZX_OK) {
+            xprintf("iotxn_physmap_contiguous: error %d in lookup\n", status);
+            goto fail;
+        }
+    } else {
+        uint32_t actual_extents;
+        status = zx_bti_pin(io_default_bti, txn->vmo_handle, page_offset, txn->vmo_length,
+                            ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE,
+                            txn->phys, 1, &actual_extents);
+        if (status != ZX_OK) {
+            xprintf("iotxn_physmap_contiguous: error %d in bti_pin\n", status);
+            goto fail;
+        }
+        ZX_DEBUG_ASSERT(actual_extents == 1);
+        txn->pflags |= IOTXN_PFLAG_BTI;
     }
 
     txn->phys_count = 1;
@@ -253,27 +313,40 @@ static zx_status_t iotxn_physmap_paged(iotxn_t* txn) {
     zx_status_t status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_COMMIT, txn->vmo_offset, txn->vmo_length, NULL, 0);
     if (status != ZX_OK) {
         xprintf("iotxn_physmap_paged: error %d in commit\n", status);
-        if (!use_inline) {
-            free(paddrs);
-        }
-        return status;
+        goto fail;
     }
 
-    status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_LOOKUP, page_offset, page_length, paddrs, sizeof(zx_paddr_t) * pages);
-    if (status != ZX_OK) {
-        xprintf("iotxn_physmap_paged: error %d in lookup\n", status);
-        if (!use_inline) {
-            free(paddrs);
+    if (io_default_bti == ZX_HANDLE_INVALID) {
+        status = zx_vmo_op_range(txn->vmo_handle, ZX_VMO_OP_LOOKUP, page_offset, page_length, paddrs, sizeof(zx_paddr_t) * pages);
+        if (status != ZX_OK) {
+            xprintf("iotxn_physmap_paged: error %d in lookup\n", status);
+            goto fail;
         }
-        return status;
+        txn->phys_count = pages;
+    } else {
+        uint32_t actual_extents;
+        status = zx_bti_pin(io_default_bti, txn->vmo_handle, page_offset, page_length,
+                            ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE,
+                            paddrs, pages, &actual_extents);
+        if (status != ZX_OK) {
+            xprintf("iotxn_physmap_paged: error %d in bti_pin\n", status);
+            goto fail;
+        }
+        txn->phys_count = actual_extents;
+        txn->pflags |= IOTXN_PFLAG_BTI;
     }
 
     if (!use_inline) {
         txn->pflags |= IOTXN_PFLAG_PHYSMAP;
     }
     txn->phys = paddrs;
-    txn->phys_count = pages;
     return ZX_OK;
+fail:
+    if (!use_inline) {
+        free(paddrs);
+    }
+    txn->phys = NULL;
+    return status;
 }
 
 zx_status_t iotxn_physmap(iotxn_t* txn) {
@@ -289,6 +362,7 @@ zx_status_t iotxn_physmap(iotxn_t* txn) {
     } else {
         status = iotxn_physmap_paged(txn);
     }
+    xprintf("iotxn_physmap: txn %p, vmo %d, offset %#lx, len %#lx, status %d\n", txn, txn->vmo_handle, txn->vmo_offset, txn->vmo_length, status);
     return status;
 }
 
@@ -327,6 +401,8 @@ zx_status_t iotxn_clone(iotxn_t* txn, iotxn_t** out) {
     clone->complete_cb = NULL;
     // clones are always freelisted on release
     clone->release_cb = iotxn_release_free_list;
+
+    xprintf("iotxn_clone txn %p: new %p\n", txn, clone);
 
     *out = clone;
     return ZX_OK;
@@ -383,6 +459,8 @@ zx_status_t iotxn_clone_partial(iotxn_t* txn, uint64_t vmo_offset, zx_off_t leng
 void iotxn_release(iotxn_t* txn) {
     // should not release a queued transaction
     ZX_DEBUG_ASSERT((txn->pflags & IOTXN_STATE_MASK) == 0);
+
+    xprintf("iotxn_release: txn %p, vmo %d, offset %#lx, len %#lx\n", txn, txn->vmo_handle, txn->vmo_offset, txn->vmo_length);
 
     if (txn->release_cb) {
         txn->release_cb(txn);
