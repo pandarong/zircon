@@ -13,11 +13,13 @@
 #include <trace.h>
 
 #include <dev/interrupt.h>
+#include <dev/iommu.h>
 #include <dev/udisplay.h>
 #include <vm/vm.h>
 #include <vm/vm_object_paged.h>
 #include <vm/vm_object_physical.h>
 #include <lib/user_copy/user_ptr.h>
+#include <object/bus_transaction_initiator_dispatcher.h>
 #include <object/handle.h>
 #include <object/interrupt_dispatcher.h>
 #include <object/interrupt_event_dispatcher.h>
@@ -33,6 +35,8 @@
 
 #include <zircon/syscalls/iommu.h>
 #include <zircon/syscalls/pci.h>
+#include <fbl/auto_call.h>
+#include <fbl/inline_array.h>
 
 #include "syscalls_priv.h"
 
@@ -324,4 +328,132 @@ uint64_t sys_acpi_uefi_rsdp(zx_handle_t hrsrc) {
     return bootloader.acpi_rsdp;
 #endif
     return 0;
+}
+
+zx_status_t sys_bti_create(zx_handle_t iommu, uint64_t bti_id, user_out_handle* out) {
+    auto up = ProcessDispatcher::GetCurrent();
+
+    fbl::RefPtr<IommuDispatcher> iommu_dispatcher;
+    // TODO(teisenbe): This should probably have a right on it.
+    zx_status_t status = up->GetDispatcherWithRights(iommu, ZX_RIGHT_NONE, &iommu_dispatcher);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    fbl::RefPtr<Dispatcher> dispatcher;
+    zx_rights_t rights;
+    // TODO(teisenbe): Migrate BusTransactionInitiatorDispatcher::Create to
+    // taking the iommu_dispatcher
+    status = BusTransactionInitiatorDispatcher::Create(iommu_dispatcher->iommu(), bti_id,
+                                                       &dispatcher, &rights);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    return out->make(fbl::move(dispatcher), rights);
+}
+
+zx_status_t sys_bti_pin(zx_handle_t bti, zx_handle_t vmo, uint64_t offset, uint64_t size,
+                        uint32_t perms, user_out_ptr<uint64_t> extents, uint32_t extents_len,
+                        user_out_ptr<uint32_t> actual_extents_len) {
+    auto up = ProcessDispatcher::GetCurrent();
+
+    if (!IS_PAGE_ALIGNED(offset)) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+
+    fbl::RefPtr<BusTransactionInitiatorDispatcher> bti_dispatcher;
+    zx_status_t status = up->GetDispatcherWithRights(bti, ZX_RIGHT_MAP, &bti_dispatcher);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    fbl::RefPtr<VmObjectDispatcher> vmo_dispatcher;
+    zx_rights_t vmo_rights;
+    status = up->GetDispatcherAndRights(vmo, &vmo_dispatcher, &vmo_rights);
+    if (status != ZX_OK) {
+        return status;
+    }
+    if (!(vmo_rights & ZX_RIGHT_MAP)) {
+        return ZX_ERR_ACCESS_DENIED;
+    }
+
+    // Convert requested permissions and check against VMO rights
+    uint32_t iommu_perms = 0;
+    if (perms & ZX_VM_FLAG_PERM_READ) {
+        if (!(vmo_rights & ZX_RIGHT_READ)) {
+            return ZX_ERR_ACCESS_DENIED;
+        }
+        iommu_perms |= IOMMU_FLAG_PERM_READ;
+        perms &= ~ZX_VM_FLAG_PERM_READ;
+    }
+    if (perms & ZX_VM_FLAG_PERM_WRITE) {
+        if (!(vmo_rights & ZX_RIGHT_WRITE)) {
+            return ZX_ERR_ACCESS_DENIED;
+        }
+        iommu_perms |= IOMMU_FLAG_PERM_WRITE;
+        perms &= ~ZX_VM_FLAG_PERM_WRITE;
+    }
+    if (perms & ZX_VM_FLAG_PERM_EXECUTE) {
+        if (!(vmo_rights & ZX_RIGHT_EXECUTE)) {
+            return ZX_ERR_ACCESS_DENIED;
+        }
+        iommu_perms |= IOMMU_FLAG_PERM_EXECUTE;
+        perms &= ~ZX_VM_FLAG_PERM_EXECUTE;
+    }
+    if (perms) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+
+    fbl::AllocChecker ac;
+    fbl::InlineArray<dev_vaddr_t, 4u> mapped_extents(&ac, extents_len);
+    if (!ac.check()) {
+        return ZX_ERR_NO_MEMORY;
+    }
+
+    size_t actual_len;
+    status = bti_dispatcher->Pin(vmo_dispatcher->vmo(), offset, size, iommu_perms,
+                                 mapped_extents.get(), extents_len, &actual_len);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    auto pin_cleanup = fbl::MakeAutoCall([&bti_dispatcher, &mapped_extents, actual_len]() {
+        bti_dispatcher->Unpin(mapped_extents.get(), actual_len);
+    });
+
+    static_assert(sizeof(dev_vaddr_t) == sizeof(uint64_t), "mismatched types");
+    if ((status = extents.copy_array_to_user(mapped_extents.get(), actual_len)) != ZX_OK) {
+        return status;
+    }
+    if ((status = actual_extents_len.copy_to_user(static_cast<uint32_t>(actual_len))) != ZX_OK) {
+        return status;
+    }
+
+    pin_cleanup.cancel();
+    return ZX_OK;
+}
+
+zx_status_t sys_bti_unpin(zx_handle_t bti, user_in_ptr<const uint64_t> extents,
+                          uint32_t extents_len) {
+    auto up = ProcessDispatcher::GetCurrent();
+
+    fbl::RefPtr<BusTransactionInitiatorDispatcher> bti_dispatcher;
+    zx_status_t status = up->GetDispatcherWithRights(bti, ZX_RIGHT_MAP, &bti_dispatcher);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    fbl::AllocChecker ac;
+    fbl::InlineArray<dev_vaddr_t, 4u> mapped_extents(&ac, extents_len);
+    if (!ac.check()) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    static_assert(sizeof(dev_vaddr_t) == sizeof(uint64_t), "mismatched types");
+    if ((status = extents.copy_array_from_user(mapped_extents.get(), extents_len)) != ZX_OK) {
+        return status;
+    }
+
+    return bti_dispatcher->Unpin(mapped_extents.get(), extents_len);
+
 }
