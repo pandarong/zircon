@@ -55,6 +55,7 @@ typedef enum {
     ZX_OBJ_TYPE_VCPU                = 21,
     ZX_OBJ_TYPE_TIMER               = 22,
     ZX_OBJ_TYPE_IOMMU               = 23,
+    ZX_OBJ_TYPE_BTI                 = 24,
     ZX_OBJ_TYPE_LAST
 } zx_obj_type_t;
 
