@@ -214,7 +214,7 @@ static inline void xhci_cache_flush_invalidate(volatile const void* addr, size_t
 }
 #endif
 
-zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts);
+zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts, zx_handle_t bti);
 int xhci_get_slot_ctx_state(xhci_slot_t* slot);
 int xhci_get_ep_ctx_state(xhci_slot_t* slot, xhci_endpoint_t* ep);
 void xhci_set_dbcaa(xhci_t* xhci, uint32_t slot_id, zx_paddr_t paddr);

@@ -716,13 +716,20 @@ static zx_status_t ahci_bind(void* ctx, zx_device_t* dev) {
         return ZX_ERR_NOT_SUPPORTED;
     }
 
+    zx_handle_t bti;
+    zx_status_t status = device->pci.ops->get_bti(device->pci.ctx, &bti);
+    if (status != ZX_OK) {
+        goto fail;
+    }
+    iotxn_set_default_bti(bti);
+
     // map register window
-    zx_status_t status = pci_map_resource(&device->pci,
-                                          PCI_RESOURCE_BAR_5,
-                                          ZX_CACHE_POLICY_UNCACHED_DEVICE,
-                                          (void**)&device->regs,
-                                          &device->regs_size,
-                                          &device->regs_handle);
+    status = pci_map_resource(&device->pci,
+                              PCI_RESOURCE_BAR_5,
+                              ZX_CACHE_POLICY_UNCACHED_DEVICE,
+                              (void**)&device->regs,
+                              &device->regs_size,
+                              &device->regs_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "ahci: error %d mapping register window\n", status);
         goto fail;

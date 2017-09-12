@@ -324,6 +324,13 @@ static zx_status_t usb_xhci_bind_pci(zx_device_t* parent, pci_protocol_t* pci) {
     uint32_t num_irq_handles_initialized = 0;
     zx_status_t status;
 
+    zx_handle_t bti;
+    status = pci->ops->get_bti(pci->ctx, &bti);
+    if (status != ZX_OK) {
+        goto error_return;
+    }
+    iotxn_set_default_bti(bti);
+
     xhci = calloc(1, sizeof(xhci_t));
     if (!xhci) {
         status = ZX_ERR_NO_MEMORY;
@@ -380,7 +387,7 @@ static zx_status_t usb_xhci_bind_pci(zx_device_t* parent, pci_protocol_t* pci) {
     // used for enabling bus mastering
     memcpy(&xhci->pci, pci, sizeof(pci_protocol_t));
 
-    status = xhci_init(xhci, mode, irq_cnt);
+    status = xhci_init(xhci, mode, irq_cnt, bti);
     if (status != ZX_OK) {
         goto error_return;
     }
@@ -431,7 +438,7 @@ static zx_status_t usb_xhci_bind_pdev(zx_device_t* parent, platform_device_proto
 
     xhci->irq_handles[0] = irq_handle;
 
-    status = xhci_init(xhci, XHCI_PDEV, 1);
+    status = xhci_init(xhci, XHCI_PDEV, 1, ZX_HANDLE_INVALID);
     if (status != ZX_OK) {
         goto error_return;
     }

@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <zircon/assert.h>
 #include <zircon/process.h>
+#include <zircon/syscalls/iommu.h>
 
 #include "kpci-private.h"
 

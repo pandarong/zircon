@@ -151,7 +151,7 @@ static void xhci_vmo_release(zx_handle_t handle, zx_vaddr_t virt) {
     zx_handle_close(handle);
 }
 
-zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts) {
+zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts, zx_handle_t bti) {
     zx_status_t result = ZX_OK;
 
     list_initialize(&xhci->command_queue);

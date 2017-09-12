@@ -99,6 +99,7 @@ static zx_status_t kpci_get_bti(pci_msg_t* req, kpci_device_t* device, zx_handle
         .txid = req->txid,
     };
 
+    printf("get_bti: [%04x:%04x] %x:%x.%u\n", device->info.vendor_id, device->info.device_id, device->info.bus_id, device->info.dev_id, device->info.func_id);
     uint32_t bdf = ((uint32_t)device->info.bus_id << 8) |
                    ((uint32_t)device->info.dev_id << 3) |
                    device->info.func_id;

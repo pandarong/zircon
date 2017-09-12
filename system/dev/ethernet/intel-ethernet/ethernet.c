@@ -214,6 +214,13 @@ static zx_status_t eth_bind(void* ctx, zx_device_t* dev) {
         goto fail;
     }
 
+    zx_handle_t bti;
+    zx_status_t status = edev->pci.ops->get_bti(edev->pci.ctx, &bti);
+    if (status != ZX_OK) {
+        goto fail;
+    }
+    iotxn_set_default_bti(bti);
+
     // Query whether we have MSI or Legacy interrupts.
     uint32_t irq_cnt = 0;
     if ((pci_query_irq_mode_caps(&edev->pci, ZX_PCIE_IRQ_MODE_MSI, &irq_cnt) == ZX_OK) &&
