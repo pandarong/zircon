@@ -67,6 +67,8 @@ typedef struct pci_protocol_ops {
     zx_status_t (*map_resource)(void* ctx, uint32_t res_id, uint32_t cache_policy,
                                 void** vaddr, size_t* size, zx_handle_t* out_handle);
     zx_status_t (*enable_bus_master)(void* ctx, bool enable);
+    // TODO(teisenbe): Merge this into enable_bus_master
+    zx_status_t (*get_bti)(void* ctx, zx_handle_t* out_handle);
     zx_status_t (*reset_device)(void* ctx);
     zx_status_t (*map_interrupt)(void* ctx, int which_irq, zx_handle_t* out_handle);
     zx_status_t (*query_irq_mode_caps)(void* ctx, zx_pci_irq_mode_t mode,

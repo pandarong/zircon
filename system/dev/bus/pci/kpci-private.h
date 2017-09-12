@@ -38,6 +38,7 @@ typedef enum {
     PCI_OP_MAP_INTERRUPT,
     PCI_OP_GET_DEVICE_INFO,
     PCI_OP_GET_AUXDATA,
+    PCI_OP_GET_BTI,
     PCI_OP_MAX,
 } pci_op_t;
 

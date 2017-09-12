@@ -54,6 +54,55 @@ static zx_status_t kpci_op_enable_bus_master(void* ctx, bool enable) {
     return resp.ordinal;
 }
 
+static zx_status_t kpci_op_get_bti(void* ctx, zx_handle_t* out_handle) {
+    kpci_device_t* dev = ctx;
+    pci_msg_t resp = {};
+    pci_msg_t req = {
+        .txid = pci_next_txid(),
+        .ordinal = PCI_OP_GET_BTI,
+    };
+
+    zx_handle_t bti;
+    zx_channel_call_args_t cc_args = {
+        .wr_bytes = &req,
+        .rd_bytes = &resp,
+        .rd_handles = &bti,
+        .wr_num_bytes = sizeof(req),
+        .rd_num_bytes = sizeof(resp),
+        .rd_num_handles = 1,
+    };
+
+    uint32_t actual_bytes;
+    uint32_t actual_handles;
+    zx_status_t st = zx_channel_call(dev->pciroot_rpcch, 0, ZX_TIME_INFINITE,
+                                     &cc_args, &actual_bytes, &actual_handles, NULL);
+
+    // Validate that the syscall succeeded and that we received an appropriately
+    // sized response across the channel.
+    if (st != ZX_OK) {
+        return st;
+    }
+
+    if (actual_bytes != sizeof(resp)) {
+        if (actual_handles == 1) {
+            zx_handle_close(bti);
+        }
+        return ZX_ERR_INTERNAL;
+    }
+
+    if (resp.ordinal == ZX_OK) {
+        ZX_DEBUG_ASSERT_MSG(actual_handles == 1, "kpci_op_get_bti returned no handle?");
+        if (actual_handles != 1) {
+            return ZX_ERR_INTERNAL;
+        }
+        *out_handle = bti;
+    } else if (actual_handles == 1) {
+        zx_handle_close(bti);
+    }
+
+    return resp.ordinal;
+}
+
 // Resets the device.
 static zx_status_t kpci_op_reset_device(void* ctx) {
     kpci_device_t* dev = ctx;
@@ -400,4 +449,5 @@ static pci_protocol_ops_t _pci_protocol = {
     .config_read = kpci_op_config_read,
     .get_next_capability = kpci_op_get_next_capability,
     .get_auxdata = kpci_op_get_auxdata,
+    .get_bti = kpci_op_get_bti,
 };

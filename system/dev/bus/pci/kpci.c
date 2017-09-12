@@ -94,6 +94,29 @@ static zx_status_t kpci_get_auxdata(pci_msg_t* req, kpci_device_t* device, zx_ha
     return zx_channel_write(ch, 0, &resp, sizeof(resp), NULL, 0);
 }
 
+static zx_status_t kpci_get_bti(pci_msg_t* req, kpci_device_t* device, zx_handle_t ch) {
+    pci_msg_t resp = {
+        .txid = req->txid,
+    };
+
+    uint32_t bdf = ((uint32_t)device->info.bus_id << 8) |
+                   ((uint32_t)device->info.dev_id << 3) |
+                   device->info.func_id;
+    zx_handle_t bti;
+    zx_status_t status = pciroot_get_bti(&device->pciroot, bdf, &bti);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    resp.ordinal = ZX_OK;
+    resp.datalen = 0;
+
+    status = zx_channel_write(ch, 0, &resp, sizeof(resp), &bti, 1);
+    if (status != ZX_OK) {
+        zx_handle_close(bti);
+    }
+    return ZX_OK;
+}
 
 // All callbacks corresponding to protocol operations match this signature.
 // Rather than passing the outgoing message back to kpci_rxrpc, the callback
@@ -114,6 +137,7 @@ rxrpc_cbk_t rxrpc_cbk_tbl[] = {
         [PCI_OP_MAP_INTERRUPT] = NULL,
         [PCI_OP_GET_DEVICE_INFO] = NULL,
         [PCI_OP_GET_AUXDATA] = kpci_get_auxdata,
+        [PCI_OP_GET_BTI] = kpci_get_bti,
         [PCI_OP_MAX] = NULL,
 };
 
