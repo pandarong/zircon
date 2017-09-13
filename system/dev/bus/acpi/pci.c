@@ -419,6 +419,12 @@ static ACPI_STATUS report_current_resources_resource_cb(ACPI_RESOURCE* res, void
         is_mmio = true;
         base = mem.minimum;
         len = mem.address_length;
+
+        // HACK: seems that writable memory regions are something we dont want to subtract.
+        // On a particular AMD machine it seems that it marks all of 0xc0000000...4GB as writable memory
+        // which has the effect of completely destroying PCI
+        if (mem.writeable)
+            return AE_OK;
     } else if (resource_is_address(res)) {
         resource_address_t addr;
         zx_status_t status = resource_parse_address(res, &addr);
