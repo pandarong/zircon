@@ -420,6 +420,9 @@ static ACPI_STATUS report_current_resources_resource_cb(ACPI_RESOURCE* res, void
         base = mem.minimum;
         len = mem.address_length;
 
+        xprintf("ACPI memory resource: base %#lx len %#lx writable %d add pass %d\n",
+                base, len, mem.writeable, ctx->add_pass);
+
         // HACK: seems that writable memory regions are something we dont want to subtract.
         // On a particular AMD machine it seems that it marks all of 0xc0000000...4GB as writable memory
         // which has the effect of completely destroying PCI
@@ -456,6 +459,9 @@ static ACPI_STATUS report_current_resources_resource_cb(ACPI_RESOURCE* res, void
         if (ctx->device_is_root_bridge && !addr.consumed_only) {
             add_range = true;
         }
+        xprintf("ACPI address resource: base %#lx len %#lx consumed_only %d sub_decode %d add pass %d\n",
+                base, len, addr.consumed_only, addr.subtractive_decode, ctx->add_pass);
+
     } else if (resource_is_io(res)) {
         resource_io_t io;
         zx_status_t status = resource_parse_io(res, &io);
@@ -471,6 +477,9 @@ static ACPI_STATUS report_current_resources_resource_cb(ACPI_RESOURCE* res, void
         is_mmio = false;
         base = io.minimum;
         len = io.address_length;
+
+        xprintf("ACPI io resource: base %#lx len %#lx add pass %d\n",
+                base, len, ctx->add_pass);
     } else {
         return AE_OK;
     }
@@ -515,6 +524,13 @@ static ACPI_STATUS report_current_resources_device_cb(
 
     struct report_current_resources_ctx* ctx = _ctx;
     ctx->device_is_root_bridge = (info->Flags & ACPI_PCI_ROOT_BRIDGE) != 0;
+
+#if MXDEBUG
+    char name[5];
+    memcpy(name, &info->Name, 4);
+    name[4] = 0;
+    xprintf("ACPI walking resources on object named %s\n", name);
+#endif
 
     ACPI_FREE(info);
 
