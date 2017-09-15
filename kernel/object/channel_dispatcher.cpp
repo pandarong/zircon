@@ -10,14 +10,16 @@
 
 #include <assert.h>
 #include <err.h>
-#include <trace.h>
+//#include <trace.h>
 
 #include <kernel/event.h>
-#include <platform.h>
+//#include <platform.h>
 #include <object/handle.h>
 #include <object/message_packet.h>
+#ifdef _KERNEL
 #include <object/process_dispatcher.h>
 #include <object/thread_dispatcher.h>
+#endif
 
 #include <zircon/rights.h>
 #include <fbl/alloc_checker.h>
@@ -27,6 +29,12 @@
 using fbl::AutoLock;
 
 #define LOCAL_TRACE 0
+
+#ifndef _KERNEL
+#define thread_reschedule(args...) ((void)0)
+#undef TA_NO_THREAD_SAFETY_ANALYSIS
+#define TA_NO_THREAD_SAFETY_ANALYSIS /**/
+#endif
 
 // static
 zx_status_t ChannelDispatcher::Create(fbl::RefPtr<Dispatcher>* dispatcher0,
@@ -187,11 +195,17 @@ zx_status_t ChannelDispatcher::Call(fbl::unique_ptr<MessagePacket> msg,
 
     canary_.Assert();
 
+#ifdef _KERNEL
     auto waiter = ThreadDispatcher::GetCurrent()->GetMessageWaiter();
+#else
+    MessageWaiter *waiter = nullptr;
+#endif
     if (unlikely(waiter->BeginWait(fbl::WrapRefPtr(this), msg->get_txid()) != ZX_OK)) {
+#ifdef _KERNEL
         // If a thread tries BeginWait'ing twice, the VDSO contract around retrying
         // channel calls has been violated.  Shoot the misbehaving process.
         ProcessDispatcher::GetCurrent()->Kill();
+#endif
         return ZX_ERR_BAD_STATE;
     }
 
@@ -314,7 +328,7 @@ ChannelDispatcher::MessageWaiter::~MessageWaiter() {
     if (unlikely(channel_)) {
         channel_->RemoveWaiter(this);
     }
-    DEBUG_ASSERT(!InContainer());
+    ZX_DEBUG_ASSERT(!InContainer());
 }
 
 zx_status_t ChannelDispatcher::MessageWaiter::BeginWait(fbl::RefPtr<ChannelDispatcher> channel,
@@ -322,7 +336,7 @@ zx_status_t ChannelDispatcher::MessageWaiter::BeginWait(fbl::RefPtr<ChannelDispa
     if (unlikely(channel_)) {
         return ZX_ERR_BAD_STATE;
     }
-    DEBUG_ASSERT(!InContainer());
+    ZX_DEBUG_ASSERT(!InContainer());
 
     txid_ = txid;
     status_ = ZX_ERR_TIMED_OUT;
@@ -332,7 +346,7 @@ zx_status_t ChannelDispatcher::MessageWaiter::BeginWait(fbl::RefPtr<ChannelDispa
 }
 
 int ChannelDispatcher::MessageWaiter::Deliver(fbl::unique_ptr<MessagePacket> msg) {
-    DEBUG_ASSERT(channel_);
+    ZX_DEBUG_ASSERT(channel_);
 
     msg_ = fbl::move(msg);
     status_ = ZX_OK;
@@ -340,8 +354,8 @@ int ChannelDispatcher::MessageWaiter::Deliver(fbl::unique_ptr<MessagePacket> msg
 }
 
 int ChannelDispatcher::MessageWaiter::Cancel(zx_status_t status) {
-    DEBUG_ASSERT(!InContainer());
-    DEBUG_ASSERT(channel_);
+    ZX_DEBUG_ASSERT(!InContainer());
+    ZX_DEBUG_ASSERT(channel_);
     status_ = status;
     return event_.Signal(status);
 }

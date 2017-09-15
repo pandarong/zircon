@@ -9,6 +9,12 @@
 #include <fbl/auto_lock.h>
 #include <fbl/mutex.h>
 
+#ifndef _KERNEL
+#include <zircon/assert.h>
+#define DEBUG_ASSERT(args...) ZX_DEBUG_ASSERT(args)
+#define thread_reschedule() ((void)0)
+#endif
+
 using fbl::AutoLock;
 
 namespace {

@@ -8,12 +8,16 @@
 
 #include <stdint.h>
 
-#include <kernel/spinlock.h>
 #include <zircon/types.h>
 #include <fbl/canary.h>
 #include <fbl/intrusive_double_list.h>
 #include <fbl/mutex.h>
 #include <object/state_observer.h>
+
+#undef TA_GUARDED
+#undef TA_REQ
+#define TA_GUARDED(args...) /**/
+#define TA_REQ(args...) /**/
 
 class Handle;
 

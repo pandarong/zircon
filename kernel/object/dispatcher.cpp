@@ -6,8 +6,10 @@
 
 #include <object/dispatcher.h>
 
-#include <arch/ops.h>
+//#include <arch/ops.h>
+#if WITH_LIB_KTRACE
 #include <lib/ktrace.h>
+#endif
 #include <fbl/atomic.h>
 #include <object/state_tracker.h>
 

@@ -11,8 +11,6 @@
 #include <object/dispatcher.h>
 #include <object/state_tracker.h>
 
-#include <sys/types.h>
-
 class EventDispatcher final : public Dispatcher {
 public:
     static zx_status_t Create(uint32_t options, fbl::RefPtr<Dispatcher>* dispatcher,
