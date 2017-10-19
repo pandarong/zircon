@@ -107,6 +107,7 @@ zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_inde
     // so move them all to the queued list so they will be requeued
     // Completed these with ZX_ERR_CANCELED out of the lock.
     // Remove from tail and add to head to preserve the ordering
+printf("xhci_reset_endpoint stuff happening\n");
     while ((req = list_remove_tail_type(&ep->pending_reqs, usb_request_t, node)) != NULL) {
         list_add_head(&ep->queued_reqs, &req->node);
     }
@@ -414,6 +415,8 @@ static zx_status_t xhci_continue_transfer_locked(xhci_t* xhci, xhci_slot_t* slot
 static void xhci_process_transactions_locked(xhci_t* xhci, xhci_slot_t* slot, uint8_t ep_index,
                                              list_node_t* completed_reqs) {
     xhci_endpoint_t* ep = &slot->eps[ep_index];
+
+printf("xhci_process_transactions_locked %u\n", ep_index);
 
     // loop until we fill our transfer ring or run out of requests to process
     while (1) {

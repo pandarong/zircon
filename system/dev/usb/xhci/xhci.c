@@ -300,7 +300,7 @@ zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts) {
         xhci->dcbaa[0] = 0;
     }
 
-    result = xhci_transfer_ring_init(&xhci->command_ring, COMMAND_RING_SIZE);
+    result = xhci_transfer_ring_init(&xhci->command_ring, COMMAND_RING_SIZE, -1);
     if (result != ZX_OK) {
         dprintf(ERROR, "xhci_command_ring_init failed\n");
         goto fail;

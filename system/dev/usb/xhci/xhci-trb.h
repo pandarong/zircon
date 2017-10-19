@@ -18,6 +18,7 @@ typedef struct xhci_transfer_ring {
     xhci_trb_t* dequeue_ptr;    // next to be processed by consumer
                                 // (not used for command ring)
     size_t size;                // number of TRBs in ring
+    int id;
 } xhci_transfer_ring_t;
 
 typedef struct xhci_event_ring {
@@ -30,7 +31,7 @@ typedef struct xhci_event_ring {
 
 typedef struct xhci xhci_t;
 
-zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* tr, int count);
+zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* tr, int count, int id);
 void xhci_transfer_ring_free(xhci_transfer_ring_t* ring);
 size_t xhci_transfer_ring_free_trbs(xhci_transfer_ring_t* ring);
 zx_status_t xhci_event_ring_init(xhci_t* xhci, int interrupter, int count);

@@ -5,7 +5,7 @@
 #include "xhci.h"
 #include <stdio.h>
 
-zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* ring, int count) {
+zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* ring, int count, int id) {
     zx_status_t status = io_buffer_init(&ring->buffer, count * sizeof(xhci_trb_t),
                                         IO_BUFFER_RW | IO_BUFFER_CONTIG);
     if (status != ZX_OK) return status;
@@ -15,6 +15,7 @@ zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* ring, int count) {
     ring->dequeue_ptr = ring->start;
     ring->size = count - 1;    // subtract 1 for LINK TRB at the end
     ring->pcs = TRB_C;
+    ring->id = id;
 
     // set link TRB at end to point back to the beginning
     trb_set_ptr(&ring->start[count - 1], (void *)io_buffer_phys(&ring->buffer));
@@ -101,7 +102,7 @@ void xhci_increment_ring(xhci_transfer_ring_t* ring) {
     // check for LINK TRB
     control = XHCI_READ32(&trb->control);
     if ((control & TRB_TYPE_MASK) == (TRB_LINK << TRB_TYPE_START)) {
-printf("got TRB_LINK\n");
+printf("got TRB_LINK for %d\n", ring->id);
         control = (control & ~(TRB_CHAIN | TRB_C)) | chain | ring->pcs;
         XHCI_WRITE32(&trb->control, control);
 #if XHCI_USE_CACHE_OPS
