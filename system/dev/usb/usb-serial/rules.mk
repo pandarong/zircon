@@ -5,11 +5,11 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE_TYPE := driver
 
-MODULE_STATIC_LIBS := ulib/ddk ulib/hexdump
+MODULE_STATIC_LIBS := system/ulib/ddk system/ulib/sync
 
-MODULE_LIBS := ulib/driver ulib/magenta ulib/musl ulib/mxio
+MODULE_LIBS := system/ulib/driver system/ulib/zircon system/ulib/c
 
-MODULE := usb-serial
+MODULE := $(LOCAL_DIR)
 
 MODULE_SRCS := $(LOCAL_DIR)/ftdi.c
 

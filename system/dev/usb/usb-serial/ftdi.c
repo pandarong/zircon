@@ -3,15 +3,14 @@
 // found in the LICENSE file.
 
 #include <ddk/binding.h>
-#include <ddk/common/usb.h>
-#include <ddk/completion.h>
+#include <driver/usb.h>
+#include <sync/completion.h>
 #include <ddk/device.h>
 #include <ddk/driver.h>
 
 #include <ddk/protocol/usb.h>
-#include <ddk/protocol/bcm.h>
-#include <magenta/listnode.h>
-#include <magenta/device/usb.h>
+#include <zircon/listnode.h>
+#include <zircon/device/usb.h>
 
 #include <inttypes.h>
 #include <fcntl.h>
@@ -36,9 +35,9 @@
 #define FIFOMASK (FIFOSIZE - 1)
 
 typedef struct {
-    mx_device_t* device;
-    mx_device_t* usb_device;
-    mx_driver_t* driver;
+    zx_device_t* device;
+    zx_device_t* usb_device;
+    zx_driver_t* driver;
     uint16_t ftditype;                  //FTDI device type
     uint32_t baudrate;
 
@@ -51,13 +50,15 @@ typedef struct {
     // list of received packets not yet read by upper layer
     list_node_t completed_reads;
     // the last signals we reported
-    mx_signals_t signals;
+    //zx_signals_t signals;
 
     size_t read_offset;
 
     mtx_t mutex;
 } ftdi_t;
 
+
+/*
 #define get_ftdi(dev) ((ftdi_t*)dev->ctx)
 
 static void update_signals_locked(ftdi_t* ftdi) {
@@ -320,27 +321,33 @@ static int ftdi_start_thread(void* arg) {
 #endif
     return 0;
 }
+*/
 
 
+static zx_status_t ftdi_bind(void* ctx, zx_device_t* device, void** cookie) {
 
-static mx_status_t ftdi_bind(mx_driver_t* driver, mx_device_t* device) {
     printf("FTDI: usbserial - attempting to bind\n");
+
+
+    usb_protocol_t usb;
+    zx_status_t result = device_get_protocol(device, ZX_PROTOCOL_USB, &usb);
+    if (result != ZX_OK) {
+        return result;
+    }
 
     // find our endpoints
     usb_desc_iter_t iter;
-    mx_status_t status = NO_ERROR;
-    mx_status_t result = usb_desc_iter_init(device, &iter);
-
-
+    zx_status_t status = ZX_OK;
+    result = usb_desc_iter_init(&usb, &iter);
     if (result < 0)
         return result;
 
     usb_interface_descriptor_t* intf = usb_desc_iter_next_interface(&iter, true);
     printf("FTDI: returned %d endpoints\n", intf->bNumEndpoints);
 
-    uint8_t bulk_in_addr = 0;
-    uint8_t bulk_out_addr = 0;
-
+    //uint8_t bulk_in_addr = 0;
+    //uint8_t bulk_out_addr = 0;
+/*
     usb_endpoint_descriptor_t* endp = usb_desc_iter_next_endpoint(&iter);
     while (endp) {
         if (usb_ep_direction(endp) == USB_ENDPOINT_OUT) {
@@ -419,18 +426,19 @@ fail:
     printf("ftdi_bind failed: %d\n", status);
     //ftdi_free(ftdi);
     return status;
+*/
+    return status;
 }
 
 
 
-mx_driver_t _driver_ftdi = {
-    .ops = {
-        .bind = ftdi_bind,
-    },
+static zx_driver_ops_t ftdi_driver_ops = {
+    .version = DRIVER_OPS_VERSION,
+    .bind = ftdi_bind,
 };
 
-MAGENTA_DRIVER_BEGIN(_driver_ftdi, "usb-serial-ftdi", "magenta", "0.1", 2)
-    BI_ABORT_IF(NE, BIND_PROTOCOL, MX_PROTOCOL_USB),
+ZIRCON_DRIVER_BEGIN(driver_ftdi,ftdi_driver_ops, "zircon", "0.1", 2)
+    BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_USB),
     BI_MATCH_IF(EQ, BIND_USB_VID, FTDI_VID),
 //    BI_MATCH_IF(EQ, BIND_USB_PID, FTDI_232_PID),
-MAGENTA_DRIVER_END(_driver_ftdi)
+ZIRCON_DRIVER_END(driver_ftdi)
