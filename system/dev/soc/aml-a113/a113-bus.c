@@ -21,6 +21,9 @@
 #include <zircon/assert.h>
 
 #include "a113-bus.h"
+#include "a113-clocks.h"
+#include "a113-hw.h"
+#include "aml-i2c.h"
 #include <hw/reg.h>
 
 static zx_status_t a113_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
@@ -63,6 +66,21 @@ static zx_protocol_device_t a113_bus_device_protocol = {
     .version = DEVICE_OPS_VERSION,
     .release = a113_bus_release,
 };
+
+static int i2c_test_thread(void *arg) {
+    aml_i2c_connection_t *conn = arg;
+    uint8_t buff[8] = {0,1,2,3,4,5,6,7};
+    printf("test thread\n");
+    while(1) {
+        printf("writing async\n");
+        aml_i2c_wr_async(conn,buff,8,NULL);
+        completion_signal(&conn->dev->txn_active);
+        sleep(1);
+        for(int i=0; i<8; i++)
+         buff[i]++;
+    }
+    return 0;
+}
 
 static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) {
     a113_bus_t* bus = calloc(1, sizeof(a113_bus_t));
@@ -110,6 +128,73 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
                 "rc = %d\n", status);
         // Don't think this is worthy of returning failure in bind.
     }
+
+    printf("A113: setting pinmux for i2c-b\n");
+    a113_config_pinmux(bus, A113_GPIOZ(8), 1);
+    a113_config_pinmux(bus, A113_GPIOZ(9), 1);
+
+    aml_i2c_dev_t *i2cb_dev;
+
+    status = aml_i2c_init(&i2cb_dev, bus, AML_I2C_B);
+    if (status != ZX_OK) {
+        printf("Could not initialize i2c device!\n");
+    }
+    //aml_i2c_set_slave_addr(i2cb_dev,0x18);
+    aml_i2c_dumpstate(i2cb_dev);
+    aml_i2c_connection_t *conn1;
+    aml_i2c_connection_t *conn2;
+    aml_i2c_connection_t *conn3;
+
+
+    aml_i2c_connect(&conn1,i2cb_dev,0x10,7);
+    aml_i2c_connect(&conn2,i2cb_dev,0x18,7);
+    aml_i2c_connect(&conn3,i2cb_dev,0x10,7);
+
+    thrd_t thrd;
+    thrd_create_with_name(&thrd, i2c_test_thread, conn1, "i2c_test_thread");
+
+
+    //aml_i2c_write(i2cb_dev, NULL, 2);
+/*
+    printf("A113: register block base address (virt) = %p\n",reg);
+    printf("A113: register block base address (phys) = %lx\nsize=%lu\n",bus->i2c_b_regs.phys,
+                                                                        bus->i2c_b_regs.size);
+    reg[0] = reg[0] |  (1 << 22);
+    reg[0] = reg[0] & ~(3 << 23);
+
+    printf("A113: regs[0] - 0x%08x\n",reg[0]);
+    printf("A113: regs[1] - 0x%08x\n",reg[1]);
+    printf("A113: regs[2] - 0x%08x\n",reg[2]);
+    printf("A113: regs[3] - 0x%08x\n",reg[3]);
+
+*/
+#if 0
+    aml_i2c_test(i2cb_dev);
+
+    a113_clk_dev_t *clk_dev;
+
+    status = a113_clk_init(&clk_dev, bus);
+    if (status != ZX_OK) {
+        printf("Could not initialize i2c device!\n");
+    }
+    uint32_t clkreg = a113_clk_get_reg(clk_dev,0x5d);
+    clkreg = (clkreg & ~(0x7f | (0x7 << 12))) | 5 | (0x7 << 12);
+    a113_clk_set_reg(clk_dev, 0x5d, clkreg);
+
+    printf("clk reg 0x5d = %08x\n", a113_clk_get_reg(clk_dev,0x5d));
+    printf("clk reg 0xa0 = %08x\n", a113_clk_get_reg(clk_dev,0xa0));
+    printf("clk reg 0xa1 = %08x\n", a113_clk_get_reg(clk_dev,0xa1));
+    printf("clk reg 0xa2 = %08x\n", a113_clk_get_reg(clk_dev,0xa2));
+    printf("clk reg 0xa3 = %08x\n", a113_clk_get_reg(clk_dev,0xa3));
+    printf("clk reg 0xa4 = %08x\n", a113_clk_get_reg(clk_dev,0xa4));
+    printf("clk reg 0xa5 = %08x\n", a113_clk_get_reg(clk_dev,0xa5));
+    printf("clk reg 0xa6 = %08x\n", a113_clk_get_reg(clk_dev,0xa6));
+    printf("clk reg 0xa7 = %08x\n", a113_clk_get_reg(clk_dev,0xa7));
+    printf("clk reg 0xa8 = %08x\n", a113_clk_get_reg(clk_dev,0xa8));
+    printf("clk reg 0xa9 = %08x\n", a113_clk_get_reg(clk_dev,0xa9));
+    printf("clk reg 0xb8 = %08x\n", a113_clk_get_reg(clk_dev,0xb8));
+    printf("clk reg 0xb9 = %08x\n", a113_clk_get_reg(clk_dev,0xb9));
+#endif
 
     return ZX_OK;
 
