@@ -57,14 +57,16 @@ typedef struct {
     is the ability to do a write,read sequence without having another
     transaction on the bus in between the write/read.
 */
-typedef struct {
+typedef struct aml_i2c_txn aml_i2c_txn_t;
+
+typedef struct aml_i2c_txn {
     list_node_t            node;
-    uint8_t                tx_buff[8];
+    uint8_t                *tx_buff;
     uint32_t               tx_len;
-    uint8_t                rx_buff[8];
+    uint8_t                *rx_buff;
     uint32_t               rx_len;
     aml_i2c_connection_t   *conn;
-    void                   *cb;
+    void                   (*cb)(aml_i2c_txn_t *txn);
 } aml_i2c_txn_t;
 
 struct aml_i2c_dev {
@@ -97,3 +99,6 @@ zx_status_t aml_i2c_connect(aml_i2c_connection_t ** conn,
 
 zx_status_t aml_i2c_wr_async(aml_i2c_connection_t *conn, uint8_t *buff, uint32_t len, void* cb);
 zx_status_t aml_i2c_rd_async(aml_i2c_connection_t *conn, uint8_t *buff, uint32_t len, void* cb);
+zx_status_t aml_i2c_wr_rd_async(aml_i2c_connection_t *conn, uint8_t *txbuff, uint32_t txlen,
+                                                            uint8_t *rxbuff, uint32_t rxlen,
+                                                            void* cb);

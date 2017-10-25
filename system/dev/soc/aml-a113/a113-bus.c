@@ -67,17 +67,24 @@ static zx_protocol_device_t a113_bus_device_protocol = {
     .release = a113_bus_release,
 };
 
+static void i2chandler(aml_i2c_txn_t *txn) {
+    uint64_t *temp = (uint64_t*)txn->rx_buff;
+    printf("handler got back %016lx\n",*temp);
+    *temp = 0;
+}
+
+static uint8_t txbuff[8];
+static uint8_t rxbuff[8];
+
 static int i2c_test_thread(void *arg) {
     aml_i2c_connection_t *conn = arg;
-    uint8_t buff[8] = {0,1,2,3,4,5,6,7};
+
     printf("test thread\n");
     while(1) {
+        txbuff[0] = 0x00;
         printf("writing async\n");
-        aml_i2c_wr_async(conn,buff,8,NULL);
-        completion_signal(&conn->dev->txn_active);
+        aml_i2c_wr_rd_async(conn,txbuff,1,rxbuff,8,&i2chandler);
         sleep(1);
-        for(int i=0; i<8; i++)
-         buff[i]++;
     }
     return 0;
 }
@@ -146,7 +153,7 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
     aml_i2c_connection_t *conn3;
 
 
-    aml_i2c_connect(&conn1,i2cb_dev,0x10,7);
+    aml_i2c_connect(&conn1,i2cb_dev,0x18,7);
     aml_i2c_connect(&conn2,i2cb_dev,0x18,7);
     aml_i2c_connect(&conn3,i2cb_dev,0x10,7);
 

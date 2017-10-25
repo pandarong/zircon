@@ -41,6 +41,17 @@ static int i2c_test_thread(void *arg) {
     return 0;
 }
 
+zx_status_t aml_i2c_set_slave_addr(aml_i2c_dev_t *dev, uint16_t addr) {
+
+    addr &= 0x7f;
+    uint32_t reg = dev->virt_regs->slave_addr;
+    reg = reg & 0xff;
+    reg = reg | ((addr << 1) & 0xff);
+    dev->virt_regs->slave_addr = reg;
+
+    return ZX_OK;
+}
+
 static int aml_i2c_thread(void *arg) {
 
     aml_i2c_dev_t *dev = arg;
@@ -51,14 +62,25 @@ static int aml_i2c_thread(void *arg) {
             mtx_lock(&dev->mutex);
             txn = list_remove_tail_type(&dev->txn_list,aml_i2c_txn_t,node);
             mtx_unlock(&dev->mutex);
-            uint64_t* temp = (uint64_t*)txn->tx_buff;
-
-            aml_i2c_write(dev,txn->tx_buff,txn->tx_len);
-            printf("Worker Got %016lx\n",*temp);
+            aml_i2c_set_slave_addr(dev, txn->conn->slave_addr);
+            if (txn->tx_len > 0) {
+                aml_i2c_write(dev,txn->tx_buff,txn->tx_len);
+                for (int i=0; i<8; i++) txn->tx_buff[i] = 7;//debug junk
+                if ((txn->cb) && (txn->rx_len == 0)) {
+                    txn->cb(txn);
+                }
+            }
+            if (txn->rx_len > 0) {
+                aml_i2c_read(dev,txn->rx_buff,txn->rx_len);
+                if (txn->cb) {
+                    txn->cb(txn);
+                }
+            }
             txn->tx_len=0;
             mtx_lock(&dev->mutex);
             list_add_head(&dev->free_txn_list,&txn->node);
             mtx_unlock(&dev->mutex);
+
         }
         printf("List empty...waiting\n");
         completion_wait(&dev->txn_active, ZX_TIME_INFINITE);
@@ -95,41 +117,80 @@ zx_status_t aml_i2c_start_xfer(aml_i2c_dev_t *dev) {
     return ZX_OK;
 }
 
-zx_status_t aml_i2c_wr_async(aml_i2c_connection_t *conn, uint8_t *buff, uint32_t len, void* cb) {
+static aml_i2c_txn_t *aml_i2c_get_txn(aml_i2c_connection_t *conn) {
 
-    ZX_DEBUG_ASSERT(conn);
-    ZX_DEBUG_ASSERT(len <= 8);
-
+    //printf("getting lock\n");
+    mtx_lock(&conn->dev->mutex);
+    //printf("got lock\n");
     aml_i2c_txn_t *txn;
-    aml_i2c_dev_t *dev = conn->dev;
-    ZX_DEBUG_ASSERT(dev);
-
-    mtx_lock(&dev->mutex);
-
-    txn = list_remove_head_type(&dev->free_txn_list, aml_i2c_txn_t, node);
+    txn = list_remove_head_type(&conn->dev->free_txn_list, aml_i2c_txn_t, node);
     if (!txn) {
-        printf("new txn\n");
+        //printf("new txn\n");
         txn = calloc(1, sizeof(aml_i2c_txn_t));
         if (!txn) {
-            mtx_unlock(&dev->mutex);
-            return ZX_ERR_NO_MEMORY;
+            mtx_unlock(&conn->dev->mutex);
+            return NULL;
         }
-    } else {
-        printf("recycled txn\n");
     }
+    mtx_unlock(&conn->dev->mutex);
+    return txn;
+}
 
-    for (uint32_t i = 0; i < len; i++)
-        txn->tx_buff[i] = buff[i];
-    txn->tx_len = len;
-    txn->rx_len = 0;
+static inline void aml_i2c_queue_txn(aml_i2c_connection_t *conn, aml_i2c_txn_t *txn){
+    mtx_lock(&conn->dev->mutex);
+    list_add_head(&conn->dev->txn_list, &txn->node);
+    mtx_unlock(&conn->dev->mutex);
+}
+
+static inline zx_status_t aml_i2c_queue_async(aml_i2c_connection_t *conn,
+                                                            uint8_t *txbuff, uint32_t txlen,
+                                                            uint8_t *rxbuff, uint32_t rxlen,
+                                                            void* cb) {
+    ZX_DEBUG_ASSERT(conn);
+    ZX_DEBUG_ASSERT(txlen <= 8);
+    ZX_DEBUG_ASSERT(rxlen <= 8);
+
+    aml_i2c_txn_t *txn;
+
+    txn = aml_i2c_get_txn(conn);
+    if (!txn) return ZX_ERR_NO_MEMORY;
+
+    txn->tx_buff = txbuff;
+    txn->tx_len = txlen;
+    txn->rx_len = rxlen;
+    txn->rx_buff = rxbuff;
     txn->cb = cb;
     txn->conn = conn;
-//need mutex
-    list_add_head(&dev->txn_list, &txn->node);
-    mtx_unlock(&dev->mutex);
+
+    aml_i2c_queue_txn(conn,txn);
+    completion_signal(&conn->dev->txn_active);
 
     return ZX_OK;
 }
+
+zx_status_t aml_i2c_rd_async(aml_i2c_connection_t *conn, uint8_t *buff, uint32_t len, void* cb) {
+
+    ZX_DEBUG_ASSERT(buff);
+    return aml_i2c_queue_async(conn, NULL, 0, buff, len, cb);
+}
+
+zx_status_t aml_i2c_wr_async(aml_i2c_connection_t *conn, uint8_t *buff, uint32_t len, void* cb) {
+
+    ZX_DEBUG_ASSERT(buff);
+    return aml_i2c_queue_async(conn, buff, len, NULL, 0, cb);
+}
+
+zx_status_t aml_i2c_wr_rd_async(aml_i2c_connection_t *conn, uint8_t *txbuff, uint32_t txlen,
+                                                            uint8_t *rxbuff, uint32_t rxlen,
+                                                            void* cb) {
+
+    ZX_DEBUG_ASSERT(txbuff);
+    ZX_DEBUG_ASSERT(rxbuff);
+    return aml_i2c_queue_async(conn, txbuff, txlen, rxbuff, rxlen, cb);
+}
+
+
+
 
 zx_status_t aml_i2c_write(aml_i2c_dev_t *dev, uint8_t *buff, uint32_t len) {
 
@@ -203,16 +264,7 @@ zx_status_t aml_i2c_read(aml_i2c_dev_t *dev, uint8_t *buff, uint32_t len) {
     return ZX_OK;
 }
 
-zx_status_t aml_i2c_set_slave_addr(aml_i2c_dev_t *dev, uint16_t addr) {
 
-    addr &= 0x7f;
-    uint32_t reg = dev->virt_regs->slave_addr;
-    reg = reg & 0xff;
-    reg = reg | ((addr << 1) & 0xff);
-    dev->virt_regs->slave_addr = reg;
-
-    return ZX_OK;
-}
 
 zx_status_t aml_i2c_connect(aml_i2c_connection_t **connection,
                              aml_i2c_dev_t *dev,
