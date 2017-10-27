@@ -142,10 +142,14 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
     a113_config_pinmux(bus, A113_GPIOZ(8), 1);
     a113_config_pinmux(bus, A113_GPIOZ(9), 1);
 
+    //Config pinmux for TDM pins
     a113_config_pinmux(bus, A113_GPIOA(2), 1);
     a113_config_pinmux(bus, A113_GPIOA(3), 1);
     a113_config_pinmux(bus, A113_GPIOA(4), 1);
     a113_config_pinmux(bus, A113_GPIOA(5), 1);
+
+    //Config pinmux for PDM CLK
+    a113_config_pinmux(bus, A113_GPIOA(14), 1);
 
     aml_i2c_dev_t *i2cb_dev;
 

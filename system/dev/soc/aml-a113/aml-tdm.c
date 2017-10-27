@@ -69,7 +69,11 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
 
     reg->clk_tdmout_c_ctl = (0x03 << 30) | (2 << 24) | (2 << 20);
 
-    reg->clk_gate_en = (1 << 8);
+    reg->clk_pdmin_ctl0 = ( 1 << 31) | (6 << 24) | (10416);
+    reg->clk_pdmin_ctl1 = ( 1 << 31) | (6 << 24) | (10416);
+
+    reg->clk_gate_en = (1 << 8) || (1 << 1);
+
 
 
 /*
