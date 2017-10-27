@@ -24,6 +24,8 @@
 #include "a113-clocks.h"
 #include "a113-hw.h"
 #include "aml-i2c.h"
+#include "aml-tdm.h"
+
 #include <hw/reg.h>
 
 static zx_status_t a113_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
@@ -140,6 +142,11 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
     a113_config_pinmux(bus, A113_GPIOZ(8), 1);
     a113_config_pinmux(bus, A113_GPIOZ(9), 1);
 
+    a113_config_pinmux(bus, A113_GPIOA(2), 1);
+    a113_config_pinmux(bus, A113_GPIOA(3), 1);
+    a113_config_pinmux(bus, A113_GPIOA(4), 1);
+    a113_config_pinmux(bus, A113_GPIOA(5), 1);
+
     aml_i2c_dev_t *i2cb_dev;
 
     status = aml_i2c_init(&i2cb_dev, bus, AML_I2C_B);
@@ -160,6 +167,8 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
     thrd_t thrd;
     thrd_create_with_name(&thrd, i2c_test_thread, conn1, "i2c_test_thread");
 
+    aml_tdm_dev_t tdmc;
+    aml_tdm_init(&tdmc, bus);
 
     //aml_i2c_write(i2cb_dev, NULL, 2);
 /*

@@ -15,6 +15,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/a113-usb.c \
     $(LOCAL_DIR)/a113-clocks.c \
     $(LOCAL_DIR)/aml-i2c.c \
+    $(LOCAL_DIR)/aml-tdm.c \
 
 MODULE_STATIC_LIBS := system/ulib/ddk system/ulib/sync
 
