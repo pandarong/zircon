@@ -44,7 +44,7 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
         goto init_fail;
     }
 
-    device->virt_regs = (aml_tdm_regs_t*)(io_buffer_virt(&device->regs_iobuff));
+    device->regs = (aml_tdm_regs_t*)(io_buffer_virt(&device->regs_iobuff));
 /*
     status = zx_interrupt_create(resource, dev_desc->irqnum, ZX_INTERRUPT_MODE_LEVEL_HIGH, &(*device)->irq);
     if (status != ZX_OK) {
@@ -52,7 +52,11 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
     }
 */
 
-    aml_tdm_regs_t *reg = device->virt_regs;
+    //in the fuchsia audio interface, a ring buffer vmo will be handed
+    // to us by our client, but for testing we will make our own now
+    status = io_buffer_init(&device->ring_buff, 4096, IO_BUFFER_CONTIG);
+
+    aml_tdm_regs_t *reg = device->regs;
 
     //todo - need to configure the mpll and use it as clock source
 
@@ -76,6 +80,7 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
 
 init_fail:
     if (device) {
+        io_buffer_release(&device->ring_buff);
         io_buffer_release(&device->regs_iobuff);
         if (device->irq != ZX_HANDLE_INVALID)
             zx_handle_close(device->irq);

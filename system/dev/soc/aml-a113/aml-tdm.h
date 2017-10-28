@@ -66,6 +66,28 @@ typedef struct {
     uint32_t    reserved[7];
 } aml_tdm_frddr_regs_t;
 
+typedef struct {
+    uint32_t     ctl;
+    uint32_t     swap;
+    uint32_t     mask[4];
+    uint32_t     stat;
+    uint32_t     mute_val;
+    uint32_t     mute[4];
+    uint32_t     reserved[4];
+} aml_tdm_tdmin_regs_t;
+
+typedef struct {
+    uint32_t     ctl0;
+    uint32_t     ctl1;
+    uint32_t     swap;
+    uint32_t     mask[4];
+    uint32_t     stat;
+    uint32_t     gain[2];
+    uint32_t     mute_val;
+    uint32_t     mute[4];
+    uint32_t     mask_val;
+} aml_tdm_tdmout_regs_t;
+
 typedef volatile struct {
 
     uint32_t            clk_gate_en;
@@ -89,17 +111,29 @@ typedef volatile struct {
     aml_tdm_toddr_regs_t    toddr[3];
     aml_tdm_frddr_regs_t    frddr[3];
 
+    uint32_t            arb_ctl;
+    uint32_t            reserved3[15];
+
+    uint32_t            lb_ctl0;
+    uint32_t            lb_ctl1;
+    uint32_t            reserved4[14];
+
+    aml_tdm_tdmin_regs_t     tdmin[4];
+    aml_tdm_tdmout_regs_t    tdmout[3];
+
+
 //TODO - still more regs, will add as needed
 
 } aml_tdm_regs_t;
 
-typedef struct aml_tdm_dev aml_tdm_dev_t;
+typedef struct aml_tdmout_dev aml_tdmout_dev_t;
 
-struct aml_tdm_dev {
+struct aml_tdmout_dev {
     zx_handle_t    irq;
     a113_bus_t     *host_bus;
     io_buffer_t    regs_iobuff;
-    aml_tdm_regs_t *virt_regs;
+    io_buffer_t    ring_buff;
+    aml_tdm_regs_t *regs;
     mtx_t          mutex;
 };
 
