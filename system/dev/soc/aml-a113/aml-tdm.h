@@ -13,111 +13,81 @@
 
 #define AML_TDM_PHYS_BASE 0xff642000
 
+typedef struct {
+    uint32_t ctl0;
+    uint32_t ctl1;
+} aml_tdm_sclk_ctl_t;
+
+typedef enum {
+    MCLK_A,
+    MCLK_B,
+    MCLK_C,
+    MCLK_D,
+    MCLK_E,
+    MCLK_F
+} aml_tdm_mclk_t;
+
+typedef enum {
+    TDM_OUT_A,
+    TDM_OUT_B,
+    TDM_OUT_C
+} aml_tdm_out_t;
+
+typedef enum {
+    TDM_IN_A,
+    TDM_IN_B,
+    TDM_IN_C,
+    TDM_IN_LB
+} aml_tdm_in_t;
+
+typedef struct {
+    uint32_t    ctl0;
+    uint32_t    ctl1;
+    uint32_t    start_addr;
+    uint32_t    finish_addr;
+    uint32_t    int_addr;
+    uint32_t    status1;
+    uint32_t    status2;
+    uint32_t    start_addr_b;
+    uint32_t    finish_addr_b;
+    uint32_t    reserved[7];
+} aml_tdm_toddr_regs_t;
+
+typedef struct {
+    uint32_t    ctl0;
+    uint32_t    ctl1;
+    uint32_t    start_addr;
+    uint32_t    finish_addr;
+    uint32_t    int_addr;
+    uint32_t    status1;
+    uint32_t    status2;
+    uint32_t    start_addr_b;
+    uint32_t    finish_addr_b;
+    uint32_t    reserved[7];
+} aml_tdm_frddr_regs_t;
+
 typedef volatile struct {
-    uint32_t    clk_gate_en;
-    uint32_t    mclk_a_ctl;
-    uint32_t    mclk_b_ctl;
-    uint32_t    mclk_c_ctl;
-    uint32_t    mclk_d_ctl;
-    uint32_t    mclk_e_ctl;
-    uint32_t    mclk_f_ctl;
-    uint32_t    reserved0[9];
-    uint32_t    mst_a_sclk_ctl0;
-    uint32_t    mst_a_sclk_ctl1;
-    uint32_t    mst_b_sclk_ctl0;
-    uint32_t    mst_b_sclk_ctl1;
-    uint32_t    mst_c_sclk_ctl0;
-    uint32_t    mst_c_sclk_ctl1;
-    uint32_t    mst_d_sclk_ctl0;
-    uint32_t    mst_d_sclk_ctl1;
-    uint32_t    mst_e_sclk_ctl0;
-    uint32_t    mst_e_sclk_ctl1;
-    uint32_t    mst_f_sclk_ctl0;
-    uint32_t    mst_f_sclk_ctl1;
-    uint32_t    reserved1[4];
-    uint32_t    clk_tdmin_a_ctl;
-    uint32_t    clk_tdmin_b_ctl;
-    uint32_t    clk_tdmin_c_ctl;
-    uint32_t    clk_tdmin_lb_ctl;
-    uint32_t    clk_tdmout_a_ctl;
-    uint32_t    clk_tdmout_b_ctl;
-    uint32_t    clk_tdmout_c_ctl;
 
-    uint32_t    clk_spdifin_ctl;
-    uint32_t    clk_spdifout_ctl;
-    uint32_t    clk_resample_ctl;
-    uint32_t    clk_locker_ctl;
-    uint32_t    clk_pdmin_ctl0;
-    uint32_t    clk_pdmin_ctl1;
+    uint32_t            clk_gate_en;
+    uint32_t            mclk_ctl[6];        //mclk control - a,b,c,d,e,f
+    uint32_t            reserved0[9];
 
-    uint32_t    reserved2[19];
+    aml_tdm_sclk_ctl_t  sclk_ctl[6];
+    uint32_t            reserved1[4];
 
-    uint32_t    toddr_a_ctl0;
-    uint32_t    toddr_a_ctl1;
-    uint32_t    toddr_a_start_addr_a;
-    uint32_t    toddr_a_finish_addr_a;
-    uint32_t    toddr_a_int_addr;
-    uint32_t    toddr_a_status1;
-    uint32_t    toddr_a_status2;
-    uint32_t    toddr_a_start_addr_b;
-    uint32_t    toddr_a_finish_addr_b;
-    uint32_t    reserved3[7];
+    uint32_t            clk_tdmin_ctl[4];   //tdm in control - a,b,c,lb
+    uint32_t            clk_tdmout_ctl[3];  //tdm out control - a,b,c
 
-    uint32_t    toddr_b_ctl0;
-    uint32_t    toddr_b_ctl1;
-    uint32_t    toddr_b_start_addr_a;
-    uint32_t    toddr_b_finish_addr_a;
-    uint32_t    toddr_b_int_addr;
-    uint32_t    toddr_b_status1;
-    uint32_t    toddr_b_status2;
-    uint32_t    toddr_b_start_addr_b;
-    uint32_t    toddr_b_finish_addr_b;
-    uint32_t    reserved4[7];
+    uint32_t            clk_spdifin_ctl;
+    uint32_t            clk_spdifout_ctl;
+    uint32_t            clk_resample_ctl;
+    uint32_t            clk_locker_ctl;
+    uint32_t            clk_pdmin_ctl0;
+    uint32_t            clk_pdmin_ctl1;
+    uint32_t            reserved2[19];
 
-    uint32_t    toddr_c_ctl0;
-    uint32_t    toddr_c_ctl1;
-    uint32_t    toddr_c_start_addr_a;
-    uint32_t    toddr_c_finish_addr_a;
-    uint32_t    toddr_c_int_addr;
-    uint32_t    toddr_c_status1;
-    uint32_t    toddr_c_status2;
-    uint32_t    toddr_c_start_addr_b;
-    uint32_t    toddr_c_finish_addr_b;
-    uint32_t    reserved5[7];
-
-    uint32_t    frddr_a_ctl0;
-    uint32_t    frddr_a_ctl1;
-    uint32_t    frddr_a_start_addr;
-    uint32_t    frddr_a_finish_addr;
-    uint32_t    frddr_a_int_addr;
-    uint32_t    frddr_a_status1;
-    uint32_t    frddr_a_status2;
-    uint32_t    frddr_a_start_addr_b;
-    uint32_t    frddr_a_finish_addr_b;
-    uint32_t    reserved6[7];
-
-    uint32_t    frddr_b_ctl0;
-    uint32_t    frddr_b_ctl1;
-    uint32_t    frddr_b_start_addr;
-    uint32_t    frddr_b_finish_addr;
-    uint32_t    frddr_b_int_addr;
-    uint32_t    frddr_b_status1;
-    uint32_t    frddr_b_status2;
-    uint32_t    frddr_b_start_addr_b;
-    uint32_t    frddr_b_finish_addr_b;
-    uint32_t    reserved7[7];
-
-    uint32_t    frddr_c_ctl0;
-    uint32_t    frddr_c_ctl1;
-    uint32_t    frddr_c_start_addr;
-    uint32_t    frddr_c_finish_addr;
-    uint32_t    frddr_c_int_addr;
-    uint32_t    frddr_c_status1;
-    uint32_t    frddr_c_status2;
-    uint32_t    frddr_c_start_addr_b;
-    uint32_t    frddr_c_finish_addr_b;
-    uint32_t    reserved8[7];
-
+    aml_tdm_toddr_regs_t    toddr[3];
+    aml_tdm_frddr_regs_t    frddr[3];
 
 //TODO - still more regs, will add as needed
 

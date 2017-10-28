@@ -17,8 +17,7 @@
 #include "aml-tdm.h"
 #include "a113-bus.h"
 
-#define REGDUMP(regval) \
-    printf(#regval " = 0x%08x\n",device->virt_regs->regval);
+
 
 
 
@@ -52,38 +51,27 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
         goto init_fail;
     }
 */
-    REGDUMP(clk_gate_en)
-    REGDUMP(mclk_c_ctl)
-    REGDUMP(mst_c_sclk_ctl0)
-    REGDUMP(mst_c_sclk_ctl1)
 
     aml_tdm_regs_t *reg = device->virt_regs;
 
+    //todo - need to configure the mpll and use it as clock source
+
     // enable mclk c, select fclk_div4 as source, divide by 5208 to get 48kHz
-    reg->mclk_c_ctl = (1 << 31) | (6 << 24) | (5208);
+    reg->mclk_ctl[MCLK_C] = (1 << 31) | (6 << 24) | (5208);
 
     // configure mst_sclk_gen
-    reg->mst_c_sclk_ctl0 = (0x03 << 30) | (1 << 20) | (4 << 10) | 32;
-    reg->mst_c_sclk_ctl1 = 0x11111111;
+    reg->sclk_ctl[MCLK_C].ctl0 = (0x03 << 30) | (1 << 20) | (4 << 10) | 31;
+    reg->sclk_ctl[MCLK_C].ctl1 = 0x11111111;
 
+    reg->clk_tdmout_ctl[TDM_OUT_C] = (0x03 << 30) | (2 << 24) | (2 << 20);
 
-    reg->clk_tdmout_c_ctl = (0x03 << 30) | (2 << 24) | (2 << 20);
+    // assign fclk/4 (500MHz) to the pdm clocks and divide to get ~48khz
+    reg->clk_pdmin_ctl0 = ( 1 << 31) | (6 << 24) | (10416/128);
+    reg->clk_pdmin_ctl1 = ( 1 << 31) | (6 << 24) | (10416/128);
 
-    reg->clk_pdmin_ctl0 = ( 1 << 31) | (6 << 24) | (10416);
-    reg->clk_pdmin_ctl1 = ( 1 << 31) | (6 << 24) | (10416);
-
+    // Enable clock gates for PDM and TDM blocks
     reg->clk_gate_en = (1 << 8) || (1 << 1);
 
-
-
-/*
-
-
-    thrd_t thrd;
-    thrd_create_with_name(&thrd, aml_i2c_thread, *device, "i2c_thread");
-    thrd_t irqthrd;
-    thrd_create_with_name(&irqthrd, aml_i2c_irq_thread, *device, "i2c_irq_thread");
-*/
     return ZX_OK;
 
 init_fail:
