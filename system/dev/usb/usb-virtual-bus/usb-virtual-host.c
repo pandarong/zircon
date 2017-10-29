@@ -70,7 +70,7 @@ static uint64_t virt_host_get_frame(void* ctx) {
     return 0;
 }
 
-zx_status_t virt_host_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed,
+zx_status_t virt_host_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed, bool multi_tt,
                                  usb_hub_descriptor_t* descriptor) {
     return ZX_OK;
 }

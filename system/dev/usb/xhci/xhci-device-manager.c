@@ -131,12 +131,12 @@ static zx_status_t xhci_address_device(xhci_t* xhci, uint32_t slot_id, uint32_t 
             io_buffer_cache_op(&slot->buffer, ZX_VMO_OP_CACHE_INVALIDATE, 0,
                                sizeof(xhci_slot_context_t));
 #endif
-            mtt = XHCI_GET_BITS32(&slot->sc->sc0, SLOT_CTX_MTT_START, SLOT_CTX_MTT_BITS);
+            mtt = XHCI_READ32(&slot->sc->sc0) & SLOT_CTX_MTT;
             tt_hub_slot_id = hub_address;
             tt_port_number = port;
         }
     }
-    XHCI_SET_BITS32(&sc->sc0, SLOT_CTX_MTT_START, SLOT_CTX_MTT_BITS, mtt);
+    XHCI_SET32(&sc->sc0, SLOT_CTX_MTT, mtt);
     XHCI_SET_BITS32(&sc->sc2, SLOT_CTX_TT_HUB_SLOT_ID_START, SLOT_CTX_TT_HUB_SLOT_ID_BITS,
                     tt_hub_slot_id);
     XHCI_SET_BITS32(&sc->sc2, SLOT_CTX_TT_PORT_NUM_START, SLOT_CTX_TT_PORT_NUM_BITS,
@@ -677,7 +677,7 @@ zx_status_t xhci_enable_endpoint(xhci_t* xhci, uint32_t slot_id, usb_endpoint_de
     return status;
 }
 
-zx_status_t xhci_configure_hub(xhci_t* xhci, uint32_t slot_id, usb_speed_t speed,
+zx_status_t xhci_configure_hub(xhci_t* xhci, uint32_t slot_id, usb_speed_t speed, bool multi_tt,
                                usb_hub_descriptor_t* descriptor) {
     zxlogf(TRACE, "xhci_configure_hub slot_id: %d speed: %d\n", slot_id, speed);
     if (xhci_is_root_hub(xhci, slot_id)) {
@@ -704,7 +704,12 @@ zx_status_t xhci_configure_hub(xhci_t* xhci, uint32_t slot_id, usb_speed_t speed
 #if XHCI_USE_CACHE_OPS
      io_buffer_cache_op(&slot->buffer, ZX_VMO_OP_CACHE_INVALIDATE, 0, sizeof(xhci_slot_context_t));
 #endif
-    XHCI_WRITE32(&sc->sc0, XHCI_READ32(&slot->sc->sc0) | SLOT_CTX_HUB);
+    uint32_t sc0 = XHCI_READ32(&slot->sc->sc1);
+    sc0 |= SLOT_CTX_HUB;
+    if (multi_tt) {
+        sc0 |= SLOT_CTX_MTT;
+    }
+    XHCI_WRITE32(&sc->sc0, sc0);
     XHCI_WRITE32(&sc->sc1, XHCI_READ32(&slot->sc->sc1));
     XHCI_WRITE32(&sc->sc2, XHCI_READ32(&slot->sc->sc2));
 

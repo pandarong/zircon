@@ -304,7 +304,31 @@ static int usb_hub_thread(void* arg) {
         goto fail;
     }
 
-    result = usb_bus_configure_hub(&hub->bus, hub->usb_device, hub->hub_speed, &desc);
+    bool multi_tt = false;
+    if (hub->hub_speed == USB_SPEED_HIGH) {
+printf("USB_SPEED_HIGH\n");
+        usb_device_descriptor_t device_desc;
+        size_t out_length;
+        zx_status_t status = usb_get_descriptor(&hub->usb, USB_TYPE_STANDARD | USB_RECIP_DEVICE,
+                                            USB_DT_DEVICE, 0, &device_desc, sizeof(device_desc),
+                                            ZX_TIME_INFINITE, &out_length);
+printf("status %d out_length %zu bDeviceProtocol %u\n", status, out_length, device_desc.bDeviceProtocol);
+
+
+
+        if (status == ZX_OK && out_length == sizeof(device_desc) &&
+            device_desc.bDeviceProtocol == USB_HUB_MULTI_TT) {
+printf("call usb_set_interface\n");
+            status = usb_set_interface(&hub->usb, 0, 1);
+printf("set interface got %d\n", status);
+            if (status == ZX_OK) {
+printf("multi_TT\n");
+                multi_tt = true;
+            }
+        }
+    }
+
+    result = usb_bus_configure_hub(&hub->bus, hub->usb_device, hub->hub_speed, multi_tt, &desc);
     if (result < 0) {
         zxlogf(ERROR, "configure_hub failed: %d\n", result);
         goto fail;

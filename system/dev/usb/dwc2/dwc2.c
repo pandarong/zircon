@@ -603,7 +603,7 @@ static uint64_t dwc_get_frame(void* ctx) {
     return ZX_OK;
 }
 
-zx_status_t dwc_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed,
+zx_status_t dwc_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed, bool multi_tt,
                            usb_hub_descriptor_t* descriptor) {
     // Not sure if DWC controller has to take any specific action here.
     return ZX_OK;

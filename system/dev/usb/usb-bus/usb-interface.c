@@ -164,6 +164,8 @@ static zx_status_t usb_interface_configure_endpoints(usb_interface_t* intf, uint
     bool interface_endpoints[USB_MAX_EPS] = {};
     zx_status_t status = ZX_OK;
 
+printf("usb_interface_configure_endpoints 1\n");
+
     // iterate through our descriptors to find which endpoints should be active
     usb_descriptor_header_t* header = intf->descriptor;
     usb_descriptor_header_t* end = (usb_descriptor_header_t*)((void*)header + intf->descriptor_length);
@@ -171,6 +173,7 @@ static zx_status_t usb_interface_configure_endpoints(usb_interface_t* intf, uint
 
     bool enable_endpoints = false;
     while (header < end) {
+printf("top of loop\n");
         if (header->bDescriptorType == USB_DT_INTERFACE) {
             usb_interface_descriptor_t* intf_desc = (usb_interface_descriptor_t*)header;
             cur_interface = intf_desc->bInterfaceNumber;
@@ -186,14 +189,18 @@ static zx_status_t usb_interface_configure_endpoints(usb_interface_t* intf, uint
         header = NEXT_DESCRIPTOR(header);
     }
 
+printf("usb_interface_configure_endpoints 2\n");
+
     // update to new set of endpoints
     // FIXME - how do we recover if we fail half way through processing the endpoints?
     for (size_t i = 0; i < countof(new_endpoints); i++) {
+printf("for loop %zu\n", i);
         if (interface_endpoints[i]) {
             usb_endpoint_descriptor_t* old_ep = intf->active_endpoints[i];
             usb_endpoint_descriptor_t* new_ep = new_endpoints[i];
             if (old_ep != new_ep) {
                 if (old_ep) {
+printf("enable false\n");
                     zx_status_t ret = usb_interface_enable_endpoint(intf, old_ep, NULL, false);
                     if (ret != ZX_OK) status = ret;
                 }
@@ -205,6 +212,7 @@ static zx_status_t usb_interface_configure_endpoints(usb_interface_t* intf, uint
                         && next->bDescriptorType == USB_DT_SS_EP_COMPANION) {
                         ss_comp_desc = (usb_ss_ep_comp_descriptor_t *)next;
                     }
+printf("enable true\n");
                     zx_status_t ret = usb_interface_enable_endpoint(intf, new_ep, ss_comp_desc, true);
                     if (ret != ZX_OK) status = ret;
                 }
@@ -212,6 +220,7 @@ static zx_status_t usb_interface_configure_endpoints(usb_interface_t* intf, uint
             }
         }
     }
+printf("usb_interface_configure_endpoints 99\n");
     return status;
 }
 
@@ -319,6 +328,13 @@ static size_t usb_interface_get_max_transfer_size(void* ctx, uint8_t ep_address)
 static uint32_t _usb_interface_get_device_id(void* ctx) {
     usb_interface_t* intf = ctx;
     return intf->device_id;
+}
+
+static zx_status_t usb_interface_get_device_descriptor(void* ctx,
+                                                       usb_device_descriptor_t* out_desc) {
+    usb_interface_t* intf = ctx;
+    memcpy(out_desc, &intf->device->device_desc, sizeof(intf->device->device_desc));
+    return ZX_OK;
 }
 
 static zx_status_t usb_interface_get_descriptor_list(void* ctx, void** out_descriptors,
@@ -634,9 +650,11 @@ bool usb_interface_contains_interface(usb_interface_t* intf, uint8_t interface_i
 
 zx_status_t usb_interface_set_alt_setting(usb_interface_t* intf, uint8_t interface_id,
                                           uint8_t alt_setting) {
+printf("usb_interface_set_alt_setting 1\n");
     zx_status_t status = usb_interface_configure_endpoints(intf, interface_id, alt_setting);
     if (status != ZX_OK) return status;
 
+printf("usb_interface_set_alt_setting 2\n");
     return usb_device_control(intf->device,
                               USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_INTERFACE,
                               USB_REQ_SET_INTERFACE, alt_setting, interface_id, NULL, 0);

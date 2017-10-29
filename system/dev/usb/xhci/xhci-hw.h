@@ -470,8 +470,7 @@ typedef volatile struct {
 #define SLOT_CTX_ROUTE_STRING_BITS          20
 #define SLOT_CTX_SPEED_START                20
 #define SLOT_CTX_SPEED_BITS                 4
-#define SLOT_CTX_MTT_START                  25
-#define SLOT_CTX_MTT_BITS                   1
+#define SLOT_CTX_MTT                        (1 << 25)
 #define SLOT_CTX_HUB                        (1 << 26)
 #define SLOT_CTX_CONTEXT_ENTRIES_START      27
 #define SLOT_CTX_CONTEXT_ENTRIES_BITS       5

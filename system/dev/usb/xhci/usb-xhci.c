@@ -87,10 +87,10 @@ static uint64_t xhci_get_frame(void* ctx) {
     return xhci_get_current_frame(xhci);
 }
 
-static zx_status_t xhci_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed,
+static zx_status_t xhci_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed, bool multi_tt,
                             usb_hub_descriptor_t* descriptor) {
     xhci_t* xhci = ctx;
-    return xhci_configure_hub(xhci, device_id, speed, descriptor);
+    return xhci_configure_hub(xhci, device_id, speed, multi_tt, descriptor);
 }
 
 static zx_status_t xhci_hub_device_added(void* ctx, uint32_t hub_address, int port,

@@ -16,7 +16,7 @@ __BEGIN_CDECLS;
 typedef struct usb_bus_protocol_ops {
     // Hub support
     zx_status_t (*configure_hub)(void* ctx, zx_device_t* hub_device, usb_speed_t speed,
-                 usb_hub_descriptor_t* descriptor);
+                 bool multi_tt, usb_hub_descriptor_t* descriptor);
     zx_status_t (*hub_device_added)(void* ctx, zx_device_t* hub_device, int port,
                                     usb_speed_t speed);
     zx_status_t (*hub_device_removed)(void* ctx, zx_device_t* hub_device, int port);
@@ -28,9 +28,9 @@ typedef struct usb_bus_protocol {
 } usb_bus_protocol_t;
 
 static inline zx_status_t usb_bus_configure_hub(usb_bus_protocol_t* bus, zx_device_t* hub_device,
-                                                usb_speed_t speed,
+                                                usb_speed_t speed, bool multi_tt,
                                                 usb_hub_descriptor_t* descriptor) {
-    return bus->ops->configure_hub(bus->ctx, hub_device, speed, descriptor);
+    return bus->ops->configure_hub(bus->ctx, hub_device, speed, multi_tt, descriptor);
 }
 
 static inline zx_status_t usb_bus_hub_device_added(usb_bus_protocol_t* bus, zx_device_t* hub_device,

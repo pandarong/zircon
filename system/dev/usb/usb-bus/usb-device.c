@@ -39,11 +39,13 @@ static zx_status_t usb_device_add_interfaces(usb_device_t* parent,
 
 zx_status_t usb_device_set_interface(usb_device_t* device, uint8_t interface_id,
                                      uint8_t alt_setting) {
+printf("usb_device_set_interface 1\n");
     mtx_lock(&device->interface_mutex);
     usb_interface_t* intf;
     list_for_every_entry(&device->children, intf, usb_interface_t, node) {
         if (usb_interface_contains_interface(intf, interface_id)) {
             mtx_unlock(&device->interface_mutex);
+printf("usb_device_set_interface 4\n");
             return usb_interface_set_alt_setting(intf, interface_id, alt_setting);
         }
     }

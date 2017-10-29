@@ -59,13 +59,13 @@ static usb_bus_interface_ops_t _bus_interface = {
 };
 
 static zx_status_t bus_configure_hub(void* ctx, zx_device_t* hub_device, usb_speed_t speed,
-                                         usb_hub_descriptor_t* descriptor) {
+                                     bool multi_tt, usb_hub_descriptor_t* descriptor) {
     usb_bus_t* bus = ctx;
     uint32_t hub_id;
     if (usb_interface_get_device_id(hub_device, &hub_id) != ZX_OK) {
         return ZX_ERR_INTERNAL;
     }
-    return usb_hci_configure_hub(&bus->hci, hub_id, speed, descriptor);
+    return usb_hci_configure_hub(&bus->hci, hub_id, speed, multi_tt, descriptor);
 }
 
 static zx_status_t bus_device_added(void* ctx, zx_device_t* hub_device, int port, usb_speed_t speed) {

@@ -12,6 +12,12 @@ __BEGIN_CDECLS;
 #define USB_RECIP_HUB   (USB_TYPE_CLASS | USB_RECIP_DEVICE)
 #define USB_RECIP_PORT  (USB_TYPE_CLASS | USB_RECIP_OTHER)
 
+// Hub device protocols
+#define USB_HUB_NO_TT           0
+#define USB_HUB_SINGLE_TT       1
+#define USB_HUB_MULTI_TT        2
+#define USB_HUB_SUPERSPEED      3
+
 // Hub requests
 #define USB_HUB_SET_DEPTH       12
 
