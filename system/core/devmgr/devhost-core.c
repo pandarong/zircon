@@ -278,7 +278,8 @@ zx_status_t devhost_device_install(zx_device_t* dev) {
 
 zx_status_t devhost_device_add(zx_device_t* dev, zx_device_t* parent,
                                const zx_device_prop_t* props, uint32_t prop_count,
-                               const char* proxy_args) TA_REQ(&__devhost_api_lock) {
+                               const char* proxy_args, const zx_binding_t* deps,
+                               uint32_t dep_count) TA_REQ(&__devhost_api_lock) {
     zx_status_t status;
     if ((status = device_validate(dev)) < 0) {
         goto fail;
@@ -349,7 +350,7 @@ zx_status_t devhost_device_add(zx_device_t* dev, zx_device_t* parent,
         list_add_tail(&parent->children, &dev->node);
 
         // devhost_add always consumes the handle
-        status = devhost_add(parent, dev, proxy_args, props, prop_count);
+        status = devhost_add(parent, dev, proxy_args, props, prop_count, deps, dep_count);
         if (status < 0) {
             printf("devhost: %p(%s): remote add failed %d\n",
                    dev, dev->name, status);

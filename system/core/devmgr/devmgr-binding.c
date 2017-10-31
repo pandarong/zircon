@@ -138,9 +138,25 @@ next_instruction:
     return false;
 }
 
-bool dc_is_bindable(driver_t* drv, uint32_t protocol_id,
-                    zx_device_prop_t* props, size_t prop_count,
-                    bool autobind) {
+bool dc_is_bindable(zx_binding_t* binding, uint32_t protocol_id,
+                    zx_device_prop_t* props, size_t prop_count) {
+    if (binding->bindcount == 0) {
+        return false;
+    }
+    bpctx_t ctx;
+    ctx.props = props;
+    ctx.end = props + prop_count;
+    ctx.protocol_id = protocol_id;
+    ctx.binding = binding->bindings;
+    ctx.binding_size = binding->bindcount * sizeof(zx_bind_inst_t);
+    ctx.name = "dependency";
+    ctx.autobind = 1;
+    return is_bindable(&ctx);
+}
+
+bool dc_drv_is_bindable(driver_t* drv, uint32_t protocol_id,
+                        zx_device_prop_t* props, size_t prop_count,
+                        bool autobind) {
     if (drv->binding_size == 0) {
         return false;
     }

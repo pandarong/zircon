@@ -31,6 +31,7 @@ zx_status_t dc_msg_pack(dc_msg_t* msg, uint32_t* len_out,
     } else {
         msg->datalen = 0;
     }
+    msg->data2len = 0;
     if (name) {
         datalen = strlen(name) + 1;
         if (datalen > max) {
@@ -76,6 +77,7 @@ zx_status_t dc_msg_unpack(dc_msg_t* msg, size_t len, const void** data,
     } else {
         *data = NULL;
     }
+    ptr += msg->data2len;
     if (msg->namelen) {
         if (msg->namelen > len) {
             return ZX_ERR_BUFFER_TOO_SMALL;

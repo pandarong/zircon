@@ -682,7 +682,8 @@ static void devhost_io_init(void) {
 // Send message to devcoordinator asking to add child device to
 // parent device.  Called under devhost api lock.
 zx_status_t devhost_add(zx_device_t* parent, zx_device_t* child, const char* proxy_args,
-                        const zx_device_prop_t* props, uint32_t prop_count) {
+                        const zx_device_prop_t* props, uint32_t prop_count,
+                        const zx_binding_t* deps, uint32_t dep_count) {
     char buffer[512];
     const char* path = mkdevpath(parent, buffer, sizeof(buffer));
     log(RPC_OUT, "devhost[%s] add '%s'\n", path, child->name);
@@ -700,12 +701,81 @@ zx_status_t devhost_add(zx_device_t* parent, zx_device_t* child, const char* pro
     }
 
     dc_msg_t msg;
-    uint32_t msglen;
-    if ((r = dc_msg_pack(&msg, &msglen,
-                         props, prop_count * sizeof(zx_device_prop_t),
-                         name, proxy_args)) < 0) {
-        goto fail;
+
+    uint32_t max = DC_MAX_DATA;
+    uint8_t* ptr = msg.data;
+    uint32_t len;
+    uint32_t i;
+
+    // device props, followed by dependency prop count per dependency,
+    // followed by dependency count, followed by dependency bindings
+
+    uint32_t datalen = prop_count * sizeof(zx_device_prop_t);
+
+    if (datalen > 0) {
+        if (datalen > max) {
+            r = ZX_ERR_BUFFER_TOO_SMALL;
+            goto fail;
+        }
+        len = prop_count * sizeof(zx_device_prop_t);
+        memcpy(ptr, props, len);
+        ptr += len;
+        max -= datalen;
+        msg.datalen = datalen;
+    } else {
+        msg.datalen = 0;
     }
+
+    datalen = (dep_count > 0) ? sizeof(uint32_t) : 0;
+    for (i = 0; i < dep_count; i++) {
+        datalen += deps[i].bindcount * sizeof(zx_bind_inst_t) + sizeof(uint32_t);
+    }
+    if (datalen > 0) {
+        if (datalen > max) {
+            r = ZX_ERR_BUFFER_TOO_SMALL;
+            goto fail;
+        }
+        len = sizeof(uint32_t);
+        memcpy(ptr, &dep_count, len);
+        ptr += len;
+        for (i = 0; i < dep_count; i++) {
+            len = sizeof(uint32_t);
+            memcpy(ptr, &deps[i].bindcount, len);
+            ptr += len;
+        }
+        for (i = 0; i < dep_count; i++) {
+            len = deps[i].bindcount * sizeof(zx_bind_inst_t);
+            memcpy(ptr, deps[i].bindings, len);
+            ptr += len;
+        }
+        max -= datalen;
+        msg.data2len = datalen;
+    } else {
+        msg.data2len = 0;
+    }
+
+    datalen = strlen(name) + 1;
+    if (datalen > max) {
+        return ZX_ERR_BUFFER_TOO_SMALL;
+    }
+    memcpy(ptr, name, datalen);
+    max -= datalen;
+    ptr += datalen;
+    msg.namelen = datalen;
+
+    if (proxy_args) {
+        datalen = strlen(proxy_args) + 1;
+        if (datalen > max) {
+            return ZX_ERR_BUFFER_TOO_SMALL;
+        }
+        memcpy(ptr, proxy_args, datalen);
+        ptr += datalen;
+        msg.argslen = datalen;
+    } else {
+        msg.argslen = 0;
+    }
+
+    uint32_t msglen = sizeof(dc_msg_t) - DC_MAX_DATA + (ptr - msg.data);
     msg.op = (child->flags & DEV_FLAG_INVISIBLE) ? DC_OP_ADD_DEVICE_INVISIBLE : DC_OP_ADD_DEVICE;
     msg.protocol_id = child->protocol_id;
 

@@ -25,6 +25,8 @@
 #include "log.h"
 #include "memfs-private.h"
 
+#include <pretty/hexdump.h>
+
 extern zx_handle_t virtcon_open;
 
 uint32_t log_flags = LOG_ERROR | LOG_INFO;
@@ -150,6 +152,9 @@ static list_node_t list_drivers_fallback = LIST_INITIAL_VALUE(list_drivers_fallb
 
 // All Devices (excluding static immortal devices)
 static list_node_t list_devices = LIST_INITIAL_VALUE(list_devices);
+
+// Composite devices that are pending to be made visible
+static list_node_t list_devices_pending = LIST_INITIAL_VALUE(list_devices_pending);
 
 static driver_t* libname_to_driver(const char* libname) {
     driver_t* drv;
@@ -347,11 +352,13 @@ static void dc_dump_drivers(void) {
 }
 
 static void dc_handle_new_device(device_t* dev);
+static void dc_handle_new_composite_device(device_t* dev);
 static void dc_handle_new_driver(void);
 
 #define WORK_IDLE 0
 #define WORK_DEVICE_ADDED 1
 #define WORK_DRIVER_ADDED 2
+#define WORK_COMPOSITE_DEVICE_ADDED 3
 
 static list_node_t list_pending_work = LIST_INITIAL_VALUE(list_pending_work);
 static list_node_t list_unbound_devices = LIST_INITIAL_VALUE(list_unbound_devices);
@@ -379,6 +386,10 @@ static void process_work(work_t* work) {
         device_t* dev = containerof(work, device_t, work);
         dc_handle_new_device(dev);
         break;
+    }
+    case WORK_COMPOSITE_DEVICE_ADDED: {
+        device_t* dev = containerof(work, device_t, work);
+        dc_handle_new_composite_device(dev);
     }
     case WORK_DRIVER_ADDED: {
         dc_handle_new_driver();
@@ -631,25 +642,81 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
                                  dc_msg_t* msg, const char* name,
                                  const char* args, const void* data,
                                  bool invisible) {
-    if (msg->datalen % sizeof(zx_device_prop_t)) {
-        return ZX_ERR_INVALID_ARGS;
+    uint32_t dep_count = 0;
+    const uint8_t* src = data;
+    if (msg->data2len > 0) {
+        src = data + msg->datalen;
+        memcpy(&dep_count, src, sizeof(uint32_t));
     }
+
     device_t* dev;
-    // allocate device struct, followed by space for props, followed
-    // by space for bus arguments, followed by space for the name
-    size_t sz = sizeof(*dev) + msg->datalen + msg->argslen + msg->namelen + 2;
+    // allocate device struct, followed by space for props, followed by space for
+    // dependency props, followed by space for bus arguments, followed by space for the name
+    size_t sz = sizeof(*dev) + msg->datalen +
+                msg->data2len + dep_count * sizeof(zx_device_prop_t*) +
+                msg->argslen + msg->namelen + 2;
     if ((dev = calloc(1, sz)) == NULL) {
         return ZX_ERR_NO_MEMORY;
     }
     list_initialize(&dev->children);
     list_initialize(&dev->pending);
     dev->hrpc = hrpc;
-    dev->prop_count = msg->datalen / sizeof(zx_device_prop_t);
     dev->protocol_id = msg->protocol_id;
 
-    char* text = (char*) (dev->props + dev->prop_count);
+    printf("==== device add ====\n");
+    printf("msg at %p datalen %u data2len %u argslen %u namelen %u\n", data, msg->datalen,
+            msg->data2len, msg->argslen, msg->namelen);
+    if (data) {
+        hexdump8(data, msg->datalen + msg->data2len + msg->argslen + msg->namelen);
+    }
+
+    uint32_t len;
+    if (msg->datalen > 0) {
+        dev->prop_count = msg->datalen / sizeof(zx_device_prop_t);
+        len = dev->prop_count * sizeof(zx_device_prop_t);
+        memcpy(dev->props, src, len);
+    } else {
+        dev->prop_count = 0;
+    }
+
+    printf("prop count %u\n", dev->prop_count);
+    printf("props at %p\n", dev->props);
+    hexdump8(dev->props, dev->prop_count * sizeof(zx_device_prop_t));
+
+    uint32_t i;
+    zx_binding_t* deps = (zx_binding_t*)(dev->props + dev->prop_count);
+    uint8_t* dst = (uint8_t*)(deps + dep_count);
+    if (msg->data2len > 0) {
+        src = data + msg->datalen + sizeof(uint32_t);
+        for (i = 0; i < dep_count; i++) {
+            memcpy(&deps->bindcount, src, sizeof(uint32_t));
+            deps->bindings = (zx_bind_inst_t*)dst;
+            len = deps->bindcount * sizeof(zx_bind_inst_t);
+            memcpy(dst, src, len);
+            dst += len;
+            src += len;
+            deps += 1;
+        }
+        dev->dep_count = dep_count;
+        dev->deps = deps;
+    } else {
+        dev->dep_count = 0;
+    }
+
+    printf("dep_count %u\n", dev->dep_count);
+    printf("deps at %p\n", dev->deps);
+    for (i = 0; i < dev->dep_count; i++) {
+        printf("%02u: bindcount=%u\n", i, dev->deps[i].bindcount);
+        hexdump8(dev->deps[i].bindings, dev->deps[i].bindcount * sizeof(zx_binding_t));
+    }
+
+    bool composite = (dev->dep_count > 0);
+
+    char* text = (char*)dst;
     memcpy(text, args, msg->argslen + 1);
-    dev->args = text;
+    dev->args = (char*)text;
+
+    printf("args at %p '%s' (src %p '%s')\n", dev->args, dev->args, args, args);
 
     text += msg->argslen + 1;
     memcpy(text, name, msg->namelen + 1);
@@ -664,7 +731,7 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
         dev->libname = "";
     }
 
-    memcpy(dev->props, data, msg->datalen);
+    printf("name at %p '%s' (src %p) libname '%s'\n", dev->name, dev->name, name, dev->libname);
 
     if (strlen(dev->name) > ZX_DEVICE_NAME_MAX) {
         free(dev);
@@ -712,7 +779,12 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     list_add_tail(&parent->children, &dev->node);
     parent->refcount++;
 
-    list_add_tail(&list_devices, &dev->anode);
+    // TODO invisible devices also?
+    if (composite) {
+        list_add_tail(&list_devices_pending, &dev->anode);
+    } else {
+        list_add_tail(&list_devices, &dev->anode);
+    }
 
     log(DEVLC, "devcoord: dev %p name='%s' ++ref=%d (child)\n",
         parent, parent->name, parent->refcount);
@@ -720,7 +792,9 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     log(DEVLC, "devcoord: publish %p '%s' props=%u args='%s' parent=%p\n",
         dev, dev->name, dev->prop_count, dev->args, dev->parent);
 
-    if (invisible) {
+    if (composite) {
+        queue_work(&dev->work, WORK_COMPOSITE_DEVICE_ADDED, 0);
+    } else if (invisible) {
         dev->flags |= DEV_CTX_INVISIBLE;
     } else {
         dc_notify(dev, DEVMGR_OP_DEVICE_ADDED);
@@ -875,8 +949,8 @@ static zx_status_t dc_bind_device(device_t* dev, const char* drvlibname) {
     driver_t* drv;
     list_for_every_entry(&list_drivers, drv, driver_t, node) {
         if (autobind || !strcmp(drv->libname, drvlibname)) {
-            if (dc_is_bindable(drv, dev->protocol_id,
-                               dev->props, dev->prop_count, autobind)) {
+            if (dc_drv_is_bindable(drv, dev->protocol_id,
+                                   dev->props, dev->prop_count, autobind)) {
                 log(SPEW, "devcoord: drv='%s' bindable to dev='%s'\n",
                     drv->name, dev->name);
                 dc_attempt_bind(drv, dev);
@@ -1354,8 +1428,8 @@ static void dc_handle_new_device(device_t* dev) {
     driver_t* drv;
 
     list_for_every_entry(&list_drivers, drv, driver_t, node) {
-        if (dc_is_bindable(drv, dev->protocol_id,
-                           dev->props, dev->prop_count, true)) {
+        if (dc_drv_is_bindable(drv, dev->protocol_id,
+                               dev->props, dev->prop_count, true)) {
             log(SPEW, "devcoord: drv='%s' bindable to dev='%s'\n",
                 drv->name, dev->name);
 
@@ -1365,6 +1439,26 @@ static void dc_handle_new_device(device_t* dev) {
             }
         }
     }
+}
+
+static void dc_handle_new_composite_device(device_t* dev) {
+    bool satisfied;
+    for (uint32_t i = 0; i < dev->dep_count; i++) {
+        device_t* other;
+        satisfied = false;
+        list_for_every_entry(&list_devices, other, device_t, anode) {
+            if (dc_is_bindable(&dev->deps[i], other->protocol_id,
+                               other->props, other->prop_count)) {
+                log(SPEW, "devcoord: dev='%s' satisfies dependency %u for dev='%s'\n",
+                    other->name, i, dev->name);
+                satisfied = true;
+            }
+        }
+        if (!satisfied) {
+            break;
+        }
+    }
+    printf("devcoord: dependencies for dev='%s' satisfied %d\n", dev->name, satisfied);
 }
 
 // device binding program that pure (parentless)
@@ -1454,8 +1548,8 @@ void dc_bind_driver(driver_t* drv) {
                 // if device is already bound or being destroyed, skip it
                 continue;
             }
-            if (dc_is_bindable(drv, dev->protocol_id,
-                               dev->props, dev->prop_count, true)) {
+            if (dc_drv_is_bindable(drv, dev->protocol_id,
+                                   dev->props, dev->prop_count, true)) {
                 log(INFO, "devcoord: drv='%s' bindable to dev='%s'\n",
                     drv->name, dev->name);
 

@@ -63,6 +63,8 @@ struct dc_device {
     int32_t refcount;
     uint32_t protocol_id;
     uint32_t prop_count;
+    uint32_t dep_count;
+    zx_binding_t* deps;
     devnode_t* self;
     devnode_t* link;
     device_t* parent;
@@ -145,9 +147,11 @@ void dc_driver_added(driver_t* drv, const char* version);
 void load_driver(const char* path);
 void find_loadable_drivers(const char* path);
 
-bool dc_is_bindable(driver_t* drv, uint32_t protocol_id,
-                    zx_device_prop_t* props, size_t prop_count,
-                    bool autobind);
+bool dc_is_bindable(zx_binding_t* binding, uint32_t protocol_id,
+                    zx_device_prop_t* props, size_t prop_count);
+bool dc_drv_is_bindable(driver_t* drv, uint32_t protocol_id,
+                        zx_device_prop_t* props, size_t prop_count,
+                        bool autobind);
 
 #define DC_MAX_DATA 4096
 
@@ -165,6 +169,7 @@ typedef struct {
         uint32_t value;
     };
     uint32_t datalen;
+    uint32_t data2len;
     uint32_t namelen;
     uint32_t argslen;
 

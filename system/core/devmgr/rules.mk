@@ -57,6 +57,7 @@ MODULE_STATIC_LIBS := \
     third_party/ulib/lz4 \
     system/ulib/port \
     system/ulib/driver-info \
+    system/ulib/pretty \
 
 MODULE_LIBS := \
     system/ulib/launchpad \

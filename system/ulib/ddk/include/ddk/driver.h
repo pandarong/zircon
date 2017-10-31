@@ -18,7 +18,7 @@ typedef struct zx_device_prop zx_device_prop_t;
 typedef struct zx_driver_rec zx_driver_rec_t;
 
 typedef struct zx_bind_inst zx_bind_inst_t;
-typedef struct zx_driver_binding zx_driver_binding_t;
+typedef struct zx_binding zx_binding_t;
 
 // echo -n "zx_driver_ops_v0.5" | sha256sum | cut -c1-16
 #define DRIVER_OPS_VERSION 0x2b3490fa40d9f452
@@ -69,6 +69,11 @@ enum {
     // This device will not be visible in devfs or available for binding
     // until device_make_visible() is called on it.
     DEVICE_ADD_INVISIBLE    = (1 << 3),
+
+    // This is a composite device. This device will not be visible in devfs
+    // or available for binding until all devices it depends on are visible
+    // to the system. Implies DEVICE_ADD_MUST_ISOLATE
+    DEVICE_ADD_COMPOSITE    = (1 << 4),
 };
 
 // Device Manager API
@@ -103,6 +108,15 @@ typedef struct device_add_args {
     // these will be passed to the create() driver op of
     // the proxy device in the new devhost
     const char* proxy_args;
+
+    // Arguments used with DEVICE_ADD_COMPOSITE
+    // a list of bindings per device this device depends on,
+    // used by devcoord to match dependent devices as they are
+    // added to the system
+    zx_binding_t* deps;
+
+    // number of devices this device depends on
+    uint32_t dep_count;
 
     // One or more of DEVICE_ADD_*
     uint32_t flags;

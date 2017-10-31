@@ -21,7 +21,8 @@
 
 #define ALLOWED_FLAGS (\
     DEVICE_ADD_NON_BINDABLE | DEVICE_ADD_INSTANCE |\
-    DEVICE_ADD_MUST_ISOLATE | DEVICE_ADD_INVISIBLE)
+    DEVICE_ADD_MUST_ISOLATE | DEVICE_ADD_INVISIBLE |\
+    DEVICE_ADD_COMPOSITE)
 
 __EXPORT zx_status_t device_add_from_driver(zx_driver_t* drv, zx_device_t* parent,
                                             device_add_args_t* args, zx_device_t** out) {
@@ -41,7 +42,7 @@ __EXPORT zx_status_t device_add_from_driver(zx_driver_t* drv, zx_device_t* paren
         return ZX_ERR_INVALID_ARGS;
     }
     if ((args->flags & DEVICE_ADD_INSTANCE) &&
-        (args->flags & (DEVICE_ADD_MUST_ISOLATE | DEVICE_ADD_INVISIBLE))) {
+        (args->flags & (DEVICE_ADD_MUST_ISOLATE | DEVICE_ADD_INVISIBLE | DEVICE_ADD_COMPOSITE))) {
         return ZX_ERR_INVALID_ARGS;
     }
 
@@ -58,7 +59,7 @@ __EXPORT zx_status_t device_add_from_driver(zx_driver_t* drv, zx_device_t* paren
     if (args->flags & DEVICE_ADD_NON_BINDABLE) {
         dev->flags |= DEV_FLAG_UNBINDABLE;
     }
-    if (args->flags & DEVICE_ADD_INVISIBLE) {
+    if ((args->flags & DEVICE_ADD_INVISIBLE) || (args->flags & DEVICE_ADD_COMPOSITE)) {
         dev->flags |= DEV_FLAG_INVISIBLE;
     }
 
@@ -69,13 +70,17 @@ __EXPORT zx_status_t device_add_from_driver(zx_driver_t* drv, zx_device_t* paren
         *out = dev;
     }
 
-    if (args->flags & DEVICE_ADD_MUST_ISOLATE) {
-        r = devhost_device_add(dev, parent, args->props, args->prop_count, args->proxy_args);
+    if (args->flags & DEVICE_ADD_COMPOSITE) {
+        r = devhost_device_add(dev, parent, args->props, args->prop_count, args->proxy_args,
+                               args->deps, args->dep_count);
+    } if (args->flags & DEVICE_ADD_MUST_ISOLATE) {
+        r = devhost_device_add(dev, parent, args->props, args->prop_count, args->proxy_args,
+                               NULL, 0);
     } else if (args->flags & DEVICE_ADD_INSTANCE) {
         dev->flags |= DEV_FLAG_INSTANCE | DEV_FLAG_UNBINDABLE;
-        r = devhost_device_add(dev, parent, NULL, 0, NULL);
+        r = devhost_device_add(dev, parent, NULL, 0, NULL, NULL, 0);
     } else {
-        r = devhost_device_add(dev, parent, args->props, args->prop_count, NULL);
+        r = devhost_device_add(dev, parent, args->props, args->prop_count, NULL, NULL, 0);
     }
     if (r != ZX_OK) {
         if (out) {

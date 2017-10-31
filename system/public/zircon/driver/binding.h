@@ -128,6 +128,11 @@ typedef struct zx_bind_inst {
     uint32_t arg;
 } zx_bind_inst_t;
 
+typedef struct zx_binding {
+    uint32_t bindcount;
+    zx_bind_inst_t* bindings;
+} zx_binding_t;
+
 typedef struct zx_device_prop {
     uint16_t id;
     uint16_t reserved;
