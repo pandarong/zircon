@@ -278,35 +278,45 @@
 /* Enable cached page table walks:
  * inner/outer (IRGN/ORGN): write-back + write-allocate
  */
-#define MMU_TCR_FLAGS1 (MMU_TCR_TG1(MMU_TG1(MMU_KERNEL_PAGE_SIZE_SHIFT)) | \
+#define MMU_TCR_FLAGS1 \
+                       (MMU_TCR_TG1(MMU_TG1(MMU_KERNEL_PAGE_SIZE_SHIFT)) | \
                         MMU_TCR_SH1(MMU_SH_INNER_SHAREABLE) | \
                         MMU_TCR_ORGN1(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_IRGN1(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_T1SZ(64 - MMU_KERNEL_SIZE_SHIFT))
-#define MMU_TCR_FLAGS0 (MMU_TCR_TG0(MMU_TG0(MMU_USER_PAGE_SIZE_SHIFT)) | \
+
+#define MMU_TCR_FLAGS0 \
+                       (MMU_TCR_TG0(MMU_TG0(MMU_USER_PAGE_SIZE_SHIFT)) | \
                         MMU_TCR_SH0(MMU_SH_INNER_SHAREABLE) | \
                         MMU_TCR_ORGN0(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_IRGN0(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_T0SZ(64 - MMU_USER_SIZE_SHIFT))
+
 #define MMU_TCR_FLAGS0_IDENT \
                        (MMU_TCR_TG0(MMU_TG0(MMU_IDENT_PAGE_SIZE_SHIFT)) | \
                         MMU_TCR_SH0(MMU_SH_INNER_SHAREABLE) | \
                         MMU_TCR_ORGN0(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_IRGN0(MMU_RGN_WRITE_BACK_ALLOCATE) | \
                         MMU_TCR_T0SZ(64 - MMU_IDENT_SIZE_SHIFT))
-#define MMU_TCR_FLAGS_IDENT (MMU_TCR_IPS_DEFAULT | MMU_TCR_FLAGS1 | MMU_TCR_FLAGS0_IDENT)
 
-#define MMU_TCR_FLAGS_KERNEL (MMU_TCR_IPS_DEFAULT | \
-                              MMU_TCR_FLAGS1 | \
-                              MMU_TCR_FLAGS0 | \
-                              MMU_TCR_EPD0 | \
-                              MMU_TCR_AS | \
-                              MMU_TCR_A1)
+#define MMU_TCR_FLAGS_IDENT \
+                       (MMU_TCR_IPS_DEFAULT | \
+                        MMU_TCR_FLAGS1 | \
+                        MMU_TCR_FLAGS0_IDENT)
 
-#define MMU_TCR_FLAGS_USER (MMU_TCR_IPS_DEFAULT | \
-                            MMU_TCR_FLAGS1 | \
-                            MMU_TCR_FLAGS0 | \
-                            MMU_TCR_AS)
+#define MMU_TCR_FLAGS_KERNEL \
+                       (MMU_TCR_IPS_DEFAULT | \
+                        MMU_TCR_FLAGS1 | \
+                        MMU_TCR_FLAGS0 | \
+                        MMU_TCR_EPD0 | \
+                        MMU_TCR_AS | \
+                        MMU_TCR_A1)
+
+#define MMU_TCR_FLAGS_USER \
+                       (MMU_TCR_IPS_DEFAULT | \
+                        MMU_TCR_FLAGS1 | \
+                        MMU_TCR_FLAGS0 | \
+                        MMU_TCR_AS)
 
 #define MMU_VTCR_FLAGS_GUEST \
                        (MMU_TCR_TG0(MMU_TG0(MMU_GUEST_PAGE_SIZE_SHIFT)) | \

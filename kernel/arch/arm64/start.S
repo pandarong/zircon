@@ -349,7 +349,6 @@ FUNCTION(arm_reset)
     msr     tcr_el1, tmp
     isb
 
-
     /* Invalidate TLB */
     tlbi    vmalle1
     isb
