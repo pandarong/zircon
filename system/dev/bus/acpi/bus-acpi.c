@@ -92,7 +92,8 @@ zx_handle_t root_resource_handle;
 
 static zx_device_t* publish_device(zx_device_t* parent, ACPI_HANDLE handle,
                                    ACPI_DEVICE_INFO* info, const char* name,
-                                   uint32_t protocol_id, void* protocol_ops);
+                                   uint32_t protocol_id, void* protocol_ops,
+                                   bool composite);
 
 static void acpi_device_release(void* ctx) {
     acpi_device_t* dev = (acpi_device_t*)ctx;
@@ -104,6 +105,22 @@ static zx_protocol_device_t acpi_device_proto = {
     .release = acpi_device_release,
 };
 
+static ACPI_STATUS acpi_ADR(ACPI_HANDLE object, UINT64* out_addr) {
+    ACPI_OBJECT obj = {
+        .Type = ACPI_TYPE_INTEGER,
+    };
+    ACPI_BUFFER buffer = {
+        .Length = sizeof(obj),
+        .Pointer = &obj,
+    };
+    ACPI_STATUS acpi_status = AcpiEvaluateObject(object, (char*)"_ADR", NULL, &buffer);
+    if (acpi_status != AE_OK) {
+        return acpi_status;
+    }
+    *out_addr = obj.Integer.Value;
+    return AE_OK;
+}
+
 static ACPI_STATUS find_pci_child_callback(ACPI_HANDLE object, uint32_t nesting_level,
                                            void* context, void** out_value) {
     ACPI_DEVICE_INFO* info;
@@ -113,20 +130,15 @@ static ACPI_STATUS find_pci_child_callback(ACPI_HANDLE object, uint32_t nesting_
         return acpi_status;
     }
     ACPI_FREE(info);
-    ACPI_OBJECT obj = {
-        .Type = ACPI_TYPE_INTEGER,
-    };
-    ACPI_BUFFER buffer = {
-        .Length = sizeof(obj),
-        .Pointer = &obj,
-    };
-    acpi_status = AcpiEvaluateObject(object, (char*)"_ADR", NULL, &buffer);
+
+    UINT64 acpi_addr;
+    acpi_status = acpi_ADR(object, &acpi_addr);
     if (acpi_status != AE_OK) {
         return AE_OK;
     }
     uint32_t addr = *(uint32_t*)context;
     ACPI_HANDLE* out_handle = (ACPI_HANDLE*)out_value;
-    if (addr == obj.Integer.Value) {
+    if (addr == (uint32_t)acpi_addr) {
         *out_handle = object;
         return AE_CTRL_TERMINATE;
     } else {
@@ -490,8 +502,7 @@ unlock:
     return st;
 }
 
-// TODO marking unused until we publish some devices
-static __attribute__ ((unused)) acpi_protocol_ops_t acpi_proto = {
+static acpi_protocol_ops_t acpi_proto = {
     .map_resource = acpi_op_map_resource,
     .map_interrupt = acpi_op_map_interrupt,
 };
@@ -520,6 +531,47 @@ static zx_protocol_device_t sys_device_proto = {
     .suspend = sys_device_suspend,
 };
 
+static ACPI_STATUS publish_device_resource_callback(ACPI_RESOURCE* res, void* context) {
+    zx_binding_t* binding = context;
+    if (res->Type != ACPI_RESOURCE_TYPE_SERIAL_BUS) {
+        return AE_OK;
+    }
+    if (res->Data.I2cSerialBus.Type != ACPI_RESOURCE_SERIAL_TYPE_I2C) {
+        return AE_OK;
+    }
+
+    ACPI_RESOURCE_I2C_SERIALBUS* i2c = &res->Data.I2cSerialBus;
+    ACPI_HANDLE obj;
+    ACPI_STATUS acpi_status = AcpiGetHandle(NULL, i2c->ResourceSource.StringPtr, &obj);
+    if (acpi_status != AE_OK) {
+        // next resource
+        return AE_OK;
+    }
+    // binding is based on PCI b:d.f
+    UINT64 addr;
+    acpi_status = acpi_ADR(obj, &addr);
+    if (acpi_status != AE_OK) {
+        // next resource
+        return AE_OK;
+    }
+
+    // BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_I2C_BUS)
+    binding->bindings[0].op = BINDINST_CC(COND_NE) | BINDINST_OP(OP_ABORT) |
+                              BINDINST_PB(BIND_PROTOCOL);
+    binding->bindings[0].arg = ZX_PROTOCOL_I2C_BUS;
+
+    // BI_MATCH_IF(NE, BIND_PCI_BDF_ADDR, <b:d.f>)
+    // TODO Only support a single PCI bus for now
+    binding->bindings[1].op = BINDINST_CC(COND_EQ) | BINDINST_OP(OP_MATCH) |
+                              BINDINST_PB(BIND_PCI_BDF_ADDR);
+    binding->bindings[1].arg = BIND_PCI_BDF_PACK(0, (addr >> 16), (addr & 0xffff));
+
+    binding->bindcount = 2;
+
+    // stop at the first i2c resource
+    return AE_CTRL_TERMINATE;
+}
+
 static const char* hid_from_acpi_devinfo(ACPI_DEVICE_INFO* info) {
     const char* hid = NULL;
     if ((info->Valid & ACPI_VALID_HID) &&
@@ -535,7 +587,8 @@ static zx_device_t* publish_device(zx_device_t* parent,
                                    ACPI_DEVICE_INFO* info,
                                    const char* name,
                                    uint32_t protocol_id,
-                                   void* protocol_ops) {
+                                   void* protocol_ops,
+                                   bool composite) {
     zx_device_prop_t props[4];
     int propcount = 0;
 
@@ -565,6 +618,18 @@ static zx_device_t* publish_device(zx_device_t* parent,
         props[propcount++].value = htobe32(*((uint32_t*)(cid + 4)));
     }
 
+    // If this a composite device, look for resource dependencies
+    uint32_t depcount = 0;
+    zx_bind_inst_t bindings[2]; // space for 1 dependency with 2 bind rules
+    zx_binding_t binding = {
+        .bindings = bindings,
+        .bindcount = 0,
+    };
+    AcpiWalkResources(handle, (char*)"_CRS", publish_device_resource_callback, &binding);
+    if (binding.bindcount > 0) {
+        depcount = 1;
+    }
+
     if (driver_get_log_flags() & DDK_LOG_SPEW) {
         // ACPI names are always 4 characters in a uint32
         zxlogf(SPEW, "acpi-bus: got device %s\n", acpi_name);
@@ -590,6 +655,9 @@ static zx_device_t* publish_device(zx_device_t* parent,
         for (int i = 0; i < propcount; i++) {
             zxlogf(SPEW, "     [%d] id=0x%08x value=0x%08x\n", i, props[i].id, props[i].value);
         }
+        if (depcount > 0) {
+            zxlogf(SPEW, "    composite, depcount=%u\n", depcount);
+        }
     }
 
     acpi_device_t* dev = calloc(1, sizeof(acpi_device_t));
@@ -608,6 +676,9 @@ static zx_device_t* publish_device(zx_device_t* parent,
         .proto_ops = protocol_ops,
         .props = (propcount > 0) ? props : NULL,
         .prop_count = propcount,
+        .dep_count = depcount,
+        .deps = (depcount > 0) ? &binding : NULL,
+        .flags = (depcount > 0) ? DEVICE_ADD_COMPOSITE : 0,
     };
 
     zx_status_t status;
@@ -621,6 +692,27 @@ static zx_device_t* publish_device(zx_device_t* parent,
                 name, dev, device_get_name(parent), parent, (void*)dev->ns_node);
         return dev->zxdev;
     }
+}
+
+static ACPI_STATUS handle_i2c_device_resource_callback(ACPI_RESOURCE* res, void* context) {
+    if (res->Type != ACPI_RESOURCE_TYPE_SERIAL_BUS) {
+        return AE_OK;
+    }
+    if (res->Data.I2cSerialBus.Type != ACPI_RESOURCE_SERIAL_TYPE_I2C) {
+        return AE_OK;
+    }
+    bool* is_i2cdev = context;
+    *is_i2cdev = true;
+    return AE_CTRL_TERMINATE;
+}
+
+static void handle_i2c_device(ACPI_HANDLE object, ACPI_DEVICE_INFO* info, zx_device_t* parent) {
+    bool is_i2cdev = false;
+    AcpiWalkResources(object, (char*)"_CRS", handle_i2c_device_resource_callback, &is_i2cdev);
+    if (!is_i2cdev) {
+        return;
+    }
+    publish_device(parent, object, info, NULL, ZX_PROTOCOL_ACPI, &acpi_proto, true);
 }
 
 static ACPI_STATUS acpi_ns_walk_callback(ACPI_HANDLE object, uint32_t nesting_level,
@@ -656,7 +748,7 @@ static ACPI_STATUS acpi_ns_walk_callback(ACPI_HANDLE object, uint32_t nesting_le
         // TODO: store context for PCI root protocol
         parent = device_get_parent(parent);
         zx_device_t* pcidev = publish_device(parent, object, info, "pci",
-                ZX_PROTOCOL_PCIROOT, &pciroot_proto);
+                ZX_PROTOCOL_PCIROOT, &pciroot_proto, false);
         ctx->found_pci = (pcidev != NULL);
     } else if (!memcmp(hid, BATTERY_HID_STRING, HID_LENGTH)) {
         battery_init(parent, object);
@@ -668,6 +760,8 @@ static ACPI_STATUS acpi_ns_walk_callback(ACPI_HANDLE object, uint32_t nesting_le
         tbmc_init(parent, object);
     } else if (!memcmp(hid, GOOGLE_CROS_EC_HID_STRING, HID_LENGTH)) {
         cros_ec_lpc_init(parent, object);
+    } else {
+        handle_i2c_device(object, info, parent);
     }
 
 out:
