@@ -73,7 +73,7 @@ __EXPORT zx_status_t device_add_from_driver(zx_driver_t* drv, zx_device_t* paren
     if (args->flags & DEVICE_ADD_COMPOSITE) {
         r = devhost_device_add(dev, parent, args->props, args->prop_count, args->proxy_args,
                                args->deps, args->dep_count);
-    } if (args->flags & DEVICE_ADD_MUST_ISOLATE) {
+    } else if (args->flags & DEVICE_ADD_MUST_ISOLATE) {
         r = devhost_device_add(dev, parent, args->props, args->prop_count, args->proxy_args,
                                NULL, 0);
     } else if (args->flags & DEVICE_ADD_INSTANCE) {

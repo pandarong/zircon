@@ -385,6 +385,10 @@ static void process_work(work_t* work) {
     case WORK_DEVICE_ADDED: {
         device_t* dev = containerof(work, device_t, work);
         dc_handle_new_device(dev);
+        // check if the new device satisfied any pending composite devices
+        list_for_every_entry(&list_devices_pending, dev, device_t, anode) {
+            dc_handle_new_composite_device(dev);
+        }
         break;
     }
     case WORK_COMPOSITE_DEVICE_ADDED: {
@@ -674,6 +678,7 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     if (msg->datalen > 0) {
         dev->prop_count = msg->datalen / sizeof(zx_device_prop_t);
         len = dev->prop_count * sizeof(zx_device_prop_t);
+        src = data;
         memcpy(dev->props, src, len);
     } else {
         dev->prop_count = 0;
@@ -687,6 +692,8 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     zx_binding_t* deps = (zx_binding_t*)(dev->props + dev->prop_count);
     uint8_t* dst = (uint8_t*)(deps + dep_count);
     if (msg->data2len > 0) {
+        dev->dep_count = dep_count;
+        dev->deps = deps;
         src = data + msg->datalen + sizeof(uint32_t);
         for (i = 0; i < dep_count; i++) {
             memcpy(&deps->bindcount, src, sizeof(uint32_t));
@@ -697,8 +704,6 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
             src += len;
             deps += 1;
         }
-        dev->dep_count = dep_count;
-        dev->deps = deps;
     } else {
         dev->dep_count = 0;
     }
@@ -707,7 +712,7 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     printf("deps at %p\n", dev->deps);
     for (i = 0; i < dev->dep_count; i++) {
         printf("%02u: bindcount=%u\n", i, dev->deps[i].bindcount);
-        hexdump8(dev->deps[i].bindings, dev->deps[i].bindcount * sizeof(zx_binding_t));
+        hexdump8(dev->deps[i].bindings, dev->deps[i].bindcount * sizeof(zx_bind_inst_t));
     }
 
     bool composite = (dev->dep_count > 0);
