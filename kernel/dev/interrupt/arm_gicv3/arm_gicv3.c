@@ -345,10 +345,7 @@ static enum handler_return arm_ipi_reschedule_handler(void *arg) {
 static enum handler_return arm_ipi_halt_handler(void *arg) {
     LTRACEF("cpu %u, arg %p\n", arch_curr_cpu_num(), arg);
 
-    arch_disable_ints();
-    for(;;);
-
-    return INT_NO_RESCHEDULE;
+    mp_mbx_halt_irq();
 }
 
 static void gic_init_percpu(void) {

@@ -47,9 +47,6 @@ void platform_early_init(void);
 /* later init, after the kernel has come up */
 void platform_init(void);
 
-/* called by the arch init code to get the platform to set up any mmu mappings it may need */
-void platform_init_mmu_mappings(void);
-
 /* if the platform has knowledge of what caused the latest reboot, it can report
  * it to applications with this function.  */
 platform_halt_reason platform_get_reboot_reason(void);

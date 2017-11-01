@@ -65,7 +65,7 @@ static size_t ramdisk_size;
 static uint cpu_cluster_count = 0;
 static uint cpu_cluster_cpus[SMP_CPU_MAX_CLUSTERS] = {0};
 
-static bool halt_on_panic = false;
+static bool halt_on_panic = true;
 
 /* initial memory mappings. parsed by start.S */
 const struct mmu_initial_mapping mmu_initial_mappings[] = {
@@ -623,36 +623,45 @@ static void reboot() {
 
 void platform_halt(platform_halt_action suggested_action, platform_halt_reason reason)
 {
+    printf("platform_halt suggested_action %d reason %d\n", suggested_action, reason);
 
-    if (suggested_action == HALT_ACTION_REBOOT) {
-        reboot();
-        printf("reboot failed\n");
-    } else if (suggested_action == HALT_ACTION_SHUTDOWN) {
-        // XXX shutdown seem to not work through psci
-        // implement shutdown via pmic
-        psci_system_off();
+    arch_disable_ints();
+
+    switch (suggested_action) {
+        case HALT_ACTION_SHUTDOWN:
+            printf("Shutting down...\n");
+            psci_system_off();
+            printf("Shutdown failed, halting\n");
+            break;
+        case HALT_ACTION_REBOOT:
+            printf("Rebooting...\n");
+            reboot();
+            printf("Reboot failed, halting\n");
+            break;
+        case HALT_ACTION_HALT:
+            printf("Halting...\n");
+            halt_other_cpus();
+            break;
     }
+
+    for (;;);
 
 #if WITH_LIB_DEBUGLOG
     thread_print_current_backtrace();
     dlog_bluescreen_halt();
 #endif
 
-    if (reason == HALT_REASON_SW_PANIC) {
-        if (!halt_on_panic) {
-            reboot();
-            printf("reboot failed\n");
-        }
-#if ENABLE_PANIC_SHELL
-        dprintf(ALWAYS, "CRASH: starting debug shell... (reason = %d)\n", reason);
-        arch_disable_ints();
-        panic_shell_start();
-#endif  // ENABLE_PANIC_SHELL
+    if (!halt_on_panic) {
+        printf("Rebooting...\n");
+        reboot();
     }
 
-    dprintf(ALWAYS, "HALT: spinning forever... (reason = %d)\n", reason);
+    printf("Halted\n");
 
-    // catch all fallthrough cases
+#if ENABLE_PANIC_SHELL
+    panic_shell_start();
+#endif
+
     arch_halt();
 }
 

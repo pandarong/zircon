@@ -271,11 +271,7 @@ enum handler_return x86_ipi_reschedule_handler(void)
 
 void x86_ipi_halt_handler(void)
 {
-    printf("halting cpu %u\n", arch_curr_cpu_num());
-
-    platform_halt_cpu();
-
-    arch_halt();
+    mp_mbx_halt_irq();
 }
 
 zx_status_t arch_mp_prep_cpu_unplug(uint cpu_id) {

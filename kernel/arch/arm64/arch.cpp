@@ -237,8 +237,6 @@ void arch_early_init(void)
     arm64_dcache_size = (1u << arm64_dcache_shift);
     uint32_t arm64_icache_shift = (uint32_t)BITS(ctr, 3, 0) + 2;
     arm64_icache_size = (1u << arm64_icache_shift);
-
-    platform_init_mmu_mappings();
 }
 
 static void midr_to_core(uint32_t midr, char *str, size_t len)

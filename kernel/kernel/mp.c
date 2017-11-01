@@ -437,6 +437,14 @@ enum handler_return mp_mbx_reschedule_irq(void) {
     return (mp.active_cpus & cpu_num_to_mask(cpu)) ? INT_RESCHEDULE : INT_NO_RESCHEDULE;
 }
 
+enum handler_return mp_mbx_halt_irq(void) {
+    printf("halting cpu %u\n", arch_curr_cpu_num());
+
+    platform_halt_cpu();
+
+    arch_halt();
+}
+
 __WEAK zx_status_t arch_mp_cpu_hotplug(uint cpu_id) {
     return ZX_ERR_NOT_SUPPORTED;
 }

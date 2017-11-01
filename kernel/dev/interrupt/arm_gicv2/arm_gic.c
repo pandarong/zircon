@@ -15,6 +15,7 @@
 #include <dev/interrupt/arm_gic_regs.h>
 #include <dev/interrupt/arm_gicv2m.h>
 #include <reg.h>
+#include <platform.h>
 #include <kernel/thread.h>
 #include <kernel/stats.h>
 #include <lk/init.h>
@@ -323,10 +324,7 @@ static enum handler_return arm_ipi_reschedule_handler(void *arg) {
 static enum handler_return arm_ipi_halt_handler(void *arg) {
     LTRACEF("cpu %u, arg %p\n", arch_curr_cpu_num(), arg);
 
-    arch_disable_ints();
-    for(;;);
-
-    return INT_NO_RESCHEDULE;
+    mp_mbx_halt_irq();
 }
 
 static void gic_init_percpu(void) {

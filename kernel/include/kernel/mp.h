@@ -60,6 +60,8 @@ static inline zx_status_t mp_unplug_cpu(cpu_num_t cpu) {
 enum handler_return mp_mbx_reschedule_irq(void);
 /* called from arch code during generic task irq */
 enum handler_return mp_mbx_generic_irq(void);
+/* called from arch code when halting cpu */
+__NO_RETURN enum handler_return mp_mbx_halt_irq(void);
 
 /* represents a pending task for some number of CPUs to execute */
 struct mp_ipi_task {
