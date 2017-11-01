@@ -58,6 +58,11 @@ static inline void arch_spinloop_signal(void)
 {
 }
 
+static inline void arch_idle(void)
+{
+    __asm__ volatile("hlt");
+}
+
 #define mb()        __asm__ volatile ("mfence" ::: "memory")
 #define smp_mb()    mb()
 

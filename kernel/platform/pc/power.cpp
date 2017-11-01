@@ -106,7 +106,5 @@ void platform_halt(
     panic_shell_start();
 #endif
 
-    for (;;) {
-        x86_hlt();
-    }
+    arch_halt();
 }

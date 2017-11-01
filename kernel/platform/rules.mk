@@ -12,7 +12,6 @@ MODULE := $(LOCAL_DIR)
 # shared platform code
 MODULE_SRCS += \
 	$(LOCAL_DIR)/debug.cpp \
-	$(LOCAL_DIR)/init.cpp \
 	$(LOCAL_DIR)/power.cpp
 
 include make/module.mk

@@ -653,8 +653,7 @@ void platform_halt(platform_halt_action suggested_action, platform_halt_reason r
     dprintf(ALWAYS, "HALT: spinning forever... (reason = %d)\n", reason);
 
     // catch all fallthrough cases
-    arch_disable_ints();
-    for (;;);
+    arch_halt();
 }
 
 size_t platform_stow_crashlog(void* log, size_t len) {

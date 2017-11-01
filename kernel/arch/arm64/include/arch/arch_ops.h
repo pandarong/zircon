@@ -33,6 +33,11 @@ static inline void arch_spinloop_signal(void)
 #define mb()        __asm__ volatile("dsb sy" : : : "memory")
 #define smp_mb()    __asm__ volatile("dmb ish" : : : "memory")
 
+static inline void arch_idle(void)
+{
+    __asm__ volatile("dsb sy; wfi");
+}
+
 static inline uint64_t arch_cycle_count(void)
 {
     return ARM64_READ_SYSREG(pmccntr_el0);

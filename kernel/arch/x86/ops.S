@@ -22,19 +22,6 @@
 %rax 1st return register
 */
 
-/* void arch_idle(); */
-FUNCTION(arch_idle)
-    pushf
-    popq %rax
-    andq $0x200, %rax
-    test %rax, %rax
-    je 1f                   /* don't halt if local interrupts are disabled */
-    hlt
-1:
-    ret
-END_FUNCTION(arch_idle)
-
-
 /* zx_status_t read_msr_safe(uint32_t msr_id, uint64_t *val); */
 FUNCTION(read_msr_safe)
     // Set up MSR index

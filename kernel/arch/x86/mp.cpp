@@ -275,10 +275,7 @@ void x86_ipi_halt_handler(void)
 
     platform_halt_cpu();
 
-    for (;;) {
-        x86_cli();
-        x86_hlt();
-    }
+    arch_halt();
 }
 
 zx_status_t arch_mp_prep_cpu_unplug(uint cpu_id) {

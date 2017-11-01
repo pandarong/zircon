@@ -70,6 +70,15 @@ void arch_init(void)
     x86_processor_trace_init();
 }
 
+
+void arch_halt(void)
+{
+    arch_disable_ints();
+    for (;;) {
+        __asm__ volatile("hlt");
+    }
+}
+
 void arch_enter_uspace(uintptr_t entry_point, uintptr_t sp,
                        uintptr_t arg1, uintptr_t arg2) {
     LTRACEF("entry %#" PRIxPTR " user stack %#" PRIxPTR "\n", entry_point, sp);
@@ -156,10 +165,7 @@ void arch_resume(void) {
     // lk_secondary_cpu_entry only returns on an error, halt the core in this
     // case.
 fail:
-    arch_disable_ints();
-    while (1) {
-      x86_hlt();
-    }
+    arch_halt();
 }
 
 // This is called from assembly, before any other C code.

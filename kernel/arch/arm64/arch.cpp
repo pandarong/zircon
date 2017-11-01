@@ -311,13 +311,16 @@ void arch_init(void)
     arch_clean_cache_range((addr_t)&arm_boot_cpu_lock, sizeof(arm_boot_cpu_lock));
 }
 
-void arch_quiesce(void)
+void arch_halt(void)
 {
+    arch_disable_ints();
+    for (;;) {
+        __asm__ volatile("wfi");
+    }
 }
 
-void arch_idle(void)
+void arch_quiesce(void)
 {
-    __asm__ volatile("wfi");
 }
 
 /* switch to user mode, set the user stack pointer to user_stack_top, put the svc stack pointer to the top of the kernel stack */
