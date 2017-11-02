@@ -806,17 +806,32 @@ zx_status_t intel_serialio_bind_i2c(zx_device_t* dev) {
     // Configure the I2C controller. We don't need to hold the lock because
     // nobody else can see this controller yet.
     status = intel_serialio_i2c_reset_controller(device);
-    if (status < 0)
+    if (status < 0) {
         goto fail;
+    }
 
     char name[ZX_DEVICE_NAME_MAX];
     snprintf(name, sizeof(name), "i2c-bus-%04x", pci_config->device_id);
 
-   device_add_args_t args = {
+    zx_pcie_device_info_t pci_info;
+    status = pci_get_device_info(&pci, &pci_info);
+    if (status != ZX_OK) {
+        goto fail;
+    }
+
+    zx_device_prop_t prop = {
+        .id = BIND_PCI_BDF_ADDR,
+        .value = BIND_PCI_BDF_PACK(0, pci_info.dev_id, pci_info.func_id),
+    };
+
+    device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = name,
         .ctx = device,
         .ops = &intel_serialio_i2c_device_proto,
+        .proto_id = ZX_PROTOCOL_I2C_BUS,
+        .props = &prop,
+        .prop_count = 1,
     };
 
     status = device_add(dev, &args, &device->zxdev);
@@ -829,6 +844,7 @@ zx_status_t intel_serialio_bind_i2c(zx_device_t* dev) {
         "reg=%p regsize=%ld\n",
         device->regs, device->regs_size);
 
+#if 0
     // get child info from aux data
     auxdata_args_nth_device_t auxdata_args = {
         .child_type = AUXDATA_DEVICE_I2C,
@@ -858,7 +874,7 @@ zx_status_t intel_serialio_bind_i2c(zx_device_t* dev) {
             }
         }
     } while ((status == ZX_OK) && auxdata_args.n++);
-
+#endif
 
     zx_handle_close(config_handle);
     return ZX_OK;
