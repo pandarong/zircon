@@ -386,7 +386,8 @@ static void process_work(work_t* work) {
         device_t* dev = containerof(work, device_t, work);
         dc_handle_new_device(dev);
         // check if the new device satisfied any pending composite devices
-        list_for_every_entry(&list_devices_pending, dev, device_t, anode) {
+        device_t* temp;
+        list_for_every_entry_safe(&list_devices_pending, dev, temp, device_t, anode) {
             dc_handle_new_composite_device(dev);
         }
         break;
@@ -696,7 +697,9 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
         dev->deps = deps;
         src = data + msg->datalen + sizeof(uint32_t);
         for (i = 0; i < dep_count; i++) {
-            memcpy(&deps->bindcount, src, sizeof(uint32_t));
+            len = sizeof(uint32_t);
+            memcpy(&deps->bindcount, src, len);
+            src += len;
             deps->bindings = (zx_bind_inst_t*)dst;
             len = deps->bindcount * sizeof(zx_bind_inst_t);
             memcpy(dst, src, len);
@@ -1452,10 +1455,12 @@ static void dc_handle_new_composite_device(device_t* dev) {
         device_t* other;
         satisfied = false;
         list_for_every_entry(&list_devices, other, device_t, anode) {
-            if (dc_is_bindable(&dev->deps[i], other->protocol_id,
+            if (other->protocol_id == ZX_PROTOCOL_I2C_BUS) {
+                //printf("devcoord: dev='%s' satisfies dependency %u for dev='%s'?\n",
+                //       other->name, i, dev->name);
+            }
+            if (dc_is_bindable(dev->deps + i, other->protocol_id,
                                other->props, other->prop_count)) {
-                log(SPEW, "devcoord: dev='%s' satisfies dependency %u for dev='%s'\n",
-                    other->name, i, dev->name);
                 satisfied = true;
             }
         }
@@ -1464,6 +1469,13 @@ static void dc_handle_new_composite_device(device_t* dev) {
         }
     }
     printf("devcoord: dependencies for dev='%s' satisfied %d\n", dev->name, satisfied);
+    if (satisfied) {
+        list_delete(&dev->anode);
+        list_add_tail(&list_devices, &dev->anode);
+        devfs_advertise(dev);
+        dc_notify(dev, DEVMGR_OP_DEVICE_ADDED);
+        dc_handle_new_device(dev);
+    }
 }
 
 // device binding program that pure (parentless)

@@ -150,7 +150,7 @@ bool dc_is_bindable(zx_binding_t* binding, uint32_t protocol_id,
     ctx.binding = binding->bindings;
     ctx.binding_size = binding->bindcount * sizeof(zx_bind_inst_t);
     ctx.name = "dependency";
-    ctx.autobind = 1;
+    ctx.autobind = 0;
     return is_bindable(&ctx);
 }
 

@@ -556,14 +556,12 @@ static ACPI_STATUS publish_device_resource_callback(ACPI_RESOURCE* res, void* co
     }
 
     // BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_I2C_BUS)
-    binding->bindings[0].op = BINDINST_CC(COND_NE) | BINDINST_OP(OP_ABORT) |
-                              BINDINST_PB(BIND_PROTOCOL);
+    binding->bindings[0].op = (COND_NE << 28) | (OP_ABORT << 24) | BINDINST_PB(BIND_PROTOCOL);
     binding->bindings[0].arg = ZX_PROTOCOL_I2C_BUS;
 
     // BI_MATCH_IF(NE, BIND_PCI_BDF_ADDR, <b:d.f>)
     // TODO Only support a single PCI bus for now
-    binding->bindings[1].op = BINDINST_CC(COND_EQ) | BINDINST_OP(OP_MATCH) |
-                              BINDINST_PB(BIND_PCI_BDF_ADDR);
+    binding->bindings[1].op = (COND_EQ << 28) | (OP_MATCH << 24) | BINDINST_PB(BIND_PCI_BDF_ADDR);
     binding->bindings[1].arg = BIND_PCI_BDF_PACK(0, (addr >> 16), (addr & 0xffff));
 
     binding->bindcount = 2;
