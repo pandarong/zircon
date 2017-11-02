@@ -18,6 +18,7 @@
 #include "xhci-device-manager.h"
 #include "xhci-root-hub.h"
 #include "xhci-transfer.h"
+#include "xhci-util.h"
 
 #define ROUNDUP_TO(x, multiple) ((x + multiple - 1) & ~(multiple - 1))
 #define PAGE_ROUNDUP(x) ROUNDUP_TO(x, PAGE_SIZE)
@@ -394,6 +395,22 @@ void xhci_set_dbcaa(xhci_t* xhci, uint32_t slot_id, zx_paddr_t paddr) {
 #endif
 }
 
+
+static int heartbeat_thread(void *arg) {
+    xhci_t* xhci = arg;
+
+    while (1) {
+        sleep(2);
+        xhci_sync_command_t command;
+        xhci_sync_command_init(&command);
+        xhci_post_command(xhci, TRB_CMD_NOOP, 0, 0, &command.context);
+        int cc = xhci_sync_command_wait(&command);
+        printf("TRB_CMD_NOOP got %d\n", cc);
+    }
+
+    return 0;
+}
+
 zx_status_t xhci_start(xhci_t* xhci) {
     volatile uint32_t* usbcmd = &xhci->op_regs->usbcmd;
     volatile uint32_t* usbsts = &xhci->op_regs->usbsts;
@@ -442,6 +459,10 @@ zx_status_t xhci_start(xhci_t* xhci) {
     xhci_wait_bits(usbsts, USBSTS_HCH, 0);
 
     xhci_start_device_thread(xhci);
+
+    thrd_t thread;
+    thrd_create_with_name(&thread, heartbeat_thread, xhci, "heartbeat_thread");
+
     return ZX_OK;
 }
 
@@ -603,6 +624,7 @@ static void xhci_handle_events(xhci_t* xhci, int interrupter) {
             xhci_handle_transfer_event(xhci, er->current);
             break;
         case TRB_EVENT_MFINDEX_WRAP:
+printf("TRB_EVENT_MFINDEX_WRAP\n");
             xhci_handle_mfindex_wrap(xhci);
             break;
         default:
