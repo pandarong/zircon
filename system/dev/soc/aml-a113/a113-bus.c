@@ -171,8 +171,8 @@ static zx_status_t a113_bus_bind(void* ctx, zx_device_t* parent, void** cookie) 
     thrd_t thrd;
     thrd_create_with_name(&thrd, i2c_test_thread, conn1, "i2c_test_thread");
 
-    aml_tdm_dev_t tdmc;
-    aml_tdm_init(&tdmc, bus);
+    aml_tdmout_dev_t tdmc;
+    aml_tdmout_init(&tdmc, bus);
 
     //aml_i2c_write(i2cb_dev, NULL, 2);
 /*

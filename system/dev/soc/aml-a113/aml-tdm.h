@@ -139,7 +139,7 @@ struct aml_tdmout_dev {
 
 
 
-zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus);
+zx_status_t aml_tdmout_init(aml_tdmout_dev_t *device, a113_bus_t *host_bus);
 
 //Register offsets
 #define AML_TDM_AUDIO_CLK_GATE_EN_REG    0x0000

@@ -24,7 +24,7 @@
 /* create instance of aml_i2c_t and do basic initialization.  There will
 be one of these instances for each of the soc i2c ports.
 */
-zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
+zx_status_t aml_tdmout_init(aml_tdmout_dev_t *device, a113_bus_t *host_bus) {
 
     ZX_DEBUG_ASSERT(device);
     ZX_DEBUG_ASSERT(host_bus);
@@ -71,10 +71,10 @@ zx_status_t aml_tdm_init(aml_tdm_dev_t *device, a113_bus_t *host_bus) {
 
     // assign fclk/4 (500MHz) to the pdm clocks and divide to get ~48khz
     reg->clk_pdmin_ctl0 = ( 1 << 31) | (6 << 24) | (10416/128);
-    reg->clk_pdmin_ctl1 = ( 1 << 31) | (6 << 24) | (10416/128);
+    reg->clk_pdmin_ctl1 = ( 1 << 31) | (6 << 24) | (2);
 
     // Enable clock gates for PDM and TDM blocks
-    reg->clk_gate_en = (1 << 8) || (1 << 1);
+    reg->clk_gate_en = (1 << 8) | (1 << 1);
 
     return ZX_OK;
 
