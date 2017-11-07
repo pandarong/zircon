@@ -45,7 +45,9 @@ STATIC_COMMAND("kill", "kill a thread", &cmd_kill)
 STATIC_COMMAND_END(kernel);
 
 #if LK_DEBUGLEVEL > 1
+extern void uart_reinit(void);
 static int cmd_thread(int argc, const cmd_args* argv, uint32_t flags) {
+    uart_reinit();
     if (argc < 2) {
         printf("not enough arguments\n");
     usage:

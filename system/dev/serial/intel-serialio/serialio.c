@@ -55,9 +55,8 @@ static zx_status_t intel_serialio_bind(void* ctx, zx_device_t* dev, void** cooki
         res = intel_serialio_bind_spi(dev);
         break;
     case INTEL_WILDCAT_POINT_SERIALIO_UART0_DID:
-        res = intel_serialio_bind_uart(dev);
-        break;
     case INTEL_WILDCAT_POINT_SERIALIO_UART1_DID:
+    case INTEL_SUNRISE_POINT_SERIALIO_UART0_DID:
         res = intel_serialio_bind_uart(dev);
         break;
     default:
@@ -75,7 +74,7 @@ static zx_driver_ops_t intel_serialio_driver_ops = {
 };
 
 // clang-format off
-ZIRCON_DRIVER_BEGIN(intel_serialio, intel_serialio_driver_ops, "zircon", "0.1", 14)
+ZIRCON_DRIVER_BEGIN(intel_serialio, intel_serialio_driver_ops, "zircon", "0.1", 15)
     BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_PCI),
     BI_ABORT_IF(NE, BIND_PCI_VID, INTEL_VID),
     BI_MATCH_IF(EQ, BIND_PCI_DID, INTEL_WILDCAT_POINT_SERIALIO_DMA_DID),
@@ -90,4 +89,5 @@ ZIRCON_DRIVER_BEGIN(intel_serialio, intel_serialio_driver_ops, "zircon", "0.1", 
     BI_MATCH_IF(EQ, BIND_PCI_DID, INTEL_SUNRISE_POINT_SERIALIO_I2C1_DID),
     BI_MATCH_IF(EQ, BIND_PCI_DID, INTEL_SUNRISE_POINT_SERIALIO_I2C2_DID),
     BI_MATCH_IF(EQ, BIND_PCI_DID, INTEL_SUNRISE_POINT_SERIALIO_I2C3_DID),
+    BI_MATCH_IF(EQ, BIND_PCI_DID, INTEL_SUNRISE_POINT_SERIALIO_UART0_DID),
 ZIRCON_DRIVER_END(intel_serialio)
