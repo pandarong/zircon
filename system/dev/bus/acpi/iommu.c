@@ -244,6 +244,13 @@ static zx_status_t append_reserved_mem(ACPI_TABLE_DMAR* table,
                 if (next_reserved_mem_desc_base + mem_desc_size <= (uintptr_t)desc + desc_len) {
                     mem_desc->base_addr = rec->BaseAddress;
                     mem_desc->len = rec->EndAddress - rec->BaseAddress + 1;
+
+                    if (mem_desc->base_addr == 0x8ab7a000 && mem_desc->len == 0x20000) {
+                        // TODO(teisenbe): Make this significantly less hacky
+                        printf("applying acer12 quirk\n");
+                        mem_desc->len += 0x68000;
+                    }
+
                     mem_desc->scope_bytes = mem_desc_size - sizeof(*mem_desc);
                     next_reserved_mem_desc_base += mem_desc_size;
                 }
