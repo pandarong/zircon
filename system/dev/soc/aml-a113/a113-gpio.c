@@ -253,13 +253,13 @@ static zx_status_t a113_gpio_set_direction(gpio_block_t* block,
     // Polarity for enable is inverted between GPIOAO bank and GPIO banks.
     // Pinid is shifted by 16 for GPIOAO bank, no shift for GPIO
     if (block->pin_block == A113_GPIOAO_START) {
-        if (flags & GPIO_DIR_IN) {
+        if (flags & GPIO_DIR_OUT) {
             regval |= pinmask;
         } else {
             regval &= ~pinmask;
         }
     } else {
-        if (flags & GPIO_DIR_IN) {
+        if (flags & GPIO_DIR_OUT) {
             regval &= ~pinmask;
         } else {
             regval |= pinmask;

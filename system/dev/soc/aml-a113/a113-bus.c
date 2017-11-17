@@ -23,30 +23,16 @@
 #include <soc/aml-a113/a113-bus.h>
 #include <soc/aml-a113/a113-hw.h>
 
+#include "a113-bus.h"
+#include "a113-hw.h"
+#include "aml-i2c.h"
+#include "aml-tdm.h"
+#include "gauss-hw.h"
+#include <hw/reg.h>
+
 
 zx_status_t a113_bus_init(a113_bus_t** out) {
-    zx_status_t status;
 
-    a113_bus_t* bus = calloc(1, sizeof(a113_bus_t));
-    if (!bus) {
-        return ZX_ERR_NO_MEMORY;
-    }
-
-    if ((status = a113_gpio_init(bus)) != ZX_OK) {
-        zxlogf(ERROR, "a113_gpio_init failed: %d\n", status);
-        goto fail;
-    }
-    if ((status = a113_i2c_init(bus)) != ZX_OK) {
-        zxlogf(ERROR, "a113_i2c_init failed: %d\n", status);
-        goto fail;
-    }
-
-    *out = bus;
-    return ZX_OK;
-
-fail:
-    printf("a113_bus_init failed %d\n", status);
-    a113_bus_release(bus);
     return status;
 }
 

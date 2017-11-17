@@ -69,6 +69,7 @@ zx_status_t AudioOutput::Play(AudioSource& source) {
     bool started = false;
     rd = wr = 0;
     playout_rd = playout_amt = 0;
+    printf("rb_sz_ = %x\n",rb_sz_);
 
     while (true) {
         uint32_t bytes_read, junk;
@@ -91,6 +92,7 @@ zx_status_t AudioOutput::Play(AudioSource& source) {
             } else {
                 uint32_t done;
                 res = source.GetFrames(buf + wr, fbl::min(space, rb_sz_ - wr), &done);
+                zx_cache_flush(rb_virt_, rb_sz_, ZX_CACHE_FLUSH_DATA);
                 if (res != ZX_OK) {
                     printf("Error packing frames (res %d)\n", res);
                     break;
@@ -164,6 +166,7 @@ zx_status_t AudioOutput::Play(AudioSource& source) {
         }
 
         rd = pos_notif.ring_buffer_pos;
+        //printf("Got position %08x\n",rd);
 
         // rd has moved.  If the source has finished and rd has moved at least
         // the playout distance, we are finsihed.
