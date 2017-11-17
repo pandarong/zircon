@@ -10,13 +10,12 @@
 #include <bits/limits.h>
 #include <ddk/debug.h>
 #include <hw/reg.h>
+#include <soc/aml-a113/a113-bus.h>
+#include <soc/aml-a113/aml-tdm.h>
 
 #include <zircon/assert.h>
 #include <zircon/types.h>
 
-#include "aml-tdm.h"
-#include "sin.h"
-#include "a113-bus.h"
 
 
 static void aml_tdmout_fifo_reset(aml_tdmout_dev_t *device, uint32_t index) {
@@ -48,7 +47,7 @@ zx_status_t aml_tdmout_init(aml_tdmout_dev_t *device, a113_bus_t *host_bus) {
     zx_status_t status;
 
     status = io_buffer_init_physical(&device->regs_iobuff,
-                                        AML_TDM_PHYS_BASE,
+                                        A113_TDM_PHYS_BASE,
                                         PAGE_SIZE, resource,
                                         ZX_CACHE_POLICY_UNCACHED_DEVICE);
 

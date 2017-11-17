@@ -199,8 +199,8 @@ zx_status_t TdmOutputStream::AddFormats(
     range.min_channels = 2;
     range.max_channels = 2;
     range.sample_formats = AUDIO_SAMPLE_FORMAT_16BIT;
-    range.min_frames_per_second = 48000;
-    range.max_frames_per_second = 48000;
+    range.min_frames_per_second = 49000;
+    range.max_frames_per_second = 49000;
 
     fbl::AllocChecker ac;
     supported_formats->reserve(1, &ac);
@@ -753,17 +753,20 @@ zx_status_t TdmOutputStream::ProcessRingNotification(fbl::RefPtr<dispatcher::Cha
 zx_status_t TdmOutputStream::OnStartLocked(dispatcher::Channel* channel,
                                                const audio_proto::RingBufStartReq& req) {
 
-
-    notify_timer_ = dispatcher::Timer::Create();
-
-    dispatcher::Timer::ProcessHandler thandler(
-            [tdm = this,ch=fbl::WrapRefPtr(channel)](dispatcher::Timer * timer)->zx_status_t {
-                return tdm->ProcessRingNotification(ch);
-            });
     running_ = true;
-    notify_timer_->Activate(default_domain_, fbl::move(thandler));
 
-    notify_timer_->Arm(zx_deadline_after(ZX_USEC(us_per_notification_)));
+
+    if (us_per_notification_ > 0) {
+        notify_timer_ = dispatcher::Timer::Create();
+
+        dispatcher::Timer::ProcessHandler thandler(
+                [tdm = this,ch=fbl::WrapRefPtr(channel)](dispatcher::Timer * timer)->zx_status_t {
+                    return tdm->ProcessRingNotification(ch);
+                });
+
+        notify_timer_->Activate(default_domain_, fbl::move(thandler));
+        notify_timer_->Arm(zx_deadline_after(ZX_USEC(us_per_notification_)));
+    }
 
     audio_proto::RingBufStartResp resp;
 
@@ -796,6 +799,8 @@ zx_status_t TdmOutputStream::OnStartLocked(dispatcher::Channel* channel,
 
     //enable tdmout
     regs_->tdmout[TDM_OUT_C].ctl0 |= (1 << 31);
+
+    resp.start_ticks = zx_ticks_get();
 
     return channel->Write(&resp, sizeof(resp));
 }

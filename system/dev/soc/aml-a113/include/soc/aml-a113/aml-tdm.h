@@ -11,7 +11,7 @@
 
 #include "a113-bus.h"
 
-#define AML_TDM_PHYS_BASE 0xff642000
+#define A113_TDM_PHYS_BASE 0xff642000
 
 typedef struct {
     uint32_t ctl0;

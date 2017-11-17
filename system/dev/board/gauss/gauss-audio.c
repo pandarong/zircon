@@ -6,6 +6,7 @@
 #include <ddk/device.h>
 #include <ddk/protocol/platform-defs.h>
 #include <hw/reg.h>
+#include <soc/aml-a113/aml-tdm.h>
 #include <zircon/assert.h>
 
 #include "gauss.h"
