@@ -45,20 +45,28 @@ static zx_status_t dac_reset(i2c_channel_t *ch) {
         write_buf[1] = 0x01;
         return i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
 }
+
+
+static zx_status_t dac_set_gain(i2c_channel_t *ch, uint32_t val) {
+        uint8_t write_buf[2];
+
+        write_buf[0] = 61; write_buf[1] = (uint8_t)(val & 0xff);
+        zx_status_t status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
+        if (status != ZX_OK) return status;
+
+        write_buf[0] = 62; write_buf[1] = (uint8_t)(val & 0xff);
+        status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
+        if (status != ZX_OK) return status;
+
+        return status;
+}
+
+
 static zx_status_t dac_setmode(i2c_channel_t *ch, uint32_t slot) {
         uint8_t write_buf[2];
 
         write_buf[0] = 0x28; write_buf[1] = 0x13;
         zx_status_t status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
-        if (status != ZX_OK) return status;
-
-
-        write_buf[0] = 61; write_buf[1] = 0x70;
-        status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
-        if (status != ZX_OK) return status;
-
-        write_buf[0] = 62; write_buf[1] = 0x70;
-        status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
         if (status != ZX_OK) return status;
 
         uint8_t slt;
@@ -99,7 +107,8 @@ zx_status_t TdmOutputStream::Create(zx_device_t* parent) {
     stream->regs_vmo_.reset(mmio_handle);
 
     stream->SetModuleClocks();
-
+    //Sleep to let clocks stabilize in amps
+    zx_nanosleep(zx_deadline_after(ZX_MSEC(20)));
     if (res != ZX_OK) {
         zxlogf(ERROR, "tdm-output-driver: failed to map mmio.\n");
         return res;
@@ -173,7 +182,15 @@ zx_status_t TdmOutputStream::Bind(const char* devname) {
     thrd_create_with_name(&irq_thread_, TdmOutputStream::IrqThread, this,
                             "tdm-irq-thread");
 
+    dac_standby(&sub_l_i2c_,true);
+    dac_reset(&sub_l_i2c_);
+    dac_setmode(&sub_l_i2c_,0);
+    dac_standby(&sub_l_i2c_,false);
 
+    dac_standby(&sub_r_i2c_,true);
+    dac_reset(&sub_r_i2c_);
+    dac_setmode(&sub_r_i2c_,0);
+    dac_standby(&sub_r_i2c_,false);
 
     return TdmAudioStreamBase::DdkAdd(devname);
 }
@@ -523,7 +540,7 @@ zx_status_t TdmOutputStream::OnGetGainLocked(dispatcher::Channel* channel,
     resp.cur_mute = false;
     resp.cur_gain = 0.0;
     resp.can_mute = false;
-    resp.min_gain = 0.0;
+    resp.min_gain = -103.0;
     resp.max_gain = 0.0;
     resp.gain_step = 0.0;
 
@@ -539,11 +556,20 @@ zx_status_t TdmOutputStream::OnSetGainLocked(dispatcher::Channel* channel,
     audio_proto::SetGainResp resp;
     resp.hdr = req.hdr;
 
-    bool illegal_mute = (req.flags & AUDIO_SGF_MUTE_VALID) && (req.flags & AUDIO_SGF_MUTE);
-    bool illegal_gain = (req.flags & AUDIO_SGF_GAIN_VALID) && (req.gain != 0.0f);
+    float gain_val = 48 - (req.gain*2);
+    if (gain_val > 254) gain_val = 254;
+
+    uint32_t gainz = (uint32_t)gain_val;
+    printf("SEtting gain to %u\n",gainz);
+
+    dac_set_gain(&sub_l_i2c_,gainz);
+    dac_set_gain(&sub_r_i2c_,gainz);
+
+    bool illegal_mute = false; //(req.flags & AUDIO_SGF_MUTE_VALID) && (req.flags & AUDIO_SGF_MUTE);
+    bool illegal_gain = false; //(req.flags & AUDIO_SGF_GAIN_VALID) && (req.gain != 0.0f);
 
     resp.cur_mute = false;
-    resp.cur_gain = 0.0;
+    resp.cur_gain = (48 - gain_val)/2;
     resp.result = (illegal_mute || illegal_gain)
                       ? ZX_ERR_INVALID_ARGS
                       : ZX_OK;
@@ -651,15 +677,7 @@ zx_status_t TdmOutputStream::OnGetBufferLocked(dispatcher::Channel* channel,
     printf("us_per_notification_ = %u\n",us_per_notification_);
     printf("frame_size_ = %u\n",frame_size_);
 
-    dac_standby(&sub_l_i2c_,true);
-    dac_reset(&sub_l_i2c_);
-    dac_setmode(&sub_l_i2c_,0);
-    dac_standby(&sub_l_i2c_,false);
 
-    dac_standby(&sub_r_i2c_,true);
-    dac_reset(&sub_r_i2c_);
-    dac_setmode(&sub_r_i2c_,0);
-    dac_standby(&sub_r_i2c_,false);
 
 
     dac_dumpregs(&sub_l_i2c_,1,60);

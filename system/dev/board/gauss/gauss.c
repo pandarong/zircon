@@ -120,10 +120,6 @@ static zx_status_t gauss_bus_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
-
-
-
-
     // pinmux for Gauss i2c
     a113_pinmux_config(bus->a113, I2C_SCK_A, 1);
     a113_pinmux_config(bus->a113, I2C_SDA_A, 1);
