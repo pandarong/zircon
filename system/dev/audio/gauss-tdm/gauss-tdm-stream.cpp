@@ -185,11 +185,13 @@ zx_status_t TdmOutputStream::Bind(const char* devname) {
     dac_standby(&sub_l_i2c_,true);
     dac_reset(&sub_l_i2c_);
     dac_setmode(&sub_l_i2c_,0);
+    dac_set_gain(&sub_l_i2c_,168);
     dac_standby(&sub_l_i2c_,false);
 
     dac_standby(&sub_r_i2c_,true);
     dac_reset(&sub_r_i2c_);
     dac_setmode(&sub_r_i2c_,0);
+    dac_set_gain(&sub_r_i2c_,168);
     dac_standby(&sub_r_i2c_,false);
 
     return TdmAudioStreamBase::DdkAdd(devname);
