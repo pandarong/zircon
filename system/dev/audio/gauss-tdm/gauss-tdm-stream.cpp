@@ -69,6 +69,10 @@ static zx_status_t dac_setmode(i2c_channel_t *ch, uint32_t slot) {
         zx_status_t status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
         if (status != ZX_OK) return status;
 
+        write_buf[0] = 42; write_buf[1] = 0x22;
+        status = i2c_transact(ch, write_buf, 2, 0, NULL, NULL);
+        if (status != ZX_OK) return status;
+
         uint8_t slt;
         slt = ((1 + (slot * 32)) & 0xff);
         printf("slot = 0x%0x\n",slt);
@@ -191,19 +195,19 @@ zx_status_t TdmOutputStream::Bind(const char* devname) {
     dac_standby(&sub_l_i2c_,true);
     dac_reset(&sub_l_i2c_);
     dac_setmode(&sub_l_i2c_,0);
-    dac_set_gain(&sub_l_i2c_,88);
+    dac_set_gain(&sub_l_i2c_,100);
     dac_standby(&sub_l_i2c_,false);
 
     dac_standby(&sub_r_i2c_,true);
     dac_reset(&sub_r_i2c_);
-    dac_setmode(&sub_r_i2c_,0);
-    dac_set_gain(&sub_r_i2c_,88);
+    dac_setmode(&sub_r_i2c_,1);
+    dac_set_gain(&sub_r_i2c_,100);
     dac_standby(&sub_r_i2c_,false);
 
     dac_standby(&tweet_i2c_,true);
     dac_reset(&tweet_i2c_);
     dac_setmode(&tweet_i2c_,0);
-    dac_set_gain(&tweet_i2c_,88);
+    dac_set_gain(&tweet_i2c_,100);
     dac_standby(&tweet_i2c_,false);
 
     return TdmAudioStreamBase::DdkAdd(devname);
