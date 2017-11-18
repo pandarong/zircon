@@ -57,6 +57,10 @@ static const pbus_i2c_channel_t tdm_i2cs[] = {
         .bus_id = AML_I2C_B,
         .address = 0x4D
     },
+    {
+        .bus_id = AML_I2C_B,
+        .address = 0x4E
+    },
 };
 
 static const pbus_irq_t tdm_irqs[] = {

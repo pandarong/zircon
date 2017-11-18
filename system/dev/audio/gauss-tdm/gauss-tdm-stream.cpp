@@ -138,6 +138,12 @@ zx_status_t TdmOutputStream::Create(zx_device_t* parent) {
         return res;
     }
 
+    res = i2c_get_channel(&stream->i2c_, 2, &stream->tweet_i2c_);
+    if ( res != ZX_OK) {
+        zxlogf(ERROR,"tdm-output-driver: failed to acquire i2c subR channel\n");
+        return res;
+    }
+
 
 /*TODO - right now we are getting the irq via pdev, but would also like
     a way to push down which tdm block and frddr blocks to use. will hard
@@ -193,6 +199,12 @@ zx_status_t TdmOutputStream::Bind(const char* devname) {
     dac_setmode(&sub_r_i2c_,0);
     dac_set_gain(&sub_r_i2c_,168);
     dac_standby(&sub_r_i2c_,false);
+
+    dac_standby(&tweet_i2c_,true);
+    dac_reset(&tweet_i2c_);
+    dac_setmode(&tweet_i2c_,2);
+    dac_set_gain(&tweet_i2c_,168);
+    dac_standby(&tweet_i2c_,false);
 
     return TdmAudioStreamBase::DdkAdd(devname);
 }
@@ -566,6 +578,8 @@ zx_status_t TdmOutputStream::OnSetGainLocked(dispatcher::Channel* channel,
 
     dac_set_gain(&sub_l_i2c_,gainz);
     dac_set_gain(&sub_r_i2c_,gainz);
+    dac_set_gain(&tweet_i2c_,gainz);
+
 
     bool illegal_mute = false; //(req.flags & AUDIO_SGF_MUTE_VALID) && (req.flags & AUDIO_SGF_MUTE);
     bool illegal_gain = false; //(req.flags & AUDIO_SGF_GAIN_VALID) && (req.gain != 0.0f);
