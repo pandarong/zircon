@@ -91,6 +91,36 @@ static const pbus_dev_t mali_dev = {
     .irq_count = countof(mali_irqs),
 };
 
+static const pbus_mmio_t sdhci_mmios[] = {
+    {
+        // SD MMIO
+        .base = MMIO_SD3_BASE,
+        .length = MMIO_SD3_LENGTH,
+    },
+    {
+        // SD pinmux
+        .base = MMIO_IOC_MMC0_BASE,
+        .length = MMIO_IOC_MMC0_LENGTH,
+    },
+};
+
+static const pbus_irq_t sdhci_irqs[] = {
+    {
+        .irq = IRQ_SD3,
+    },
+};
+
+static const pbus_dev_t sdhci_dev = {
+    .name = "sdhci",
+    .vid = PDEV_VID_HISILICON,
+    .pid = PDEV_PID_HI3660,
+    .did = PDEV_DID_HI3660_SDHCI,
+    .mmios = sdhci_mmios,
+    .mmio_count = countof(sdhci_mmios),
+    .irqs = sdhci_irqs,
+    .irq_count = countof(sdhci_irqs),
+};
+
 #if GPIO_TEST
 static const pbus_gpio_t gpio_test_gpios[] = {
     {
@@ -131,6 +161,10 @@ zx_status_t hikey960_add_devices(hikey960_t* hikey) {
     }
     if ((status = pbus_device_add(&hikey->pbus, &mali_dev, 0)) != ZX_OK) {
         zxlogf(ERROR, "hi3360_add_devices could not add mali_dev: %d\n", status);
+        return status;
+    }
+    if ((status = pbus_device_add(&hikey->pbus, &sdhci_dev, 0)) != ZX_OK) {
+        zxlogf(ERROR, "hi3360_add_devices could not add sdhci_dev: %d\n", status);
         return status;
     }
 

@@ -894,17 +894,20 @@ fail:
 }
 
 static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
+    zxlogf(INFO, "sdhci_bind\n");
     sdhci_device_t* dev = calloc(1, sizeof(sdhci_device_t));
     if (!dev) {
         return ZX_ERR_NO_MEMORY;
     }
 
+    zxlogf(INFO, "sdhci_bind 2\n");
     zx_status_t status = ZX_OK;
     if (device_get_protocol(parent, ZX_PROTOCOL_SDHCI, (void*)&dev->sdhci)) {
         status = ZX_ERR_NOT_SUPPORTED;
         goto fail;
     }
 
+    zxlogf(INFO, "sdhci_bind 3\n");
     // Map the Device Registers so that we can perform MMIO against the device.
     status = dev->sdhci.ops->get_mmio(dev->sdhci.ctx, &dev->regs);
     if (status != ZX_OK) {
@@ -912,6 +915,7 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+    zxlogf(INFO, "sdhci_bind 4\n");
     status = dev->sdhci.ops->get_interrupt(dev->sdhci.ctx, &dev->irq_handle);
     if (status < 0) {
         zxlogf(ERROR, "sdhci: error %d in get_interrupt\n", status);
@@ -925,6 +929,7 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
     }
     thrd_detach(irq_thread);
 
+    zxlogf(INFO, "sdhci_bind 5\n");
     dev->irq_completion = COMPLETION_INIT;
     dev->pending_completion = COMPLETION_INIT;
     dev->parent = parent;
@@ -937,9 +942,11 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
         status = ZX_ERR_NOT_SUPPORTED;
         goto fail;
     }
-    zxlogf(TRACE, "sdhci: controller version %d\n", vrsn);
+    zxlogf(INFO, "sdhci: controller version %d\n", vrsn);
 
     dev->base_clock = ((dev->regs->caps0 >> 8) & 0xff) * 1000000; /* mhz */
+    zxlogf(INFO, "sdhci: base_clock %u\n", dev->base_clock);
+
     if (dev->base_clock == 0) {
         // try to get controller specific base clock
         dev->base_clock = dev->sdhci.ops->get_base_clock(dev->sdhci.ctx);
@@ -958,6 +965,7 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+    zxlogf(INFO, "sdhci_bind 6\n");
     // Create the device.
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
@@ -971,8 +979,10 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
     if (status != ZX_OK) {
         goto fail;
     }
+    zxlogf(INFO, "sdhci_bind 7\n");
     return ZX_OK;
 fail:
+    zxlogf(ERROR, "sdhci_bind fail: %d\n", status);
     if (dev) {
         if (dev->irq_handle != ZX_HANDLE_INVALID) {
             zx_handle_close(dev->irq_handle);

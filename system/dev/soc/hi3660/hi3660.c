@@ -15,12 +15,13 @@
 #include <ddk/device.h>
 #include <ddk/driver.h>
 #include <ddk/protocol/platform-defs.h>
-#include <gpio/pl061/pl061.h>
+#include <hw/reg.h>
 
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
 #include <zircon/assert.h>
 
+#include <gpio/pl061/pl061.h>
 #include <soc/hi3660/hi3660.h>
 #include <soc/hi3660/hi3660-hw.h>
 
@@ -51,6 +52,24 @@ zx_status_t hi3660_init(zx_handle_t resource, hi3660_t** out) {
     if (status != ZX_OK) {
         goto fail;
     }
+
+// SD card
+    volatile void* peri_crg = io_buffer_virt(&hi3660->peri_crg);
+    uint32_t temp;
+
+    temp = readl(peri_crg + 0x40 + 8);
+    printf("HI3660_CLK_GATE_SD status %x\n", temp);
+    // enable HI3660_CLK_GATE_SD
+    writel(1 << 17, peri_crg + 0x40);
+    temp = readl(peri_crg + 0x40 + 8);
+    printf("HI3660_CLK_GATE_SD status %x\n", temp);
+
+    temp = readl(peri_crg + 0 + 8);
+    printf("HI3660_HCLK_GATE_SD status %x\n", temp);
+    // enable HI3660_HCLK_GATE_SD
+    writel(1 << 30, peri_crg + 0);
+    temp = readl(peri_crg + 0 + 8);
+    printf("HI3660_HCLK_GATE_SD status %x\n", temp);
 
     *out = hi3660;
     return ZX_OK;
