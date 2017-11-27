@@ -147,6 +147,18 @@ static zx_status_t gauss_bus_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+    status = a113_clk_init(&bus->clocks, bus->a113);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "a113_clk_init failed: %d\n",status);
+        goto fail;
+    }
+
+    printf("HHI_MPLL_CNTL9 = %08x\n",a113_clk_get_reg(bus->clocks,0xa8));
+    printf("HHI_MPLL_TOP_MISC = %08x\n",a113_clk_get_reg(bus->clocks,0xba));
+    a113_clk_set_mpll2(bus->clocks, 48000*256*20);
+    printf("HHI_MPLL_CNTL9 = %08x\n",a113_clk_get_reg(bus->clocks,0xa8));
+    printf("HHI_MPLL_TOP_MISC = %08x\n",a113_clk_get_reg(bus->clocks,0xba));
+
     bus->usb_mode_switch.ops = &usb_mode_switch_ops;
     bus->usb_mode_switch.ctx = bus;
 

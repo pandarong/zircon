@@ -539,7 +539,7 @@ zx_status_t TdmOutputStream::SetModuleClocks() {
     // enable mclk c, select fclk_div4 as source, divide by 20 to get 12.5MHz
     //  at 256 sclk/frame, this yields 48.828125kHz
     // TODO(hollande) - switch to pll to get accurate timing for 48kHz
-    regs_->mclk_ctl[MCLK_C] = (1 << 31) | (6 << 24) | (19);
+    regs_->mclk_ctl[MCLK_C] = (1 << 31) | (2 << 24) | (9);
 
     // configure mst_sclk_gen
     regs_->sclk_ctl[MCLK_C].ctl0 = (0x03 << 30) | (1 << 20) | (0 << 10) | 255;

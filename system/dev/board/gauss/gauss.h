@@ -8,12 +8,15 @@
 #include <ddk/protocol/platform-bus.h>
 #include <ddk/protocol/usb-mode-switch.h>
 #include <soc/aml-a113/a113-bus.h>
+#include <soc/aml-a113/a113-clocks.h>
+
 
 typedef struct {
     platform_bus_protocol_t pbus;
     a113_bus_t* a113;
     usb_mode_switch_protocol_t usb_mode_switch;
     io_buffer_t usb_phy;
+    a113_clk_dev_t *clocks;
 } gauss_bus_t;
 
 // gauss-audio.c
