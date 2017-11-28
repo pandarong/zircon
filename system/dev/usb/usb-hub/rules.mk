@@ -8,10 +8,22 @@ MODULE := $(LOCAL_DIR)
 
 MODULE_TYPE := driver
 
-MODULE_SRCS := $(LOCAL_DIR)/usb-hub.c
+MODULE_SRCS := \
+    $(LOCAL_DIR)/binding.c \
+    $(LOCAL_DIR)/usb-hub.cpp \
+    
 
-MODULE_STATIC_LIBS := system/ulib/ddk system/ulib/sync
+MODULE_STATIC_LIBS := \
+    system/ulib/ddk \
+    system/ulib/ddktl \
+    system/ulib/zx \
+    system/ulib/zxcpp \
+    system/ulib/fbl \
+    system/ulib/sync \
 
-MODULE_LIBS := system/ulib/driver system/ulib/zircon system/ulib/c
+MODULE_LIBS := \
+    system/ulib/driver \
+    system/ulib/zircon \
+    system/ulib/c \
 
 include make/module.mk
