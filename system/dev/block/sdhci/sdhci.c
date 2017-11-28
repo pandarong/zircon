@@ -934,6 +934,11 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
     dev->pending_completion = COMPLETION_INIT;
     dev->parent = parent;
 
+uint32_t* regs = (uint32_t *)dev->regs;
+for (unsigned i = 0; i < sizeof(sdhci_regs_t) / 4; i++) {
+printf("%02X: %08X\n", i, regs[i]);
+}
+
     // Ensure that we're SDv3.
     const uint16_t vrsn = (dev->regs->slotirqversion >> 16) & 0xff;
     if (vrsn != SDHCI_VERSION_3) {

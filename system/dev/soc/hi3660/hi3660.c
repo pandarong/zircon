@@ -53,23 +53,42 @@ zx_status_t hi3660_init(zx_handle_t resource, hi3660_t** out) {
         goto fail;
     }
 
+/*
+[    3.067721] CCC clk_prepare_enable biu_clk
+[    3.067733] CCC clkgate_separated_enable 40000000 ffffff8008005000
+[    3.067746] CCC clk_prepare_enable ciu_clk
+[    3.067755] CCC clkgate_separated_enable 20000 ffffff8008005040
+[    3.067843] CCC dw_mci_hs_set_timing 0 -1
+[    3.095964] CCC dw_mci_hs_set_timing 0 -1
+[    3.117050] CCC clk_prepare_enable biu_clk
+[    3.117061] CCC clkgate_separated_enable 200000 ffffff8008005000
+[    3.117073] CCC clk_prepare_enable ciu_clk
+[    3.117083] CCC clkgate_separated_enable 80000 ffffff8008005040
+*/
+
 // SD card
     volatile void* peri_crg = io_buffer_virt(&hi3660->peri_crg);
     uint32_t temp;
 
-    temp = readl(peri_crg + 0x40 + 8);
-    printf("HI3660_CLK_GATE_SD status %x\n", temp);
-    // enable HI3660_CLK_GATE_SD
-    writel(1 << 17, peri_crg + 0x40);
-    temp = readl(peri_crg + 0x40 + 8);
-    printf("HI3660_CLK_GATE_SD status %x\n", temp);
+
+    writel(0x40000, peri_crg + 0x94);
+    usleep(50);
+    writel(0x40000, peri_crg + 0x94 + 4);
+
 
     temp = readl(peri_crg + 0 + 8);
     printf("HI3660_HCLK_GATE_SD status %x\n", temp);
     // enable HI3660_HCLK_GATE_SD
-    writel(1 << 30, peri_crg + 0);
+    writel(0x40000000, peri_crg + 0);
     temp = readl(peri_crg + 0 + 8);
     printf("HI3660_HCLK_GATE_SD status %x\n", temp);
+
+    temp = readl(peri_crg + 0x40 + 8);
+    printf("HI3660_CLK_GATE_SD status %x\n", temp);
+    // enable HI3660_CLK_GATE_SD
+    writel(0x20000, peri_crg + 0x40);
+    temp = readl(peri_crg + 0x40 + 8);
+    printf("HI3660_CLK_GATE_SD status %x\n", temp);
 
     *out = hi3660;
     return ZX_OK;

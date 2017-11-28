@@ -50,7 +50,7 @@ static uint32_t hisi_sdhci_get_base_clock(void* ctx) {
 }
 
 static zx_paddr_t hisi_sdhci_get_dma_offset(void* ctx) {
-    return 0;
+    return 0x200;
 }
 
 static uint64_t hisi_sdhci_get_quirks(void* ctx) {
@@ -119,6 +119,19 @@ static zx_status_t hisi_sdhci_bind(void* ctx, zx_device_t* parent) {
     writel(1, pinmux + 3);  // SD_DATA1
     writel(1, pinmux + 4);  // SD_DATA2
     writel(1, pinmux + 5);  // SD_DATA3
+
+#define SDMMC_CDTHRCTL		0x100
+#define SDMMC_SET_THLD(v, x)		(((v) & 0xFFF) << 16 | (x))
+#define SDMMC_CARD_RD_THR_EN		(1 << 0)
+#define SDCARD_RD_THRESHOLD  (512)
+#define SDMMC_VERID		0x06c
+
+    volatile uint32_t* cdthrctl = dev->mmio.vaddr + SDMMC_CDTHRCTL;
+    volatile uint32_t* verid = dev->mmio.vaddr + SDMMC_VERID;
+
+printf("try to read version\n");
+    printf("SDMMC_VERID %04x\n", readl(verid));
+	writel(SDMMC_SET_THLD(SDCARD_RD_THRESHOLD, SDMMC_CARD_RD_THR_EN), cdthrctl); 
 
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
