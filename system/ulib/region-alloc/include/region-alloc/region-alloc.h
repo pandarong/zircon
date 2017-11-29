@@ -473,6 +473,8 @@ public:
         return avail_regions_by_base_.size();
     }
 
+    const Region::WAVLTreeSortByBase &sorted_by_base() const { return avail_regions_by_base_; }
+
 private:
     zx_status_t AddSubtractSanityCheckLocked(const ralloc_region_t& region);
     void ReleaseRegion(Region* region);

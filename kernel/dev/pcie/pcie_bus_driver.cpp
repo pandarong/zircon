@@ -400,6 +400,8 @@ zx_status_t PcieBusDriver::AddSubtractBusRegion(uint64_t base,
                                                 uint64_t size,
                                                 PciAddrSpace aspace,
                                                 bool add_op) {
+    TRACEF("base %#" PRIx64 " size %#" PRIx64 " add %d\n", base, size, add_op);
+
     if (!IsNotStarted(true)) {
         TRACEF("Cannot add/subtract bus regions once the bus driver has been started!\n");
         return ZX_ERR_BAD_STATE;
@@ -419,9 +421,15 @@ zx_status_t PcieBusDriver::AddSubtractBusRegion(uint64_t base,
         auto& mmio_hi = mmio_hi_regions_;
 
         if (end <= U32_MAX) {
+            for (auto const& r: mmio_lo.sorted_by_base()) {
+                TRACEF("lo r %#" PRIx64 " %#" PRIx64 "\n", r.base, r.size);
+            }
             return (mmio_lo.*OpPtr)({ .base = base, .size = size }, true);
         } else
         if (base > U32_MAX) {
+            for (auto const& r: mmio_hi.sorted_by_base()) {
+                TRACEF("hi r %#" PRIx64 " %#" PRIx64 "\n", r.base, r.size);
+            }
             return (mmio_hi.*OpPtr)({ .base = base, .size = size }, true);
         } else {
             uint64_t lo_base = base;
@@ -429,6 +437,8 @@ zx_status_t PcieBusDriver::AddSubtractBusRegion(uint64_t base,
             uint64_t lo_size = hi_base - lo_base;
             uint64_t hi_size = size - lo_size;
             zx_status_t res;
+
+            TRACEF("lo %#lx %#lx hi %#lx %#lx\n", lo_base, lo_size, hi_base, hi_size);
 
             res = (mmio_lo.*OpPtr)({ .base = lo_base, .size = lo_size }, true);
             if (res != ZX_OK)

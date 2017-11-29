@@ -557,6 +557,10 @@ zx_status_t PcieDevice::AllocateBarLocked(pcie_bar_info_t& info) {
 
         zx_status_t res = ZX_ERR_NOT_FOUND;
         if (alloc != nullptr) {
+            TRACEF("preserve: going to allocate %#" PRIx64 " %#" PRIx64 "\n", info.bus_addr, info.size);
+            for (auto const& r: alloc->sorted_by_base()) {
+                TRACEF("before r %#" PRIx64 " %#" PRIx64 "\n", r.base, r.size);
+            }
             res = alloc->GetRegion({ .base = info.bus_addr, .size = info.size }, info.allocation);
         }
 
@@ -599,6 +603,10 @@ zx_status_t PcieDevice::AllocateBarLocked(pcie_bar_info_t& info) {
         uint64_t align_size  = ((info.size >= PAGE_SIZE) || is_io_space)
                              ? info.size
                              : PAGE_SIZE;
+        TRACEF("dynamic: going to allocate size %#" PRIx64 "\n", align_size);
+        for (auto const& r: alloc->sorted_by_base()) {
+            TRACEF("before r %#" PRIx64 " %#" PRIx64 "\n", r.base, r.size);
+        }
         zx_status_t res = alloc->GetRegion(align_size, align_size, info.allocation);
 
         if (res != ZX_OK) {
