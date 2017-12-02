@@ -14,15 +14,7 @@ FUNCTION(_start)
     add x13, x18, #0x16
     b arm_reset
 
-    // valid if the 'ARM\x64' signature below is valid
-    .quad   KERNEL_LOAD_OFFSET              // image offset from start of ram
-    .quad   __data_end - _start             // image size
-    .quad   0
-
-    .quad   0
-    .quad   0
-    .quad   0
-
+.org 0x38
     // magic linux header that QEMU and other loaders use to determine where to put us
     // in QEMU, see hw/arm/boot.c load_aarch64_image()
     .byte   'A'
@@ -30,8 +22,8 @@ FUNCTION(_start)
     .byte   'M'
     .byte   0x64
     .long   pe_header - _start              //offset to pe header
-    .align 3
 
+.org 0x40
 pe_header:
     .ascii  "PE"                            //PE Magic
     .short  0                               //  PE Magic
