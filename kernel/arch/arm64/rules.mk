@@ -67,11 +67,9 @@ GLOBAL_DEFINES += \
 
 # kernel is linked to run at the arbitrary address of -4GB
 KERNEL_BASE := 0xffffffff00000000
-KERNEL_LOAD_OFFSET ?= 0
 
 KERNEL_DEFINES += \
-	KERNEL_BASE=$(KERNEL_BASE) \
-	KERNEL_LOAD_OFFSET=$(KERNEL_LOAD_OFFSET)
+	KERNEL_BASE=$(KERNEL_BASE)
 
 # try to find the toolchain
 include $(LOCAL_DIR)/toolchain.mk
