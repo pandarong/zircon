@@ -549,15 +549,6 @@ static void process_bootdata(bootdata_t* root) {
 
 void platform_early_init(void)
 {
-    // QEMU does not put device tree pointer in the boot-time x0 register if loaded
-    // as a ELF file. so set it here before calling read_device_tree.
-    if (boot_structure_paddr == 0) {
-        // TODO: remove this hard coded constant
-        // one possible solution is to start booting qemu via the .bin file instead of .elf
-        // which seems to cause qemu to pass this pointer via x0
-        boot_structure_paddr = 0x40000000;
-    }
-
     void* boot_structure_kvaddr = paddr_to_physmap(boot_structure_paddr);
     if (!boot_structure_kvaddr) {
         panic("no bootdata structure!\n");
