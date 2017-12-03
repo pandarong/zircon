@@ -9,6 +9,8 @@
 #include <reg.h>
 #include <bits.h>
 #include <stdio.h>
+#include <kernel/auto_lock.h>
+#include <kernel/spinlock.h>
 #include <kernel/thread.h>
 #include <kernel/timer.h>
 #include <vm/physmap.h>
@@ -36,7 +38,15 @@ static uint32_t uart_irq = ISA_IRQ_SERIAL1;
 cbuf_t console_input_buf;
 static bool output_enabled = false;
 static uint32_t uart_fifo_depth;
-static uint32_t uart_fifo_tx_count;
+
+// tx driven irq
+const size_t output_buf_size = 4096;
+static char output_buf[output_buf_size];
+static cbuf_t uart_output_buf;
+static spin_lock_t uart_spinlock = SPIN_LOCK_INITIAL_VALUE;
+static bool uart_tx_irq_enabled = false;
+
+static bool debug_uart_tx_kick();
 
 static uint8_t uart_read(uint8_t reg) {
     if (uart_mem_addr) {
@@ -54,9 +64,40 @@ static void uart_write(uint8_t reg, uint8_t val) {
     }
 }
 
-static enum handler_return platform_drain_debug_uart_rx() {
-    unsigned char c;
+// shove data into the TX fifo if needed
+static bool debug_uart_tx_kick() {
+    DEBUG_ASSERT(spin_lock_held(&uart_spinlock));
+
+    if (unlikely(!output_enabled || !uart_tx_irq_enabled))
+        return false;
+
+    // see if we need to kick the interrupt tx
+    if (uart_read(5) & (1<<5)) { // transmitter holding register empty
+        // shove up to a fifo's depth worth of chars in the fifo
+        // TODO: optimize by using rep outs, may be more efficient under VM
+        size_t i = 0;
+        for (; i < uart_fifo_depth; i++) {
+            char c;
+            if (cbuf_read_char(&uart_output_buf, &c, false) == 0)
+                break;
+
+            uart_write(0, c);
+        }
+
+        // enable the transmit irq if we actually put something in the fifo
+        if (i > 0) {
+            uart_write(1, (1<<0)|(1<<1)); // rx and tx interrupt enable
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static enum handler_return uart_irq_handler(void *arg) {
     bool resched = false;
+
+    spin_lock(&uart_spinlock);
 
     // see why we have gotten an irq
     for (;;) {
@@ -68,22 +109,44 @@ static enum handler_return platform_drain_debug_uart_rx() {
         uint ident = BITS(iir, 3, 0);
         switch (ident) {
             case 0b0100:
-            case 0b1100:
+            case 0b1100: {
                 // rx fifo is non empty, drain it
-                c = uart_read(0);
+                unsigned char c = uart_read(0);
                 cbuf_write_char(&console_input_buf, c, false);
                 resched = true;
                 break;
+            }
+            case 0b0010:
+                // transmitter is empty
+                if (!debug_uart_tx_kick()) {
+                    // disable the tx irq
+                    uart_write(1, (1<<0)); // just rx interrupt enable
+                }
+                break;
+            case 0b0110: // receiver line status
+                uart_read(5); // read the LSR
+                break;
             default:
-                printf("UART: unhandled ident %#x\n", ident);
+                spin_unlock(&uart_spinlock);
+                panic("UART: unhandled ident %#x\n", ident);
         }
     }
+
+    spin_unlock(&uart_spinlock);
 
     return resched ? INT_RESCHEDULE : INT_NO_RESCHEDULE;
 }
 
-static enum handler_return uart_irq_handler(void *arg) {
-    return platform_drain_debug_uart_rx();
+static enum handler_return platform_drain_debug_uart_rx() {
+    bool resched = false;
+
+    while (uart_read(5) & (1<<0)) {
+        unsigned char c = uart_read(0);
+        cbuf_write_char(&console_input_buf, c, false);
+        resched = true;
+    }
+
+    return resched ? INT_RESCHEDULE : INT_NO_RESCHEDULE;
 }
 
 // for devices where the uart rx interrupt doesn't seem to work
@@ -131,7 +194,6 @@ static void init_uart() {
     } else {
         uart_fifo_depth = 1;
     }
-    uart_fifo_tx_count = 0;
 }
 
 void platform_init_debug_early() {
@@ -145,6 +207,8 @@ void platform_init_debug_early() {
         uart_irq = bootloader.uart.irq;
         break;
     }
+
+    cbuf_initialize_etc(&uart_output_buf, output_buf_size, output_buf);
 
     init_uart();
 
@@ -170,7 +234,14 @@ void platform_init_debug() {
         // modem control register: Axiliary Output 2 is another IRQ enable bit
         const uint8_t mcr = uart_read(4);
         uart_write(4, mcr | 0x8);
+        printf("UART: started IRQ driven RX\n");
     }
+
+    // start up tx driven output
+    printf("UART: started IRQ driven TX\n");
+    AutoSpinLockIrqSave al(&uart_spinlock);
+    uart_tx_irq_enabled = true;
+    debug_uart_tx_kick();
 }
 
 void platform_suspend_debug() {
@@ -203,42 +274,32 @@ static void debug_uart_putc_poll(char c) {
 
 static void debug_uart_putc(char c)
 {
+    DEBUG_ASSERT(spin_lock_held(&uart_spinlock));
+
     if (unlikely(!output_enabled))
         return;
 
-    for (;;) {
-        // if we know there is space in the tx fifo for sure
-        if (uart_fifo_tx_count < uart_fifo_depth) {
-            uart_write(0, c);
-            uart_fifo_tx_count++;
-            return;
-        }
-
-        // while the fifo is non empty, spin
-        while ((uart_read(5) & (1<<6)) == 0) {
-            arch_spinloop_pause();
-        }
-
-        // now we can shove a fifo's full of chars in it before spinning again
-        uart_fifo_tx_count = 0;
+    // shove a char in the output cbuf
+    if (likely(uart_tx_irq_enabled)) {
+        cbuf_write_char(&uart_output_buf, c, false);
+    } else {
+        debug_uart_putc_poll(c);
     }
 }
 
 void platform_dputs(const char* str, size_t len)
 {
+    AutoSpinLockIrqSave al(&uart_spinlock);
+
     while (len-- > 0) {
         char c = *str++;
         if (c == '\n') {
             debug_uart_putc('\r');
-#if WITH_LEGACY_PC_CONSOLE
-            cputc(c);
-#endif
         }
         debug_uart_putc(c);
-#if WITH_LEGACY_PC_CONSOLE
-        cputc(c);
-#endif
     }
+
+    debug_uart_tx_kick();
 }
 
 int platform_dgetc(char *c, bool wait) {
