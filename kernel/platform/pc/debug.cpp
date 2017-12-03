@@ -58,10 +58,25 @@ static enum handler_return platform_drain_debug_uart_rx() {
     unsigned char c;
     bool resched = false;
 
-    while (uart_read(5) & (1<<0)) {
-        c = uart_read(0);
-        cbuf_write_char(&console_input_buf, c, false);
-        resched = true;
+    // see why we have gotten an irq
+    for (;;) {
+        uint8_t iir = uart_read(2);
+        if (BIT(iir, 0))
+            break; // no valid interrupt
+
+        // 3 bit identification field
+        uint ident = BITS(iir, 3, 0);
+        switch (ident) {
+            case 0b0100:
+            case 0b1100:
+                // rx fifo is non empty, drain it
+                c = uart_read(0);
+                cbuf_write_char(&console_input_buf, c, false);
+                resched = true;
+                break;
+            default:
+                printf("UART: unhandled ident %#x\n", ident);
+        }
     }
 
     return resched ? INT_RESCHEDULE : INT_NO_RESCHEDULE;
@@ -150,7 +165,7 @@ void platform_init_debug() {
         register_int_handler(uart_irq, uart_irq_handler, NULL);
         unmask_interrupt(uart_irq);
 
-        uart_write(1, 0x1); // enable receive data available interrupt
+        uart_write(1, (1<<0)); // enable receive data available interrupt
 
         // modem control register: Axiliary Output 2 is another IRQ enable bit
         const uint8_t mcr = uart_read(4);
