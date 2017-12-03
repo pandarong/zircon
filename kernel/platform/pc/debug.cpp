@@ -7,6 +7,7 @@
 
 #include <stdarg.h>
 #include <reg.h>
+#include <bits.h>
 #include <stdio.h>
 #include <kernel/thread.h>
 #include <kernel/timer.h>
@@ -34,9 +35,10 @@ static uint32_t uart_irq = ISA_IRQ_SERIAL1;
 
 cbuf_t console_input_buf;
 static bool output_enabled = false;
+static uint32_t uart_fifo_depth;
+static uint32_t uart_fifo_tx_count;
 
-static uint8_t uart_read(uint8_t reg)
-{
+static uint8_t uart_read(uint8_t reg) {
     if (uart_mem_addr) {
         return (uint8_t)readl(uart_mem_addr + 4 * reg);
     } else {
@@ -44,8 +46,7 @@ static uint8_t uart_read(uint8_t reg)
     }
 }
 
-static void uart_write(uint8_t reg, uint8_t val)
-{
+static void uart_write(uint8_t reg, uint8_t val) {
     if (uart_mem_addr) {
         writel(val, uart_mem_addr + 4 * reg);
     } else {
@@ -53,8 +54,7 @@ static void uart_write(uint8_t reg, uint8_t val)
     }
 }
 
-static enum handler_return platform_drain_debug_uart_rx(void)
-{
+static enum handler_return platform_drain_debug_uart_rx() {
     unsigned char c;
     bool resched = false;
 
@@ -67,23 +67,20 @@ static enum handler_return platform_drain_debug_uart_rx(void)
     return resched ? INT_RESCHEDULE : INT_NO_RESCHEDULE;
 }
 
-static enum handler_return uart_irq_handler(void *arg)
-{
+static enum handler_return uart_irq_handler(void *arg) {
     return platform_drain_debug_uart_rx();
 }
 
 // for devices where the uart rx interrupt doesn't seem to work
-static enum handler_return uart_rx_poll(struct timer *t, zx_time_t now, void *arg)
-{
+static enum handler_return uart_rx_poll(struct timer *t, zx_time_t now, void *arg) {
     timer_set(t, now + ZX_MSEC(10), TIMER_SLACK_CENTER, ZX_MSEC(1), uart_rx_poll, NULL);
     return platform_drain_debug_uart_rx();
 }
 
 // also called from the pixel2 quirk file
-void platform_debug_start_uart_timer(void);
+void platform_debug_start_uart_timer();
 
-void platform_debug_start_uart_timer(void)
-{
+void platform_debug_start_uart_timer() {
     static timer_t uart_rx_poll_timer;
     static bool started = false;
 
@@ -95,7 +92,7 @@ void platform_debug_start_uart_timer(void)
     }
 }
 
-static void init_uart(void) {
+static void init_uart() {
     /* configure the uart */
     int divisor = 115200 / uart_baud_rate;
 
@@ -105,11 +102,24 @@ static void init_uart(void) {
     uart_write(0, static_cast<uint8_t>(divisor)); // lsb
     uart_write(1, static_cast<uint8_t>(divisor >> 8)); // msb
     uart_write(3, 3); // 8N1
-    uart_write(2, 0xc7); // enable FIFO, clear, 14-byte threshold
+    // enable FIFO, rx reset, tx reset, 16750 64 byte fifo enable, 14-byte threshold;
+    uart_write(2, (1<<0) | (1<<1) | (1<<2) | (1<<5) | (3<<6));
+
+    /* figure out the fifo depth */
+    uint8_t fcr = uart_read(2);
+    if (BITS_SHIFT(fcr, 7, 6) == 3 && BIT(fcr, 5)) {
+        // this is a 16750
+        uart_fifo_depth = 64;
+    } else if (BITS_SHIFT(fcr, 7, 6) == 3) {
+        // this is a 16550A
+        uart_fifo_depth = 16;
+    } else {
+        uart_fifo_depth = 1;
+    }
+    uart_fifo_tx_count = 0;
 }
 
-void platform_init_debug_early(void)
-{
+void platform_init_debug_early() {
     switch (bootloader.uart.type) {
     case BOOTDATA_UART_PC_PORT:
         uart_io_port = static_cast<uint32_t>(bootloader.uart.base);
@@ -124,10 +134,11 @@ void platform_init_debug_early(void)
     init_uart();
 
     output_enabled = true;
+
+    dprintf(INFO, "UART: FIFO depth %u\n", uart_fifo_depth);
 }
 
-void platform_init_debug(void)
-{
+void platform_init_debug() {
     /* finish uart init to get rx going */
     cbuf_initialize(&console_input_buf, 1024);
 
@@ -147,27 +158,55 @@ void platform_init_debug(void)
     }
 }
 
-void platform_suspend_debug(void) {
+void platform_suspend_debug() {
     output_enabled = false;
 }
 
-void platform_resume_debug(void) {
+void platform_resume_debug() {
     init_uart();
     output_enabled = true;
 }
 
-static void debug_uart_putc(char c)
-{
-#if WITH_LEGACY_PC_CONSOLE
-    cputc(c);
-#endif
-    if (unlikely(!output_enabled))
-        return;
+// polling versions of debug uart read/write
+static int debug_uart_getc_poll(char *c) {
+    // if there is a character available, read it
+    if (uart_read(5) & (1<<0)) {
+        *c = uart_read(0);
+        return 0;
+    }
 
-    while ((uart_read(5) & (1<<6)) == 0) {
+    return -1;
+}
+
+static void debug_uart_putc_poll(char c) {
+    // while the fifo is non empty, spin
+    while (!(uart_read(5) & (1<<6))) {
         arch_spinloop_pause();
     }
     uart_write(0, c);
+}
+
+static void debug_uart_putc(char c)
+{
+    if (unlikely(!output_enabled))
+        return;
+
+    for (;;) {
+        // if we know there is space in the tx fifo for sure
+        if (uart_fifo_tx_count < uart_fifo_depth) {
+            uart_write(0, c);
+            uart_fifo_tx_count++;
+            return;
+        }
+
+        // while the fifo is non empty, spin
+        while ((uart_read(5) & (1<<6)) == 0) {
+            arch_spinloop_pause();
+        }
+
+        // now we can shove a fifo's full of chars in it before spinning again
+        uart_fifo_tx_count = 0;
+    }
 }
 
 void platform_dputs(const char* str, size_t len)
@@ -176,28 +215,28 @@ void platform_dputs(const char* str, size_t len)
         char c = *str++;
         if (c == '\n') {
             debug_uart_putc('\r');
+#if WITH_LEGACY_PC_CONSOLE
+            cputc(c);
+#endif
         }
         debug_uart_putc(c);
+#if WITH_LEGACY_PC_CONSOLE
+        cputc(c);
+#endif
     }
 }
 
-int platform_dgetc(char *c, bool wait)
-{
+int platform_dgetc(char *c, bool wait) {
     return static_cast<int>(cbuf_read_char(&console_input_buf, c, wait));
 }
 
 // panic time polling IO for the panic shell
-void platform_pputc(char c)
-{
-    platform_dputc(c);
+void platform_pputc(char c) {
+    if (c == '\n')
+        debug_uart_putc_poll('\r');
+    debug_uart_putc_poll(c);
 }
 
-int platform_pgetc(char *c, bool wait)
-{
-    if (uart_read(5) & (1<<0)) {
-        *c = uart_read(0);
-        return 0;
-    }
-
-    return -1;
+int platform_pgetc(char *c, bool wait) {
+    return debug_uart_getc_poll(c);
 }
