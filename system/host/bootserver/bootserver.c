@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <mdns/mdns.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -53,6 +54,7 @@ int64_t us_between_packets = DEFAULT_US_BETWEEN_PACKETS;
 bool use_filename_prefix = true;
 bool use_net186_workaround = false;
 
+static bool use_mdns = false;
 static bool use_tftp = true;
 static bool use_color = true;
 static size_t total_file_size;
@@ -225,6 +227,22 @@ int send_boot_command(struct sockaddr_in6* ra) {
     return -1;
 }
 
+int boot_with_netboot();
+int boot_with_mdns();
+
+
+// Returns 1 iff msg contains a question whose domain matches this bootserver's
+// hostname.
+int is_bootserver_query(mdns_message* msg, const char* hostname) {
+    mdns_question* q = msg->questions;
+    for (; q != NULL; q = q->next) {
+        if (strcmp(q->domain, hostname) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char** argv) {
     struct in6_addr allowed_addr;
     struct sockaddr_in6 addr;
@@ -354,6 +372,9 @@ int main(int argc, char** argv) {
             argv++;
         } else if (!strcmp(argv[1], "--netboot")) {
             use_tftp = false;
+            use_mdns = false;
+        } else if (!strcmp(argv[1], "--mdns")) {
+            use_mdns = true;
         } else if (!strcmp(argv[1], "--tftp")) {
             use_tftp = true;
         } else if (!strcmp(argv[1], "--nocolor")) {
@@ -409,38 +430,44 @@ int main(int argc, char** argv) {
         }
     }
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(NB_ADVERT_PORT);
+    if (use_mdns) {
+        int port = MDNS_PORT;
+        s = mdns_socket(AF_INET6, MDNS_IPV6, port);
+        if (s < 0) {
+            perror("mdns_socket");
+            exit(1);
+        }
+        printf("Listening at %s:%d (fd=%d)\n", MDNS_IPV6, port, s);
+    } else { // BEGIN NETBOOT SOCKET SETUP
+        memset(&addr, 0, sizeof(addr));
+        addr.sin6_family = AF_INET6;
+        addr.sin6_port = htons(NB_ADVERT_PORT);
 
-    s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-    if (s < 0) {
-        log("cannot create socket %d", s);
-        return -1;
-    }
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(n));
-    if ((r = bind(s, (void*)&addr, sizeof(addr))) < 0) {
-        log("cannot bind to %s %d: %s\n",
-            sockaddr_str(&addr),
-            errno, strerror(errno));
-        return -1;
-    }
-
-    log("listening on %s", sockaddr_str(&addr));
+        s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+        if (s < 0) {
+            log("cannot create socket %d", s);
+            return -1;
+        }
+        setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(n));
+        if ((r = bind(s, (void*)&addr, sizeof(addr))) < 0) {
+            log("cannot bind to %s %d: %s\n",
+                sockaddr_str(&addr),
+                errno, strerror(errno));
+            return -1;
+        }
+        log("listening on %s", sockaddr_str(&addr));
+    } // END NETBOOT SOCKET SETUP
 
     for (;;) {
         struct sockaddr_in6 ra;
         socklen_t rlen;
         char buf[4096];
-        nbmsg* msg = (void*)buf;
         rlen = sizeof(ra);
         r = recvfrom(s, buf, sizeof(buf) - 1, 0, (void*)&ra, &rlen);
         if (r < 0) {
             log("socket read error %d", r);
             return -1;
         }
-        if (r < sizeof(nbmsg))
-            continue;
         if (!IN6_IS_ADDR_LINKLOCAL(&ra.sin6_addr)) {
             log("ignoring non-link-local message");
             continue;
@@ -451,41 +478,65 @@ int main(int argc, char** argv) {
                 inet_ntop(AF_INET6, &allowed_addr, tmp, sizeof(tmp)));
             continue;
         }
-        if (msg->magic != NB_MAGIC)
-            continue;
-        if (msg->cmd != NB_ADVERTISE)
-            continue;
-        if ((use_tftp && (msg->arg < NB_VERSION_1_2)) ||
-            (!use_tftp && (msg->arg < NB_VERSION_1_1))) {
-            log("%sIncompatible version 0x%08X of bootloader "
-                "detected from %s, please upgrade your bootloader%s",
-                ANSI(RED), msg->arg, sockaddr_str(&ra), ANSI(RESET));
-            if (once) {
-                return -1;
-            }
-            continue;
-        }
-        if (msg->arg < NB_VERSION_1_3) {
-            use_net186_workaround = true;
-        }
 
         log("got beacon from %s", sockaddr_str(&ra));
-
         // ensure any payload is null-terminated
         buf[r] = 0;
-
         char* save = NULL;
         char* adv_nodename = NULL;
         char* adv_version = "unknown";
-        for (char* var = strtok_r((char*)msg->data, ";", &save);
-             var;
-             var = strtok_r(NULL, ";", &save)) {
-            if (!strncmp(var, "nodename=", 9)) {
-                adv_nodename = var + 9;
-            } else if (!strncmp(var, "version=", 8)) {
-                adv_version = var + 8;
+
+        if (use_mdns) {
+            mdns_message message;
+            memset(&message, 0, sizeof message);
+            if (mdns_parse_message(buf, r, &message) < 0) {
+                printf("mdns_parse_message error\n");
+                exit(1);
+            }
+
+            // Read the sender's address info.
+            char ip[256];
+            struct sockaddr_in6* sin = &ra;
+            inet_ntop(AF_INET6, &(sin->sin6_addr), ip, INET6_ADDRSTRLEN);
+            const char hostname[19] = "fxbootserver.local";            
+            if (!is_bootserver_query(&message, hostname)) {
+                printf("Ignoring non-bootserver query from %s\n", ip);
+                continue;
+            }
+            printf("Got %d bytes from (%s)\n", (int)r, ip);
+        } else { // BEGIN CONNECT_WITH_NETBOOT
+            nbmsg* msg = (void*)buf;
+            if (r < sizeof(nbmsg))
+                continue;
+            if (msg->magic != NB_MAGIC)
+                continue;
+            if (msg->cmd != NB_ADVERTISE)
+                continue;
+            if ((use_tftp && (msg->arg < NB_VERSION_1_2)) ||
+                (!use_tftp && (msg->arg < NB_VERSION_1_1))) {
+                log("%sIncompatible version 0x%08X of bootloader "
+                    "detected from %s, please upgrade your bootloader%s",
+                    ANSI(RED), msg->arg, sockaddr_str(&ra), ANSI(RESET));
+                if (once) {
+                    break;
+                }
+                continue;
+            }
+            if (msg->arg < NB_VERSION_1_3) {
+                use_net186_workaround = true;
+            }
+
+            for (char* var = strtok_r((char*)msg->data, ";", &save);
+                 var;
+                 var = strtok_r(NULL, ";", &save)) {
+                if (!strncmp(var, "nodename=", 9)) {
+                    adv_nodename = var + 9;
+                } else if (!strncmp(var, "version=", 8)) {
+                    adv_version = var + 8;
+                }
             }
         }
+        // END CONNECT_WITH_NETBOOT
 
         if (nodename) {
             if (adv_nodename == NULL) {
@@ -531,11 +582,11 @@ int main(int argc, char** argv) {
         }
         if (status == 0 && efi_image) {
             status = xfer(&ra, efi_image, use_filename_prefix ? NB_EFI_FILENAME
-                          : NB_EFI_HOST_FILENAME);
+                                                              : NB_EFI_HOST_FILENAME);
         }
         if (status == 0 && kernc_image) {
             status = xfer(&ra, kernc_image, use_filename_prefix ? NB_KERNC_FILENAME
-                          : NB_KERNC_HOST_FILENAME);
+                                                                : NB_KERNC_HOST_FILENAME);
         }
 
         if (status == 0) {
@@ -550,5 +601,101 @@ int main(int argc, char** argv) {
         drain(s);
     }
 
+    return 0;
+}
+
+int boot_with_mdns() {
+    // FIXME: Change to hostname.
+    const char hostname[19] = "fxbootserver.local";
+    int port = MDNS_PORT;
+    int sockfd = mdns_socket(AF_INET6, MDNS_IPV6, port);
+    if (sockfd < 0) {
+        perror("mdns_socket");
+        exit(1);
+    }
+    printf("Listening at %s:%d (fd=%d)\n", MDNS_IPV6, port, sockfd);
+
+    struct sockaddr_storage fromaddr;
+    socklen_t fromaddr_len;
+    char buf[512];
+    int byte_count;
+
+    while (true) {
+        fromaddr_len = sizeof(fromaddr);
+        byte_count = recvfrom(sockfd, buf, sizeof buf, 0,
+                              (struct sockaddr*)&fromaddr, &fromaddr_len);
+        if (byte_count < 1) {
+            continue;
+        }
+        buf[byte_count] = '\0';
+
+        mdns_message message;
+        memset(&message, 0, sizeof message);
+        if (mdns_parse_message(buf, byte_count, &message) < 0) {
+            printf("mdns_parse_message error\n");
+            exit(1);
+        }
+
+        // Read the sender's address info.
+        char ip[256];
+        if (fromaddr.ss_family == AF_INET6) {
+            struct sockaddr_in6* sin = (struct sockaddr_in6*)&fromaddr;
+            inet_ntop(AF_INET6, &(sin->sin6_addr), ip, INET6_ADDRSTRLEN);
+        } else {
+            struct sockaddr_in* sin = (struct sockaddr_in*)&fromaddr;
+            inet_ntop(AF_INET, &(sin->sin_addr), ip, INET_ADDRSTRLEN);
+        }
+
+        if (!is_bootserver_query(&message, hostname)) {
+            continue;
+        }
+
+        printf("Got %d bytes from (%s)\n", (int)byte_count, ip);
+
+        // dump_message(&message); // For debugging.
+
+        // DELETE THIS Announce the bootserver to the querier.
+
+        mdns_message q;
+        memset(&q, 0, sizeof(q));
+
+        // Header
+        mdns_header header;
+        memset(&header, 0, sizeof(header));
+        q.header = header;
+        q.header.id = message.header.id;
+        // QR, AA,
+        q.header.flags = (uint16_t)0x8400;
+
+        // Answer RR
+        mdns_rr answer;
+        memset(&answer, 0, sizeof(answer));
+        q.answers = &answer;
+        q.answers->name = malloc(strlen(hostname));
+        memset(q.answers->name, 0, strlen(hostname));
+        memcpy(q.answers->name, hostname, strlen(hostname));
+        q.answers->type = RR_A;
+        q.answers->class = QCLASS_IN;
+        q.answers->ttl = 180;
+        q.answers->rdlength = 0x4;
+        uint8_t rdata[4] = {0x7f, 0x00, 0x00, 0x01}; // 127.0.0.1
+        q.answers->rdata = rdata;
+        q.answers->next = NULL;
+
+        // Pack message
+        uint8_t msg[512];
+        memset(&msg, 0, 512);
+        uint8_t* end = pack_message(msg, &q.header, NULL, q.answers, NULL, NULL);
+
+        // Send it!
+        int err;
+        if ((err = sendto(sockfd, msg, (char*)end - (char*)msg, 0,
+                          (struct sockaddr*)&fromaddr, fromaddr_len)) < 0) {
+            printf("%d: %s", errno, strerror(errno));
+        }
+        memset(buf, 0, sizeof(buf));
+    }
+
+    close(sockfd);
     return 0;
 }

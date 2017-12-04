@@ -11,7 +11,9 @@ MODULE_TYPE := hostapp
 MODULE_SRCS += $(LOCAL_DIR)/bootserver.c
 MODULE_SRCS += $(LOCAL_DIR)/netboot.c
 MODULE_SRCS += $(LOCAL_DIR)/tftp.c
+MODULE_SRCS += $(LOCAL_DIR)/mdns.c
 
 MODULE_HOST_LIBS := system/ulib/tftp
+MODULE_HOST_LIBS += system/ulib/mdns
 
 include make/module.mk

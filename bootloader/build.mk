@@ -7,6 +7,7 @@
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
 EFI_LIBDIRS := system/ulib/tftp
+EFI_LIBDIRS += system/ulib/mdns
 
 EFI_CFLAGS += -nostdinc -I$(LOCAL_DIR)/include -I$(LOCAL_DIR)/src
 EFI_CFLAGS += -Isystem/public -Isystem/private
@@ -42,6 +43,7 @@ EFI_SOURCES := \
     $(LOCAL_DIR)/src/pci.c \
     $(LOCAL_DIR)/src/framebuffer.c \
     $(LOCAL_DIR)/src/device_id.c \
+    $(LOCAL_DIR)/src/mdns.c \
 
 # libxefi sources
 EFI_SOURCES += \

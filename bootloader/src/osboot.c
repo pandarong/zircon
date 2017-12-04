@@ -17,6 +17,7 @@
 #include <framebuffer.h>
 #include <inet6.h>
 #include <xefi.h>
+#include <mdns/mdns.h>
 
 #include "osboot.h"
 
@@ -217,7 +218,8 @@ void print_cmdline(void) {
 }
 
 static char netboot_cmdline[CMDLINE_MAX];
-void do_netboot() {
+
+void do_netboot(int use_mdns) {
     efi_physical_addr mem = 0xFFFFFFFF;
     if (gBS->AllocatePages(AllocateMaxAddress, EfiLoaderData, KBUFSIZE / 4096, &mem)) {
         printf("Failed to allocate network io buffer\n");
@@ -237,10 +239,12 @@ void do_netboot() {
     printf("\nNetBoot Server Started...\n\n");
     efi_tpl prev_tpl = gBS->RaiseTPL(TPL_NOTIFY);
     while (true) {
-        int n = netboot_poll();
-        if (n < 1) {
-            continue;
+        if (use_mdns) {
+            if (mdns_poll() < 1) continue;
+        } else {
+            if (netboot_poll() < 1) continue; 
         }
+        
         if (nbkernel.offset < 32768) {
             // too small to be a kernel
             continue;
@@ -289,7 +293,9 @@ void do_netboot() {
         }
 
         // make sure network traffic is not in flight, etc
-        netboot_close();
+        if (!use_mdns) {
+            netboot_close();
+        }
 
         // Restore the TPL before booting the kernel, or failing to netboot
         gBS->RestoreTPL(prev_tpl);
@@ -488,6 +494,11 @@ EFIAPI efi_status efi_main(efi_handle img, efi_system_table* sys) {
             printf(", ");
             printf("or (z) to launch zedboot");
         }
+        // FIXME: Hide this behind a flag.
+        printf(", ");
+        printf("or (k) to for mDNS network boot");
+        // END FIXME
+
         printf(" ...");
 
         char key = key_prompt(valid_keys, timeout_s);
@@ -498,7 +509,10 @@ EFIAPI efi_status efi_main(efi_handle img, efi_system_table* sys) {
             do_bootmenu(have_fb);
             break;
         case 'n':
-            do_netboot();
+            do_netboot(0);
+            break;
+        case 'k':
+            do_netboot(1);
             break;
         case 'm':
             if (ktype == IMAGE_COMBO) {
