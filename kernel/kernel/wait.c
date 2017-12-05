@@ -41,6 +41,79 @@ static enum handler_return wait_queue_timeout_handler(timer_t* timer, zx_time_t 
     return ret;
 }
 
+// add a thread to the tail of a wait queue, sorted by priority
+static void wait_queue_insert(wait_queue_t* wait, thread_t* t) {
+    if (likely(list_is_empty(&wait->heads))) {
+        // we're the first thread
+        list_initialize(&t->queue_node);
+        list_add_head(&wait->heads, &t->wait_queue_heads_node);
+    } else {
+        int pri = t->base_priority; // TODO: get the effective priority from sched.c
+
+        // walk through the sorted list of wait queue heads
+        thread_t* temp;
+        list_for_every_entry(&wait->heads, temp, thread_t, wait_queue_heads_node) {
+            if (pri > temp->base_priority) {
+                // insert ourself here as a new queue head
+                list_initialize(&t->queue_node);
+                list_add_before(&temp->wait_queue_heads_node, &t->wait_queue_heads_node);
+                return;
+            } else if (temp->base_priority == pri) {
+                // same priority, add ourself to the tail of this queue
+                list_add_tail(&temp->queue_node, &t->queue_node);
+                list_clear_node(&t->wait_queue_heads_node);
+                return;
+            }
+        }
+
+        // we walked off the end, add ourself as a new queue head at the end
+        list_initialize(&t->queue_node);
+        list_add_tail(&wait->heads, &t->wait_queue_heads_node);
+    }
+}
+
+// remove a thread from whatever wait queue its in
+// thread must be the head of a queue
+static void remove_queue_head(thread_t* t) {
+    // are there any nodes in the queue for this priority?
+    if (list_is_empty(&t->queue_node)) {
+        // no, remove ourself from the the queue list
+        list_delete(&t->wait_queue_heads_node);
+        list_clear_node(&t->queue_node);
+    } else {
+        // there are other threads in this list, make the next thread in the queue the head
+        thread_t* newhead = list_peek_head_type(&t->queue_node, thread_t, queue_node);
+        list_delete(&t->queue_node);
+
+        // patch in the new head into the queue head list
+        list_replace_node(&t->wait_queue_heads_node, &newhead->wait_queue_heads_node);
+    }
+}
+
+// remove the head of the highest priority queue
+static thread_t* wait_queue_pop_head(wait_queue_t* wait) {
+    thread_t* t = NULL;
+
+    t = list_peek_head_type(&wait->heads, thread_t, wait_queue_heads_node);
+    if (!t)
+        return NULL;
+
+    remove_queue_head(t);
+
+    return t;
+}
+
+// remove the thread from whatever wait queue its in
+static void wait_queue_remove_thread(thread_t* t) {
+    if (!list_in_list(&t->wait_queue_heads_node)) {
+        // we're just in a queue, not a head
+        list_delete(&t->queue_node);
+    } else {
+        // we're the head of a queue
+        remove_queue_head(t);
+    }
+}
+
 static zx_status_t wait_queue_block_worker(wait_queue_t* wait, zx_time_t deadline,
                                            uint signal_mask) {
     timer_t timer;
@@ -65,7 +138,7 @@ static zx_status_t wait_queue_block_worker(wait_queue_t* wait, zx_time_t deadlin
         }
     }
 
-    list_add_tail(&wait->list, &current_thread->queue_node);
+    wait_queue_insert(wait, current_thread);
     wait->count++;
     current_thread->state = THREAD_BLOCKED;
     current_thread->blocking_wait_queue = wait;
@@ -160,7 +233,7 @@ int wait_queue_wake_one(wait_queue_t* wait, bool reschedule, zx_status_t wait_qu
     DEBUG_ASSERT(arch_ints_disabled());
     DEBUG_ASSERT(spin_lock_held(&thread_lock));
 
-    t = list_remove_head_type(&wait->list, thread_t, queue_node);
+    t = wait_queue_pop_head(wait);
     if (t) {
         wait->count--;
         DEBUG_ASSERT(t->state == THREAD_BLOCKED);
@@ -188,7 +261,7 @@ thread_t* wait_queue_dequeue_one(wait_queue_t* wait, zx_status_t wait_queue_erro
     DEBUG_ASSERT(arch_ints_disabled());
     DEBUG_ASSERT(spin_lock_held(&thread_lock));
 
-    t = list_remove_head_type(&wait->list, thread_t, queue_node);
+    t = wait_queue_pop_head(wait);
     if (t) {
         wait->count--;
         DEBUG_ASSERT(t->state == THREAD_BLOCKED);
@@ -227,7 +300,8 @@ int wait_queue_wake_all(wait_queue_t* wait, bool reschedule, zx_status_t wait_qu
     struct list_node list = LIST_INITIAL_VALUE(list);
 
     /* pop all the threads off the wait queue into the run queue */
-    while ((t = list_remove_head_type(&wait->list, thread_t, queue_node))) {
+    /* TODO: optimize with custom pop all routine */
+    while ((t = wait_queue_pop_head(wait))) {
         wait->count--;
 
         DEBUG_ASSERT(t->state == THREAD_BLOCKED);
@@ -258,7 +332,7 @@ bool wait_queue_is_empty(wait_queue_t* wait) {
     DEBUG_ASSERT(arch_ints_disabled());
     DEBUG_ASSERT(spin_lock_held(&thread_lock));
 
-    return list_is_empty(&wait->list);
+    return wait->count == 0;
 }
 
 /**
@@ -273,7 +347,7 @@ bool wait_queue_is_empty(wait_queue_t* wait) {
 void wait_queue_destroy(wait_queue_t* wait) {
     DEBUG_ASSERT(wait->magic == WAIT_QUEUE_MAGIC);
 
-    if (!list_is_empty(&wait->list)) {
+    if (wait->count != 0) {
         panic("wait_queue_destroy() called on non-empty wait_queue_t\n");
     }
 
@@ -304,7 +378,7 @@ zx_status_t wait_queue_unblock_thread(thread_t* t, zx_status_t wait_queue_error,
     DEBUG_ASSERT(t->blocking_wait_queue->magic == WAIT_QUEUE_MAGIC);
     DEBUG_ASSERT(list_in_list(&t->queue_node));
 
-    list_delete(&t->queue_node);
+    wait_queue_remove_thread(t);
     t->blocking_wait_queue->count--;
     t->blocking_wait_queue = NULL;
     t->blocked_status = wait_queue_error;
