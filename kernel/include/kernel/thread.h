@@ -95,8 +95,11 @@ typedef struct thread {
      * left the scheduler. */
     zx_duration_t runtime_ns;
 
+    /* priority */
+    int effec_priority;
     int base_priority;
     int priority_boost;
+    int inheirited_priority;
 
     /* current cpu the thread is either running on or in the ready queue, undefined otherwise */
     cpu_num_t curr_cpu;
@@ -114,6 +117,9 @@ typedef struct thread {
 
     /* are we allowed to be interrupted on the current thing we're blocked/sleeping on */
     bool interruptable;
+
+    /* number of mutexes we currently hold */
+    int mutexes_held;
 
     /* pointer to the kernel address space this thread is associated with */
     struct vmm_aspace* aspace;
