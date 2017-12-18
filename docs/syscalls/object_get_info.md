@@ -454,6 +454,25 @@ typedef struct zx_info_kmem_stats {
 } zx_info_kmem_stats_t;
 ```
 
+### ZX_INFO_BTI
+
+*handle* type: **Bus Transaction Initiator**
+
+*buffer* type: **zx_info_bti_t[1]**
+
+```
+typedef struct zx_info_bti {
+    // zx_bti_pin will always be able to return addreses that are contiguous for at
+    // least this many bytes.  E.g. if this returns 1MB, then a call to
+    // zx_bti_pin() with a size of 2MB will return at most two physically-contiguous runs.
+    // If the size were 2.5MB, it will return at most three physically-contiguous runs.
+    uint64_t minimum_contiguity;
+
+    // The number of bytes in the device's address space (UINT64_MAX if 2^64).
+    uint64_t aspace_size;
+} zx_info_bti_t;
+```
+
 ## RETURN VALUE
 
 **zx_object_get_info**() returns **ZX_OK** on success. In the event of
