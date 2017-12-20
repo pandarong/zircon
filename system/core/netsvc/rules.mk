@@ -17,9 +17,10 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/netfile.c \
     $(LOCAL_DIR)/device_id.c \
     $(LOCAL_DIR)/tftp.c \
-    $(LOCAL_DIR)/debuglog.c
+    $(LOCAL_DIR)/debuglog.c \
+    $(LOCAL_DIR)/mdns.c \
 
-MODULE_STATIC_LIBS := system/ulib/inet6 system/ulib/tftp
+MODULE_STATIC_LIBS := system/ulib/inet6 system/ulib/tftp system/ulib/mdns
 
 MODULE_LIBS := system/ulib/fdio system/ulib/launchpad system/ulib/zircon system/ulib/c
 

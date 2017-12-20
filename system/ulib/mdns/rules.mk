@@ -8,8 +8,6 @@ MODULE := $(LOCAL_DIR)
 
 MODULE_TYPE := userlib
 
-
-
 MODULE_EXPORT := a
 
 MODULE_LIBS := system/ulib/zircon system/ulib/c

@@ -10,19 +10,9 @@
 #include <string.h>
 #include <mdns/mdns.h>
 
-
 // mDNS options.
 const char* MDNS_IPV4 = "224.0.0.251";
 const char* MDNS_IPV6 = "ff02::fb";
-const int MDNS_PORT = 5353;
-const int MDNS_ANNOUNCE_PORT = 5350;
-
-// DNS record types.
-const int RR_TXT = 0x0010;
-const int RR_A = 0x0001;
-
-// DNS query classes.
-const int QCLASS_IN = 0x0001;
 
 // Reads a big-endian halfword from buf.
 uint16_t __halfword(char* buf) {

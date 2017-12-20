@@ -458,7 +458,7 @@ EFIAPI efi_status efi_main(efi_handle img, efi_system_table* sys) {
     if (zedboot_kernel) {
         valid_keys[key_idx++] = 'z';
     }
-
+    
     // The first entry in valid_keys will be the default after the timeout.
     // Use the value of bootloader.default to determine the first entry. If
     // bootloader.default is not set, use "network".
@@ -470,6 +470,7 @@ EFIAPI efi_status efi_main(efi_handle img, efi_system_table* sys) {
         swap_to_head('n', valid_keys, key_idx);
     }
     valid_keys[key_idx++] = 'b';
+    valid_keys[key_idx++] = 'k'; // for mdns netboot
 
     // make sure we update valid_keys if we ever add new options
     if (key_idx >= sizeof(valid_keys)) goto fail;
@@ -512,6 +513,7 @@ EFIAPI efi_status efi_main(efi_handle img, efi_system_table* sys) {
             do_netboot(0);
             break;
         case 'k':
+            printf("Booting via mdns over network...\n");
             do_netboot(1);
             break;
         case 'm':

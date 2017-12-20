@@ -67,8 +67,9 @@ static void advertise(void) {
     msg->arg = NB_VERSION_CURRENT;
     size_t data_len = strlen(advertise_data) + 1;
     memcpy(msg->data, advertise_data, data_len);
-    udp6_send(buffer, sizeof(nbmsg) + data_len, &ip6_ll_all_nodes,
+    int n = udp6_send(buffer, sizeof(nbmsg) + data_len, &ip6_ll_all_nodes,
               NB_ADVERT_PORT, NB_SERVER_PORT);
+    printf("netboot sent %d bytes\n", n);
 }
 
 void netboot_recv(void* data, size_t len, const ip6_addr* saddr, uint16_t sport) {

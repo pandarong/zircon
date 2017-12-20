@@ -14,6 +14,9 @@
 #include <inet6/netifc.h>
 
 #include <launchpad/launchpad.h>
+
+#include <mdns/mdns.h>
+
 #include <zircon/process.h>
 #include <zircon/processargs.h>
 #include <zircon/syscalls.h>
@@ -69,8 +72,12 @@ void udp6_recv(void* data, size_t len,
     bool mcast = (memcmp(daddr, &ip6_ll_all_nodes, sizeof(ip6_addr_t)) == 0);
 
     switch (dport) {
+        printf("PORT IS %d\n", dport);
     case NB_SERVER_PORT:
         netboot_recv(data, len, mcast, daddr, dport, saddr, sport);
+        break;
+    case MDNS_QUERY_PORT:
+        mdns_recv(data, len, mcast, daddr, dport, saddr, sport);
         break;
     case DEBUGLOG_ACK_PORT:
         debuglog_recv(data, len, mcast);

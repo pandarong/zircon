@@ -12,9 +12,6 @@ extern const char* MDNS_IPV4;
 // The IPv6 address where mDNS multicast queries must be sent.
 extern const char* MDNS_IPV6;
 
-// The default port where mDNS multicast queries must be sent.
-extern const int MDNS_PORT;
-
 // DNS record types.
 //
 // This list contains only the subset of the DNS record types useful to the
@@ -24,13 +21,13 @@ extern const int MDNS_PORT;
 // TXT RRs are used to hold descriptive text.  
 //
 // The semantics of the text depends on the domain where the record is found.
-extern const int RR_TXT;
+#define RR_TXT 0x0010
 
 // A RRs specify ip addresses for a given host.
 //
 // These records are used for conversion of domain names to corresponding IP
 // addresses.
-extern const int RR_A;
+#define RR_A 0x0001
 
 // DNS query classes.
 //
@@ -39,12 +36,19 @@ extern const int RR_A;
 // DNS query classes.
 
 // The internet.
-extern const int QCLASS_IN;
+#define QCLASS_IN 0x0001
 
+
+// The default port where mdns queries are sent.
+#define MDNS_PORT 5353
+
+// The default port from which mdns queries are sent.
+#define MDNS_QUERY_PORT 5350
 
 // The maxinum number of characters in a domain name.
 #define MAX_DOMAIN_LENGTH 253
 #define MAX_DOMAIN_LABEL 63
+
 // The number of bytes in a DNS message header.
 #define HEADER_BYTE_COUNT 12
 
@@ -152,7 +156,7 @@ uint8_t* pack_message(uint8_t* buf, mdns_header* header,
 /* --- Fuchsia bootloader specific headers --- */
 
 // Sends a client request from the bootloader to find the bootserver.
-int mdns_poll();
+int mdns_poll(void);
 
 // FIXME: HIDE ALL PARSING METHODS BELOW HERE.
 
