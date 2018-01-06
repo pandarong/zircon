@@ -13,6 +13,8 @@
 #include <string.h>
 #include <trace.h>
 #include <vm/bootalloc.h>
+#include <vm/bootreserve.h>
+#include <vm/physmap.h>
 #include <zircon/types.h>
 
 #define LOCAL_TRACE MAX(VM_GLOBAL_TRACE, 0)
@@ -50,26 +52,44 @@ void PmmArena::CheckFreeFill(vm_page_t* page) {
 #endif // PMM_ENABLE_FREE_FILL
 
 void PmmArena::BootAllocArray() {
+
     /* allocate an array of pages to back this one */
     size_t page_count = size() / PAGE_SIZE;
     size_t size = page_count * VM_PAGE_STRUCT_SIZE;
-    void* raw_page_array = boot_alloc_mem(size);
 
-    LTRACEF("arena for base 0%#" PRIxPTR " size %#zx page array at %p size %zu\n", info_.base, info_.size,
+    /* allocate a chunk to back the page array out of the arena itself, near the top of memory */
+    reserve_range range = boot_reserve_range_search(info_.base, info_.size, size);
+    if (!range.len) {
+        PANIC_UNIMPLEMENTED;
+    }
+
+    /* get the kernel pointer */
+    void* raw_page_array = paddr_to_physmap(range.pa);
+    TRACEF("arena for base 0%#" PRIxPTR " size %#zx page array at %p size %#zx\n", info_.base, info_.size,
             raw_page_array, size);
 
     memset(raw_page_array, 0, size);
 
     page_array_ = (vm_page_t*)raw_page_array;
 
+    /* compute the start index into the array that backs the array itself */
+    size_t array_start_index = (PAGE_ALIGN(range.pa) - info_.base) / PAGE_SIZE;
+    TRACEF("array_start_index %zu, page_count %zu\n", array_start_index, page_count);
+
     /* add them to the free list */
-    for (size_t i = 0; i < page_count; i++) {
+    for (size_t i = 0; i < array_start_index; i++) {
         auto& p = page_array_[i];
 
         list_add_tail(&free_list_, &p.free.node);
+        free_count_++;
     }
 
-    free_count_ += page_count;
+    /* mark the pages that back the array as WIRED */
+    for (size_t i = array_start_index; i < page_count; i++) {
+        auto& p = page_array_[i];
+
+        p.state = VM_PAGE_STATE_WIRED;
+    }
 }
 
 vm_page_t* PmmArena::AllocPage(paddr_t* pa) {
