@@ -88,11 +88,14 @@ ThreadDispatcher::~ThreadDispatcher() {
     }
 
     // free the kernel stack
+#if 1
+    TRACEF("destroying mapping at %#" PRIxPTR "\n", kstack_mapping_->base());
     kstack_mapping_.reset();
     if (kstack_vmar_) {
         kstack_vmar_->Destroy();
         kstack_vmar_.reset();
     }
+#endif
 #if __has_feature(safe_stack)
     unsafe_kstack_mapping_.reset();
     if (unsafe_kstack_vmar_) {
@@ -157,7 +160,7 @@ zx_status_t allocate_stack(const fbl::RefPtr<VmAddressRegion>& vmar, bool unsafe
     if (status != ZX_OK)
         return status;
 
-    LTRACEF("%s stack mapping at %#" PRIxPTR "\n",
+    TRACEF("%s stack mapping at %#" PRIxPTR "\n",
             unsafe ? "unsafe" : "safe", kstack_mapping->base());
 
     // fault in all the pages so we dont demand fault in the stack

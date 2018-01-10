@@ -15,6 +15,7 @@
 #include <debug.h>
 #include <kernel/init.h>
 #include <kernel/mutex.h>
+#include <kernel/percpu.h>
 #include <kernel/thread.h>
 #include <lib/heap.h>
 #include <lk/init.h>
@@ -124,6 +125,8 @@ void lk_secondary_cpu_entry() {
 
     // secondary cpu initialize from threading level up. 0 to threading was handled in arch
     lk_init_level(LK_INIT_FLAG_SECONDARY_CPUS, LK_INIT_LEVEL_THREADING, LK_INIT_LEVEL_LAST);
+
+    printf("CPU %u: percpu @ %p\n", cpu, &percpu[cpu]);
 
     dprintf(SPEW, "entering scheduler on cpu %u\n", cpu);
     thread_secondary_cpu_entry();

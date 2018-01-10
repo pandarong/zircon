@@ -133,12 +133,23 @@ void arch_early_init(void) {
     platform_init_mmu_mappings();
 }
 
+static void arch_init_percpu() {
+    auto cpu = arch_curr_cpu_num();
+
+    TRACEF("cpu %u: SCTLR %#" PRIx64 "\n", cpu, ARM64_READ_SYSREG(SCTLR_EL1));
+    TRACEF("cpu %u: ACTLR %#" PRIx64 "\n", cpu, ARM64_READ_SYSREG(ACTLR_EL1));
+    TRACEF("cpu %u: CPUECTLR %#" PRIx64 "\n", cpu, ARM64_READ_SYSREG(S3_1_c15_c2_1));
+    TRACEF("cpu %u: CPUACTLR %#" PRIx64 "\n", cpu, ARM64_READ_SYSREG(S3_1_c15_c2_0));
+}
+
 void arch_init(void) TA_NO_THREAD_SAFETY_ANALYSIS {
     arch_mp_init_percpu();
 
     dprintf(INFO, "ARM boot EL%lu\n", arm64_get_boot_el());
 
     arm64_feature_debug(true);
+
+    arch_init_percpu();
 
     uint32_t max_cpus = arch_max_num_cpus();
     uint32_t cmdline_max_cpus = cmdline_get_uint32("kernel.smp.maxcpus", max_cpus);
@@ -200,6 +211,8 @@ extern "C" void arm64_secondary_entry(void) {
     lk_init_level(LK_INIT_FLAG_SECONDARY_CPUS, LK_INIT_LEVEL_EARLIEST, LK_INIT_LEVEL_THREADING - 1);
 
     arch_mp_init_percpu();
+
+    arch_init_percpu();
 
     arm64_feature_debug(false);
 

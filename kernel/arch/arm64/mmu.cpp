@@ -447,6 +447,7 @@ void ArmArchVmAspace::FlushTLBEntry(vaddr_t vaddr, bool terminal) {
         DEBUG_ASSERT(status == ZX_OK);
     } else if (asid_ == MMU_ARM64_GLOBAL_ASID) {
         // flush this address on all ASIDs
+        LTRACEF("kernel flush, vaddr %#" PRIxPTR "\n", vaddr);
         if (terminal) {
             ARM64_TLBI(vaale1is, vaddr >> 12);
         } else {
@@ -454,6 +455,7 @@ void ArmArchVmAspace::FlushTLBEntry(vaddr_t vaddr, bool terminal) {
         }
     } else {
         // flush this address for the specific asid
+        LTRACEF("asid flush, asid %#hx, vaddr %#" PRIxPTR "\n", asid_, vaddr);
         if (terminal) {
             ARM64_TLBI(vale1is, vaddr >> 12 | (vaddr_t)asid_ << 48);
         } else {
@@ -499,7 +501,7 @@ ssize_t ArmArchVmAspace::UnmapPageTable(vaddr_t vaddr, vaddr_t vaddr_rel,
                            page_size_shift, next_page_table);
             if (chunk_size == block_size ||
                 page_table_is_clear(next_page_table, page_size_shift)) {
-                LTRACEF("pte %p[0x%lx] = 0 (was page table)\n", page_table, index);
+                TRACEF("pte %p[0x%lx] = 0 (was page table)\n", page_table, index);
                 page_table[index] = MMU_PTE_DESCRIPTOR_INVALID;
 
                 // ensure that the update is observable from hardware page table walkers
@@ -847,7 +849,7 @@ zx_status_t ArmArchVmAspace::MapContiguous(vaddr_t vaddr, paddr_t paddr, size_t 
 zx_status_t ArmArchVmAspace::Map(vaddr_t vaddr, paddr_t* phys, size_t count, uint mmu_flags,
                                  size_t* mapped) {
     canary_.Assert();
-    LTRACEF("vaddr %#" PRIxPTR " count %zu flags %#x\n",
+    TRACEF("vaddr %#" PRIxPTR " count %zu flags %#x\n",
             vaddr, count, mmu_flags);
 
     DEBUG_ASSERT(tt_virt_);
@@ -918,7 +920,7 @@ zx_status_t ArmArchVmAspace::Map(vaddr_t vaddr, paddr_t* phys, size_t count, uin
 
 zx_status_t ArmArchVmAspace::Unmap(vaddr_t vaddr, size_t count, size_t* unmapped) {
     canary_.Assert();
-    LTRACEF("vaddr %#" PRIxPTR " count %zu\n", vaddr, count);
+    TRACEF("vaddr %#" PRIxPTR " count %zu\n", vaddr, count);
 
     DEBUG_ASSERT(tt_virt_);
 

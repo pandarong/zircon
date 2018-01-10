@@ -71,7 +71,7 @@ typedef void (*thread_tls_callback_t)(void* tls_value);
 // N.B. This must match ZX_MAX_NAME_LEN.
 #define THREAD_NAME_LENGTH 32
 
-#define THREAD_LINEBUFFER_LENGTH 128
+#define THREAD_LINEBUFFER_LENGTH 192
 
 // Number of kernel tls slots.
 #define THREAD_MAX_TLS_ENTRY 2

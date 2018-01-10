@@ -86,6 +86,7 @@ __NO_RETURN static void exception_die(struct arm64_iframe_long* iframe, uint32_t
     uint32_t iss = BITS(esr, 24, 0);
 
     /* fatal exception, die here */
+    printf("CPU %u\n", arch_curr_cpu_num());
     printf("ESR 0x%x: ec 0x%x, il 0x%x, iss 0x%x\n", esr, ec, il, iss);
     dump_iframe(iframe);
 
