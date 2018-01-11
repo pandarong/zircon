@@ -41,6 +41,9 @@ size_t pcie_mem_lo_size;
 
 #define DEFAULT_MEMEND (16 * 1024 * 1024)
 
+/* drop arenas smaller than this for efficiency purposes */
+#define MIN_ARENA_SIZE (1 * 1024 * 1024)
+
 /* boot_addr_range_t is an iterator which iterates over address ranges from
  * the boot loader
  */
@@ -117,6 +120,10 @@ static zx_status_t mem_arena_init(boot_addr_range_t* range) {
             base += adjust;
             size -= adjust;
         }
+
+        /* trim smallish memory ranges, since the PMM will probably fail to initialize them */
+        if (size < MIN_ARENA_SIZE)
+            continue;
 
         zx_status_t status = ZX_OK;
         if (have_limit) {
