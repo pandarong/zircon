@@ -78,25 +78,26 @@ zx_status_t PmmArena::Init(const pmm_arena_info_t* info) {
 
     page_array_ = (vm_page_t*)raw_page_array;
 
-    /* compute the start index into the array that backs the array itself */
+    /* compute the range of the array that backs the array itself */
     size_t array_start_index = (PAGE_ALIGN(range.pa) - info_.base) / PAGE_SIZE;
-    TRACEF("array_start_index %zu, page_count %zu\n", array_start_index, page_count);
+    size_t array_end_index = array_start_index + page_array_size / PAGE_SIZE;
+    TRACEF("array_start_index %zu, array_end_index %zu, page_count %zu\n",
+            array_start_index, array_end_index, page_count);
 
-    DEBUG_ASSERT(array_start_index < page_count);
+    DEBUG_ASSERT(array_start_index < page_count && array_end_index <= page_count);
 
-    /* add them to the free list */
-    for (size_t i = 0; i < array_start_index; i++) {
+    /* add all pages that aren't part of the page array to the free list */
+    /* pages part of the free array go to the WIRED state */
+    for (size_t i = 0; i < page_count; i++) {
         auto& p = page_array_[i];
 
-        list_add_tail(&free_list_, &p.free.node);
-        free_count_++;
-    }
-
-    /* mark the pages that back the array as WIRED */
-    for (size_t i = array_start_index; i < page_count; i++) {
-        auto& p = page_array_[i];
-
-        p.state = VM_PAGE_STATE_WIRED;
+        if (i >= array_start_index && i < array_end_index) {
+            p.state = VM_PAGE_STATE_WIRED;
+        } else {
+            p.state = VM_PAGE_STATE_FREE;
+            list_add_tail(&free_list_, &p.free.node);
+            free_count_++;
+        }
     }
 
     return ZX_OK;

@@ -784,11 +784,14 @@ void platform_early_init(void) {
     platform_save_bootloader_data(true);
 #endif
 
-    /* add the kernel to the boot reserve list */
-    boot_reserve_add_range(get_kernel_base_phys(), get_kernel_size());
-
     /* add the ramdisk to the boot reserve list */
     platform_preserve_ramdisk();
+
+    // XXX test case
+    //boot_reserve_add_range(0x17f000000UL, 0x1000);
+    //boot_reserve_add_range(0x17f004000UL, 0x1000);
+    //boot_reserve_add_range(0x17e008000UL, 0x4000);
+    //boot_reserve_add_range(0x100000000UL, 0x7e000000UL);
 
     /* initialize physical memory arenas */
     pc_mem_init();
