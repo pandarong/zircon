@@ -8,19 +8,23 @@
 
 #include "vm_priv.h"
 
-#include <lk/init.h>
 #include <sys/types.h>
-#include <vm/pmm.h>
 #include <trace.h>
+#include <vm/pmm.h>
 
-#define LOCAL_TRACE MAX(VM_GLOBAL_TRACE, 1)
+#define LOCAL_TRACE MAX(VM_GLOBAL_TRACE, 0)
 
 static const size_t NUM_RESERVES = 16;
 static reserve_range res[NUM_RESERVES];
 static size_t res_idx;
 static list_node reserved_page_list = LIST_INITIAL_VALUE(reserved_page_list);
 
-void boot_reserve_add_range(paddr_t pa, size_t len) {
+void boot_reserve_init() {
+    /* add the kernel to the boot reserve list */
+    boot_reserve_add_range(get_kernel_base_phys(), get_kernel_size());
+}
+
+zx_status_t boot_reserve_add_range(paddr_t pa, size_t len) {
     dprintf(INFO, "PMM: boot reserve add [%#" PRIxPTR ", %#" PRIxPTR "]\n", pa, pa + len - 1);
 
     if (res_idx == NUM_RESERVES) {
@@ -33,16 +37,16 @@ void boot_reserve_add_range(paddr_t pa, size_t len) {
         if (Intersects(res[i].pa, res[i].len, pa, len)) {
             // we have a problem that we are not equipped to handle right now
             panic("boot_reserve_add_range: pa %#" PRIxPTR " len %zx intersects existing range\n",
-                   pa, len);
+                  pa, len);
         }
 
         if (res[i].pa > end) {
             // insert before this one
-            memmove(&res[i+1], &res[i], (res_idx - i) * sizeof(res[0]));
+            memmove(&res[i + 1], &res[i], (res_idx - i) * sizeof(res[0]));
             res[i].pa = pa;
             res[i].len = len;
             res_idx++;
-            return;
+            return ZX_OK;
         }
     }
 
@@ -50,19 +54,20 @@ void boot_reserve_add_range(paddr_t pa, size_t len) {
     res[res_idx].pa = pa;
     res[res_idx].len = len;
     res_idx++;
+    return ZX_OK;
 }
 
 // iterate through the reserved ranges and mark them as WIRED in the pmm
 void boot_reserve_wire() {
     for (size_t i = 0; i < res_idx; i++) {
-        dprintf(INFO, "PMM: boot reserve reserving [%#" PRIxPTR ", %#" PRIxPTR "]\n",
+        dprintf(INFO, "PMM: boot reserve marking WIRED [%#" PRIxPTR ", %#" PRIxPTR "]\n",
                 res[i].pa, res[i].pa + res[i].len - 1);
 
         size_t pages = ROUNDUP_PAGE_SIZE(res[i].len) / PAGE_SIZE;
         size_t actual = pmm_alloc_range(res[i].pa, pages, &reserved_page_list);
         if (actual != pages) {
             printf("PMM: unable to reserve reserved range [%#" PRIxPTR ", %#" PRIxPTR "]\n",
-                res[i].pa, res[i].pa + res[i].len - 1);
+                   res[i].pa, res[i].pa + res[i].len - 1);
             continue; // this is probably fatal but go ahead and continue
         }
     }
@@ -107,16 +112,9 @@ retry:
     LTRACEF("returning [%#" PRIxPTR ", %#" PRIxPTR "]\n",
             alloc_pa, alloc_pa + alloc_len - 1);
 
-    return { alloc_pa, alloc_len };
+    return {alloc_pa, alloc_len};
 
 fail:
     LTRACEF("failed to allocate\n");
-    return { 0, 0 };
+    return {0, 0};
 }
-
-static void boot_reserve_init(uint level) {
-    /* add the kernel to the boot reserve list */
-    boot_reserve_add_range(get_kernel_base_phys(), get_kernel_size());
-}
-
-LK_INIT_HOOK(boot_reserve, boot_reserve_init, LK_INIT_LEVEL_PLATFORM_EARLY - 1);
