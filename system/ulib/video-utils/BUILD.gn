@@ -1,0 +1,24 @@
+# Copyright 2017 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+config("video-utils-config") {
+  include_dirs = [ "include" ]
+}
+
+source_set("video-utils") {
+  # Don't forget to update rules.mk as well for the Zircon build.
+  sources = [
+    "video_device_stream.cpp",
+    "include/video-utils/video-device-stream.h",
+  ]
+
+  public_deps = [
+    "//zircon/system/ulib/fbl",
+    "//zircon/system/ulib/zx",
+    "//zircon/system/ulib/async",
+    "//zircon/system/ulib/zxcpp",
+  ]
+
+  public_configs = [ ":video-utils-config" ]
+}

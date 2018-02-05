@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <audio-utils/audio-device-stream.h>
-#include <audio-utils/audio-input.h>
-#include <audio-utils/audio-output.h>
+#include <video-utils/video_device_stream.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <zircon/assert.h>
@@ -22,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace audio {
+namespace video {
 namespace utils {
 
 static constexpr zx_duration_t CALL_TIMEOUT = ZX_MSEC(500);
@@ -94,12 +92,12 @@ zx_status_t DoNoFailCall(const zx::channel& channel,
 }
 
 VideoDeviceStream::VideoDeviceStream(bool input, uint32_t dev_id)
-    : input_(input) {
+  : new_frame_waiter_(fsl::MessageLoop::GetCurrent()->async()), input_(input) {
     snprintf(name_, sizeof(name_), "/dev/class/camera/%03u", dev_id);
 }
 
 VideoDeviceStream::VideoDeviceStream(bool input, const char* dev_path)
-    : input_(input) {
+  : new_frame_waiter_(fsl::MessageLoop::GetCurrent()->async()), input_(input) {
     strncpy(name_, dev_path, sizeof(name_));
     name_[sizeof(name_) - 1] = 0;
 }
@@ -112,9 +110,9 @@ zx_status_t VideoDeviceStream::Open() {
     if (stream_ch_ != ZX_HANDLE_INVALID)
         return ZX_ERR_BAD_STATE;
 
-    int fd = ::open(name(), O_RDONLY);
+    int fd = ::open(name_, O_RDONLY);
     if (fd < 0) {
-        printf("Failed to open \"%s\" (res %d)\n", name(), fd);
+        printf("Failed to open \"%s\" (res %d)\n", name_, fd);
         return fd;
     }
 
@@ -144,7 +142,7 @@ zx_status_t VideoDeviceStream::GetSupportedFormats(
 
     req.hdr.cmd = CAMERA_STREAM_CMD_GET_FORMATS;
     res = DoCallImpl(stream_ch_, req, &resp, nullptr, &rxed);
-    if ((res != ZX_OK) || (rxed < MIN_RESP_SIZE)) {
+    if ((res != ZX_OK)) {
         printf("Failed to fetch initial suppored format list chunk (res %d, rxed %u)\n",
                 res, rxed);
         return res;
@@ -165,9 +163,8 @@ zx_status_t VideoDeviceStream::GetSupportedFormats(
     }
 
     for (uint16_t i = 0; i < expected_formats; ++i) {
-        out_formats->push_back(resp.format_ranges[i]);
+        out_formats->push_back(resp.formats[i]);
     }
-    zx_txid_t txid = resp.hdr.transaction_id;
     uint32_t processed_formats = 0;
     
 
@@ -218,53 +215,60 @@ zx_status_t VideoDeviceStream::GetSupportedFormats(
 }
 
 
-zx_status_t VideoDeviceStream::SetFormat(camera_video_format_t format, buffer_layout_t layout, 
-                                         fbl::Vector<zx::event> &release_fences) {
-    if ((stream_ch_ == ZX_HANDLE_INVALID) || (rb_ch_ != ZX_HANDLE_INVALID))
+zx_status_t VideoDeviceStream::SetFormat(camera_video_format_t format) {
+    if ((stream_ch_ == ZX_HANDLE_INVALID) || (vb_ch_ != ZX_HANDLE_INVALID))
         return ZX_ERR_BAD_STATE;
 
+    camera_stream_cmd_set_format_req_t  req;
+    camera_stream_cmd_set_format_resp_t resp;
 
-    channel_cnt_   = channels;
-    frame_sz_      = channels * sample_size_;
-    frame_rate_    = frames_per_second;
-    sample_format_ = sample_format;
+    req.hdr.cmd = CAMERA_STREAM_CMD_SET_FORMAT;
+    req.video_format = format;
+    zx::handle resp_handle_out;
 
-    camera_stream_cmd_configure_stream_req_t req;
-    camera_stream_cmd_configure_stream_resp_t resp;
-    req.hdr.cmd                    = CAMERA_STREAM_CMD_CONFIGURE_STREAM;
-    req.total_frame_entries_count  = release_fences.size();
-    req.already_sent_count         = 0;
-    req.video_format               = format;
-    for (uint16_t i = 0; i < release_fences.size(); ++i) {
-        req.frame_entries[i].offset = layout.buffer_offsets[i];
-        req.frame_entries[i].size   = layout.buffer_sizes[i];
+    zx_status_t res = DoCall(stream_ch_, req, &resp, &resp_handle_out);
+    
+    if (res != ZX_OK) {
+        printf("Failed to set format %u/%uHz Res: %ux%u @ %u bpp  (res %d)\n",
+               format.frames_per_sec_numerator, 
+               format.frames_per_sec_denominator, format.width, format.height,
+               format.bits_per_pixel, res);
+        return res;
     }
-    //Set the frame entries, up to CAMERA_STREAM_CMD_CONFIGURE_STREAM_MAX_FRAME_ENTRIES
-    uint16_t handles_out = release_fences.size() + 2;
 
-     zx_status_t DoCallImpl(const zx::channel& channel,
-                       const ReqType&     req,
-                       RespType*          resp,
-                       zx::handle*        resp_handle_out,
-                       uint32_t*          resp_len_out = nullptr) {
+    max_frame_size_ = resp.max_frame_size;
+
+    // TODO(garratt) : Verify the type of this handle before transferring it to
+    // our ring buffer channel handle.
+    vb_ch_.reset(resp_handle_out.release());
+
+    return res;
+}
+
+zx_status_t VideoDeviceStream::SetBuffer(const zx::vmo &buffer_vmo) {
+
+    ZX_DEBUG_ASSERT(vb_ch_);
+    camera_vb_cmd_set_buffer_req_t req;
+    req.hdr.cmd = CAMERA_VB_CMD_SET_BUFFER;
+    camera_vb_cmd_set_buffer_resp_t resp;
+    zx_handle_t vmo_handle;
+    //TODO(garratt): check this:
+    zx_handle_duplicate(buffer_vmo.get(), ZX_RIGHT_SAME_RIGHTS, &vmo_handle);
     zx_channel_call_args_t args;
-
-    ZX_DEBUG_ASSERT((resp_handle_out == nullptr) || !resp_handle_out->is_valid());
-
     args.wr_bytes       = &req;
-    args.wr_num_bytes   = sizeof(camera_stream_cmd_configure_stream_req_t);
-    args.wr_handles     = nullptr; // TODO(garratt)
-    args.wr_num_handles = handles_out;
+    args.wr_num_bytes   = sizeof(camera_vb_cmd_set_buffer_req_t);
+    args.wr_handles     = &vmo_handle;
+    args.wr_num_handles = 1;
     args.rd_bytes       = &resp;
-    args.rd_num_bytes   = sizeof(camera_stream_cmd_configure_stream_resp_t);
+    args.rd_num_bytes   = sizeof(camera_vb_cmd_set_buffer_resp_t);
     args.rd_handles     = nullptr;
     args.rd_num_handles = 0;
 
     uint32_t bytes, handles;
     zx_status_t read_status, write_status;
 
-    write_status = stream_ch_.call(0, zx_deadline_after(CALL_TIMEOUT), &args, &bytes, &handles,
-                                &read_status);
+    write_status = vb_ch_.call(0, zx_deadline_after(CALL_TIMEOUT), &args, 
+            &bytes, &handles, &read_status);
 
     if (write_status != ZX_OK) {
         if (write_status == ZX_ERR_CALL_FAILED) {
@@ -275,69 +279,55 @@ zx_status_t VideoDeviceStream::SetFormat(camera_video_format_t format, buffer_la
             return write_status;
         }
     }
-    
-    
-    
-    zx::handle tmp;
-    zx_status_t res = DoCall(stream_ch_, req, &resp, &tmp);
-    if (res != ZX_OK) {
-        printf("Failed to set format %uHz %hu-Ch fmt 0x%x (res %d)\n",
-                frames_per_second, channels, sample_format, res);
+
+    // Make sure that the number of bytes we got back matches the size of the
+    // response structure.
+    if (bytes != sizeof(camera_vb_cmd_set_buffer_resp_t)) {
+        printf("Unexpected response size (got %u, expected %zu)\n", bytes, sizeof(camera_vb_cmd_set_buffer_resp_t));
+        return ZX_ERR_INTERNAL;
     }
+    // zx_status_t result = dynamic_cast<camera_vb_cmd_set_buffer_resp_t*>(&resp)->result;
+    if (ZX_OK != resp.result) {
+        printf("SetBuffer failure (result: %d)\n", resp.result);
 
-    external_delay_nsec_ = resp.external_delay_nsec;
+    }
+    new_frame_waiter_.set_object(vb_ch_.get());
+    new_frame_waiter_.set_trigger(ZX_CHANNEL_READABLE);
+    new_frame_waiter_.set_handler(fbl::BindMember(this, &VideoDeviceStream::OnNewMessageSignalled));
+    auto status = new_frame_waiter_.Begin();
+    FXL_DCHECK(status == ZX_OK);
 
-    // TODO(johngro) : Verify the type of this handle before transferring it to
-    // our ring buffer channel handle.
-    rb_ch_.reset(tmp.release());
-
-    return res;
+    return ZX_OK;
 }
 
-
 zx_status_t VideoDeviceStream::StartRingBuffer() {
-    if (rb_ch_ == ZX_HANDLE_INVALID)
+    if (vb_ch_ == ZX_HANDLE_INVALID)
         return ZX_ERR_BAD_STATE;
 
-    audio_rb_cmd_start_req_t  req;
-    audio_rb_cmd_start_resp_t resp;
+    camera_vb_cmd_start_req_t  req;
+    camera_vb_cmd_start_resp_t resp;
 
-    req.hdr.cmd = AUDIO_RB_CMD_START;
-    req.hdr.transaction_id = 1;
+    req.hdr.cmd = CAMERA_VB_CMD_START;
 
-    zx_status_t res = DoCall(rb_ch_, req, &resp);
-
-    if (res == ZX_OK) {
-        start_time_ = resp.start_time;
-    }
+    zx_status_t res = DoCall(vb_ch_, req, &resp);
 
     return res;
 }
 
 zx_status_t VideoDeviceStream::StopRingBuffer() {
-    if (rb_ch_ == ZX_HANDLE_INVALID)
+    if (vb_ch_ == ZX_HANDLE_INVALID)
         return ZX_ERR_BAD_STATE;
 
-    start_time_ = 0;
+    camera_vb_cmd_stop_req_t  req;
+    camera_vb_cmd_stop_resp_t resp;
 
-    audio_rb_cmd_stop_req_t  req;
-    audio_rb_cmd_stop_resp_t resp;
+    req.hdr.cmd = CAMERA_VB_CMD_STOP;
 
-    req.hdr.cmd = AUDIO_RB_CMD_STOP;
-    req.hdr.transaction_id = 1;
-
-    return DoCall(rb_ch_, req, &resp);
+    return DoCall(vb_ch_, req, &resp);
 }
 
 void VideoDeviceStream::ResetRingBuffer() {
-    if (rb_virt_ != nullptr) {
-        ZX_DEBUG_ASSERT(rb_sz_ != 0);
-        zx::vmar::root_self().unmap(reinterpret_cast<uintptr_t>(rb_virt_), rb_sz_);
-    }
-    rb_ch_.reset();
-    rb_vmo_.reset();
-    rb_sz_ = 0;
-    rb_virt_ = nullptr;
+    vb_ch_.reset();
 }
 
 void VideoDeviceStream::Close() {
@@ -345,13 +335,39 @@ void VideoDeviceStream::Close() {
     stream_ch_.reset();
 }
 
-bool VideoDeviceStream::IsChannelConnected(const zx::channel& ch) {
-    if (!ch.is_valid())
-        return false;
-
-    zx_signals_t junk;
-    return ch.wait_one(ZX_CHANNEL_PEER_CLOSED, 0u, &junk) != ZX_ERR_TIMED_OUT;
+  // This function is called when the release fence is signalled
+async_wait_result_t VideoDeviceStream::OnNewMessageSignalled(async_t* async, zx_status_t status,
+                            const zx_packet_signal* signal) {
+    if (status != ZX_OK) {
+      FXL_LOG(ERROR) << "VideoDeviceStream received an error ("
+                     << zx_status_get_string(status) << ").  Exiting.";
+      return ASYNC_WAIT_FINISHED;
+    }
+    // todo: does the signal reset itself?
+    // Read channel
+    uint32_t rxed;
+    camera_vb_frame_notify_t resp; 
+    zx_status_t res = stream_ch_.read(0u, &resp, sizeof(resp), &rxed, nullptr, 0, nullptr);
+    if (res != ZX_OK) {
+       FXL_LOG(ERROR) << "Failed to read notify";
+       return ASYNC_WAIT_AGAIN;
+    }
+    if (resp.hdr != CAMERA_VB_FRAME_NOTIFY) {
+        FXL_LOG(ERROR) << "Wrong message on the channel";
+        return ASYNC_WAIT_AGAIN;
+    }
+    OnNewFrame(resp);
+    // Call OnNewFrame
+    return ASYNC_WAIT_AGAIN;
 }
+
+// bool VideoDeviceStream::IsChannelConnected(const zx::channel& ch) {
+    // if (!ch.is_valid())
+        // return false;
+
+    // zx_signals_t junk;
+    // return ch.wait_one(ZX_CHANNEL_PEER_CLOSED, 0u, &junk) != ZX_ERR_TIMED_OUT;
+// }
 
 
 }  // namespace utils
