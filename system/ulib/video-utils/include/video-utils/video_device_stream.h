@@ -31,6 +31,8 @@ public:
 
 protected:
     // friend class fbl::unique_ptr<AudioDeviceStream>;
+    async_wait_result_t OnNewMessageSignalled(async_t* async, zx_status_t status,
+                            const zx_packet_signal* signal); 
 
     // static bool IsChannelConnected(const zx::channel& ch);
 
@@ -38,8 +40,8 @@ protected:
     // A value of zero means that the video buffer channel is uninitialized.
     uint32_t max_frame_size_ = 0;
 
-    VideoDeviceStream(bool input, uint32_t dev_id);
-    VideoDeviceStream(bool input, const char* dev_path);
+    VideoDeviceStream(async_t *async, bool input, uint32_t dev_id);
+    VideoDeviceStream(async_t *async, bool input, const char* dev_path);
     virtual ~VideoDeviceStream();
 
     zx::channel stream_ch_;

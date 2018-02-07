@@ -91,13 +91,13 @@ zx_status_t DoNoFailCall(const zx::channel& channel,
     return DoCallImpl(channel, req, resp, resp_handle_out);
 }
 
-VideoDeviceStream::VideoDeviceStream(bool input, uint32_t dev_id)
-  : new_frame_waiter_(fsl::MessageLoop::GetCurrent()->async()), input_(input) {
+VideoDeviceStream::VideoDeviceStream(async_t *async, bool input, uint32_t dev_id)
+  : new_frame_waiter_(async), input_(input) {
     snprintf(name_, sizeof(name_), "/dev/class/camera/%03u", dev_id);
 }
 
-VideoDeviceStream::VideoDeviceStream(bool input, const char* dev_path)
-  : new_frame_waiter_(fsl::MessageLoop::GetCurrent()->async()), input_(input) {
+VideoDeviceStream::VideoDeviceStream(async_t *async, bool input, const char* dev_path)
+  : new_frame_waiter_(async), input_(input) {
     strncpy(name_, dev_path, sizeof(name_));
     name_[sizeof(name_) - 1] = 0;
 }
@@ -286,10 +286,8 @@ zx_status_t VideoDeviceStream::SetBuffer(const zx::vmo &buffer_vmo) {
         printf("Unexpected response size (got %u, expected %zu)\n", bytes, sizeof(camera_vb_cmd_set_buffer_resp_t));
         return ZX_ERR_INTERNAL;
     }
-    // zx_status_t result = dynamic_cast<camera_vb_cmd_set_buffer_resp_t*>(&resp)->result;
     if (ZX_OK != resp.result) {
         printf("SetBuffer failure (result: %d)\n", resp.result);
-
     }
     new_frame_waiter_.set_object(vb_ch_.get());
     new_frame_waiter_.set_trigger(ZX_CHANNEL_READABLE);
