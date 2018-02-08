@@ -293,7 +293,10 @@ zx_status_t VideoDeviceStream::SetBuffer(const zx::vmo &buffer_vmo) {
     new_frame_waiter_.set_trigger(ZX_CHANNEL_READABLE);
     new_frame_waiter_.set_handler(fbl::BindMember(this, &VideoDeviceStream::OnNewMessageSignalled));
     auto status = new_frame_waiter_.Begin();
-    FXL_DCHECK(status == ZX_OK);
+    if (status != ZX_OK) {
+        printf("Failed to start AutoWaiter\n");
+        return status;
+    }
 
     return ZX_OK;
 }
@@ -337,8 +340,7 @@ void VideoDeviceStream::Close() {
 async_wait_result_t VideoDeviceStream::OnNewMessageSignalled(async_t* async, zx_status_t status,
                             const zx_packet_signal* signal) {
     if (status != ZX_OK) {
-      FXL_LOG(ERROR) << "VideoDeviceStream received an error ("
-                     << zx_status_get_string(status) << ").  Exiting.";
+      printf("Error: VideoDeviceStream received an error.  Exiting.");
       return ASYNC_WAIT_FINISHED;
     }
     // todo: does the signal reset itself?
@@ -347,11 +349,11 @@ async_wait_result_t VideoDeviceStream::OnNewMessageSignalled(async_t* async, zx_
     camera_vb_frame_notify_t resp; 
     zx_status_t res = stream_ch_.read(0u, &resp, sizeof(resp), &rxed, nullptr, 0, nullptr);
     if (res != ZX_OK) {
-       FXL_LOG(ERROR) << "Failed to read notify";
+       printf("Error: Failed to read notify");
        return ASYNC_WAIT_AGAIN;
     }
-    if (resp.hdr != CAMERA_VB_FRAME_NOTIFY) {
-        FXL_LOG(ERROR) << "Wrong message on the channel";
+    if (resp.hdr.cmd != CAMERA_VB_FRAME_NOTIFY) {
+        printf("Error: Wrong message on the channel");
         return ASYNC_WAIT_AGAIN;
     }
     OnNewFrame(resp);
