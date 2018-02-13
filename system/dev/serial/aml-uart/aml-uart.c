@@ -301,6 +301,14 @@ static zx_status_t aml_serial_read(void* ctx, uint32_t port_num, void* buf, size
     uint8_t* end = bufptr + length;
     while (bufptr < end && (aml_uart_read_state(port) & SERIAL_STATE_READABLE)) {
         uint32_t val = readl(rfifo_reg);
+        uint32_t status = readl(mmio + AML_UART_STATUS);
+
+        if (status & (AML_UART_STATUS_RXOVRFLW | AML_UART_STATUS_FRAMEERR |  AML_UART_STATUS_PARERR)) {
+            uint32_t ctrl = readl(mmio + AML_UART_CONTROL);
+            ctrl |= AML_UART_CONTROL_CLRERR;
+            writel(ctrl, mmio + AML_UART_CONTROL);
+        }
+
         *bufptr++ = val;
     }
 
