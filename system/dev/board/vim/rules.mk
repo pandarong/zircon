@@ -46,4 +46,7 @@ MODULE_LIBS := \
     system/ulib/c \
     system/ulib/zircon
 
+# HORRIBLE HACK
+USER_MANIFEST_LINES += {core}firmware/bt-firmware.bin=$(BUILDDIR)/../../../zircon/$(LOCAL_DIR)/bcm4356a2.hcd
+
 include make/module.mk
