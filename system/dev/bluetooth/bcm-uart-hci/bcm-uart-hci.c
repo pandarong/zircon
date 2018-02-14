@@ -25,7 +25,9 @@ const uint8_t RESET_CMD[] = { 0x3, 0xc, 0x0 };
 // vendor command to switch baud rate to 2000000
 const uint8_t SET_BAUD_RATE_CMD[] = { 0x18, 0xfc, 0x6, 0x0, 0x0, 0x80, 0x84, 0x1e, 0x0 };
 
-const uint8_t READ_LOCAL_NAME_CMD[] = { 0x14, 0xc, 0x0 };
+const uint8_t START_FIRMWARE_DOWNLOAD_CMD[] = { 0x2e, 0xfc, 0x0 };
+
+#define HCI_EVT_COMMAND_COMPLETE    0x0e
 
 typedef struct {
     zx_device_t* zxdev;
@@ -102,12 +104,15 @@ static zx_protocol_device_t bcm_hci_device_proto = {
 
 
 static zx_status_t bcm_hci_send_command(bcm_uart_hci_t* hci, const uint8_t* command, size_t length) {
-    return zx_channel_write(hci->command_channel, 0, command, length, NULL, 0);
-}
+    // send HCI command
+    zx_status_t status = zx_channel_write(hci->command_channel, 0, command, length, NULL, 0);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "bcm_hci_send_command zx_channel_write failed %d\n", status);
+        return status;
+    }
 
-static zx_status_t bcm_hci_read_event(bcm_uart_hci_t* hci) {
+    // wait for command complete
     uint8_t event_buf[255 + 2];
-    zx_status_t status;
     uint32_t actual;
 
     do {
@@ -120,14 +125,27 @@ static zx_status_t bcm_hci_read_event(bcm_uart_hci_t* hci) {
     } while (status == ZX_ERR_SHOULD_WAIT);
 
     if (status != ZX_OK) {
-        zxlogf(ERROR, "bcm_hci_read_event zx_channel_read failed %d\n", status);
+        zxlogf(ERROR, "bcm_hci_send_command zx_channel_read failed %d\n", status);
+        return status;
     }
-    return status;
+
+    if (event_buf[0] != HCI_EVT_COMMAND_COMPLETE || event_buf[1] != 4 || event_buf[3] != command[0]
+        || event_buf[4] != command[1]) {
+        zxlogf(ERROR, "bcm_hci_send_command did not receive command complete\n");
+        return ZX_ERR_INTERNAL;
+    }
+    if (event_buf[5] != 0) {
+        zxlogf(ERROR, "bcm_hci_send_command got command complete error %u\n", event_buf[5]);
+        return ZX_ERR_INTERNAL;
+    }
+
+    return ZX_OK;
 }
 
 static int bcm_hci_start_thread(void* arg) {
     bcm_uart_hci_t* hci = arg;
- 
+    zx_handle_t fw_vmo;
+
     zx_status_t status = bt_hci_open_command_channel(&hci->hci, &hci->command_channel);
     if (status != ZX_OK) {
         goto fail;
@@ -138,17 +156,9 @@ static int bcm_hci_start_thread(void* arg) {
     if (status != ZX_OK) {
         goto fail;
     }
-    status = bcm_hci_read_event(hci);
-    if (status != ZX_OK) {
-        goto fail;
-    }
 
     // switch baud rate to 2000000
     status = bcm_hci_send_command(hci, SET_BAUD_RATE_CMD, sizeof(SET_BAUD_RATE_CMD));
-    if (status != ZX_OK) {
-        goto fail;
-    }
-    status = bcm_hci_read_event(hci);
     if (status != ZX_OK) {
         goto fail;
     }
@@ -157,20 +167,72 @@ static int bcm_hci_start_thread(void* arg) {
     if (status != ZX_OK) {
         goto fail;
     }
- 
-    // Send Read Local Name command
-    status = bcm_hci_send_command(hci, READ_LOCAL_NAME_CMD, sizeof(READ_LOCAL_NAME_CMD));
-    if (status != ZX_OK) {
-        goto fail;
-    }
-    status = bcm_hci_read_event(hci);
-    if (status != ZX_OK) {
-        goto fail;
+
+    size_t fw_size;
+    status = load_firmware(hci->zxdev, "/boot/firmware/bt-firmware.bin", &fw_vmo, &fw_size);
+    if (status == ZX_OK) {
+        status = bcm_hci_send_command(hci, START_FIRMWARE_DOWNLOAD_CMD, sizeof(START_FIRMWARE_DOWNLOAD_CMD));
+        if (status != ZX_OK) {
+            goto fail;
+        }
+
+        zx_nanosleep(zx_deadline_after(ZX_MSEC(50)));
+
+        zx_off_t offset = 0;
+        while (offset < fw_size) {
+            uint8_t buffer[255 + 3];
+            size_t actual;
+
+            status = zx_vmo_read(fw_vmo, buffer, offset, sizeof(buffer), &actual);
+            if (status != ZX_OK) {
+                goto vmo_close_fail;
+            }
+            if (actual < 3) {
+                zxlogf(ERROR, "short HCI command in firmware download\n");
+                status = ZX_ERR_INTERNAL;
+                goto vmo_close_fail;
+            }
+            size_t length =  buffer[2] + 3;
+             if (actual < length) {
+                zxlogf(ERROR, "short HCI command in firmware download\n");
+                status = ZX_ERR_INTERNAL;
+                goto vmo_close_fail;
+            }
+            status = bcm_hci_send_command(hci, buffer, length);
+            if (status != ZX_OK) {
+                zxlogf(ERROR, "bcm_hci_send_command failed in firmware download: %d\n", status);
+                goto vmo_close_fail;
+            }
+            offset += length;
+        }
+
+        zx_handle_close(fw_vmo);
+
+        // firmware switched us back to 115200. switch back to 2000000
+        status = serial_config(&hci->serial, 0, 115200, SERIAL_SET_BAUD_RATE_ONLY);
+        if (status != ZX_OK) {
+            goto fail;
+        }
+
+        // switch baud rate to 2000000 again
+        status = bcm_hci_send_command(hci, SET_BAUD_RATE_CMD, sizeof(SET_BAUD_RATE_CMD));
+        if (status != ZX_OK) {
+            goto fail;
+        }
+
+        status = serial_config(&hci->serial, 0, 2000000, SERIAL_SET_BAUD_RATE_ONLY);
+        if (status != ZX_OK) {
+            goto fail;
+        }
+    } else {
+        zxlogf(INFO, "bcm-uart-hci: no firmware file found\n");
     }
 
     device_make_visible(hci->zxdev);
     return 0;
 
+vmo_close_fail:
+    zx_handle_close(fw_vmo);
 fail:
     zxlogf(ERROR, "bcm_hci_start_thread: device initialization failed: %d\n", status);
     device_remove(hci->zxdev);
