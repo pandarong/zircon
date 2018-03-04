@@ -792,7 +792,10 @@ static void dwc_handle_channel_irq(uint32_t channel, dwc_usb_t* dwc) {
 static void dwc_handle_irq(dwc_usb_t* dwc) {
     union dwc_core_interrupts interrupts = regs->core_interrupts;
 
+printf("dwc_handle_irq %08x\n", interrupts.val);
+
     if (interrupts.port_intr) {
+printf("port_intr\n");
         // Clear the interrupt.
         union dwc_host_port_ctrlstatus hw_status = regs->host_port_ctrlstatus;
 
@@ -802,29 +805,47 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
         dwc->root_port_status.wPortStatus = 0;
 
         // This device only has one port.
-        if (hw_status.connected)
+        if (hw_status.connected) {
+printf("USB_PORT_CONNECTION\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_CONNECTION;
-        if (hw_status.enabled)
+        }
+        if (hw_status.enabled) {
+printf("USB_PORT_ENABLE\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_ENABLE;
-        if (hw_status.suspended)
+        }
+        if (hw_status.suspended) {
+printf("USB_PORT_SUSPEND\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_SUSPEND;
-        if (hw_status.overcurrent)
+        }
+        if (hw_status.overcurrent) {
+printf("USB_PORT_OVER_CURRENT\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_OVER_CURRENT;
-        if (hw_status.reset)
+        }
+        if (hw_status.reset) {
+printf("USB_PORT_RESET\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_RESET;
+        }
 
         if (hw_status.speed == 2) {
+printf("USB_PORT_LOW_SPEED\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_LOW_SPEED;
         } else if (hw_status.speed == 0) {
+printf("USB_PORT_HIGH_SPEED\n");
             dwc->root_port_status.wPortStatus |= USB_PORT_HIGH_SPEED;
         }
 
-        if (hw_status.connected_changed)
+        if (hw_status.connected_changed) {
+printf("USB_C_PORT_CONNECTION\n");
             dwc->root_port_status.wPortChange |= USB_C_PORT_CONNECTION;
-        if (hw_status.enabled_changed)
+        }
+        if (hw_status.enabled_changed) {
+printf("USB_C_PORT_ENABLE\n");
             dwc->root_port_status.wPortChange |= USB_C_PORT_ENABLE;
-        if (hw_status.overcurrent_changed)
+        }
+        if (hw_status.overcurrent_changed) {
+printf("USB_C_PORT_OVER_CURRENT\n");
             dwc->root_port_status.wPortChange |= USB_C_PORT_OVER_CURRENT;
+        }
 
         mtx_unlock(&dwc->rh_status_mtx);
 
@@ -836,6 +857,7 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     }
 
     if (interrupts.sof_intr) {
+printf("sof_intr\n");
         if ((regs->host_frame_number & 0x7) != 6) {
             for (size_t i = 0; i < NUM_HOST_CHANNELS; i++) {
                 completion_signal(&dwc->sof_waiters[i]);
@@ -844,6 +866,7 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     }
 
     if (interrupts.host_channel_intr) {
+printf("host_channel_intr\n");
         uint32_t chintr = regs->host_channels_interrupt;
 
         for (uint32_t ch = 0; ch < NUM_HOST_CHANNELS; ch++) {
@@ -1716,6 +1739,8 @@ static zx_status_t create_default_device(dwc_usb_t* dwc) {
 
 // Bind is the entry point for this driver.
 static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
+driver_set_log_flags(driver_get_log_flags() | DDK_LOG_TRACE);
+
     zxlogf(TRACE, "usb_dwc: bind dev = %p\n", dev);
 
     dwc_usb_t* usb_dwc = NULL;
