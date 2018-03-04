@@ -18,5 +18,23 @@ $(OUT_ZIRCON_ZIMAGE): $(OUTLKBIN)
 GENERATED += $(OUT_ZIRCON_ZIMAGE)
 EXTRA_BUILDDEPS += $(OUT_ZIRCON_ZIMAGE)
 
+# generate board list for the fuchsia build based on our list of subdirectories
+EXTRA_BUILDDEPS += $(OUT_ZIRCON_ZIMAGE)
+SUBDIRS := $(wildcard $(LOCAL_DIR)/*/.)
+BOARDS := $(patsubst $(LOCAL_DIR)/%/.,%,$(SUBDIRS))
+# convert spaces to newlines so we have one board per line
+BOARDS := $(subst $(SPACE),\\n,$(BOARDS))
+
+ZIRCON_BOARD_LIST := $(BUILDDIR)/boards.list
+$(ZIRCON_BOARD_LIST): FORCE
+	$(call BUILDECHO,generating $@)
+	@$(MKDIR)
+	$(NOECHO)echo $(BOARDS) > $@
+
+packages: $(ZIRCON_BOARD_LIST)
+
+GENERATED += $(OUT_ZIRCON_ZIMAGE) $(ZIRCON_BOARD_LIST)
+EXTRA_BUILDDEPS += $(OUT_ZIRCON_ZIMAGE) $(ZIRCON_BOARD_LIST)
+
 # include rules for our various arm64 boards
 include $(LOCAL_DIR)/*/rules.mk
