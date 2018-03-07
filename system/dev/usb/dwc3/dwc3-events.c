@@ -198,9 +198,6 @@ static int dwc3_irq_thread(void* arg) {
         // read number of new bytes in the event buffer
         uint32_t event_count;
         while ((event_count = DWC3_READ32(mmio + GEVNTCOUNT(0)) & GEVNTCOUNT_EVNTCOUNT_MASK) > 0) {
-            // invalidate cache so we can read fresh events
-            pdev_vmo_buffer_cache_flush_invalidate(&dwc->event_buffer, 0, EVENT_BUFFER_SIZE);
-
             for (unsigned i = 0; i < event_count; i += sizeof(uint32_t)) {
                 uint32_t event = *ring_cur++;
                 if (ring_cur == ring_end) {
