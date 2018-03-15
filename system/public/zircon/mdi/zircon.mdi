@@ -88,3 +88,6 @@ list kernel.hdmi-hdcp                       MDI_HDMI_HDCP                       
 uint64  kernel.hdmi-hdcp.preset-virt        MDI_HDMI_HDCP_PRESET_BASE_VIRT      1201
 uint64  kernel.hdmi-hdcp.hiu-virt           MDI_HDMI_HDCP_HIU_BASE_VIRT         1202
 uint64  kernel.hdmi-hdcp.hdmitx-virt        MDI_HDMI_HDCP_HDMITX_BASE_VIRT      1203
+
+// NXP IMX UART
+list    kernel.arm-nxp-imx-uart             MDI_ARM_NXP_IMX_UART                1300

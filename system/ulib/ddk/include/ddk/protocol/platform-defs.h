@@ -68,4 +68,9 @@ __BEGIN_CDECLS;
 #define PDEV_VID_HARDKERNEL         7
 #define PDEV_PID_ODROID_C2          1
 
+//NXP
+#define PDEV_VID_NXP                8
+#define PDEV_PID_IMX8MEDK           1
+
+
 __END_CDECLS;

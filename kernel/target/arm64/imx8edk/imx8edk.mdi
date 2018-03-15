@@ -1,0 +1,82 @@
+include "system/public/zircon/mdi/zircon.mdi"
+
+cpu-map = {
+    clusters = {
+        {
+            cpu-count = 4
+        }
+    }
+}
+
+const MEMBASE = 0x40000000
+
+mem-map = {
+    bank = {
+        base-phys = MEMBASE
+        length = 0xc0000000 // assume 512MB, FDT will provide the real number
+    }
+}
+
+const PERIPH_VIRT = 0xffffffffc0000000
+
+periph-mem-map = {
+    bank = {
+        base-virt = PERIPH_VIRT
+        base-phys = 0x0
+        length = 0x40000000
+    }
+}
+
+kernel = {
+    arm-nxp-imx-uart = {
+        base-phys = 0x30860000
+        base-virt = PERIPH_VIRT + 0x30860000
+        irq = 58
+    }
+    arm-gic-v3 = {
+        base-phys = 0x38800000
+        base-virt = PERIPH_VIRT + 0x38800000
+        gicd-offset = 0x00000
+        gicr-offset = 0x80000
+        gicr-stride = 0xc0000
+        ipi-base = 9
+    }
+    arm-psci = {
+        use-smc = true
+    }
+    arm-timer = {
+        irq-virt = 27
+    }
+}
+
+/*
+
+DRAM Base address - 0x40000000
+DRAM Size - 0xC0000000
+Reserved - 0xb8000000
+Reserved Size - 0x100000
+
+console uart -> uart1
+
+GICv3
+    Dist - 0x38800000 (0x10000)
+    reg    0x38880000 (0xc0000) (stride=0xc0000?)
+    iomuxc 0x30340000 (0x10000)
+    interrupts - ppi 9
+
+
+Timer interrupts 
+    13 phys_sec
+    14 phys_insec
+    11 virt
+    10 hypervisor
+
+uart1
+    0x30860000 (0x10000)
+
+uart3
+    0x30880000 (0x10000)
+
+uart2
+    0x30890000 (0x10000)
+*/
