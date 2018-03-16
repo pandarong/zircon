@@ -5,7 +5,6 @@
 #include <limits.h>
 #include <stddef.h>
 
-#include <blkctl/command.h>
 #include <fbl/unique_ptr.h>
 #include <unittest/unittest.h>
 #include <zircon/types.h>

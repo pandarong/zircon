@@ -20,7 +20,6 @@
 #include <zircon/types.h>
 
 namespace blkctl {
-
 namespace {
 
 // Byte offsets where dashes are placed in a printed GUID

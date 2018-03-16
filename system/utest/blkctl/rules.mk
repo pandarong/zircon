@@ -18,6 +18,7 @@ MODULE_SRCS := \
 
 MODULE_SRCS += \
     $(LOCAL_DIR)/command.cpp \
+    $(LOCAL_DIR)/ramdisk.cpp \
 
 MODULE_LIBS := \
     system/ulib/blkctl \

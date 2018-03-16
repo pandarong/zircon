@@ -17,6 +17,7 @@
 #include <zircon/types.h>
 
 #include "generic.h"
+#include "ramdisk.h"
 
 namespace blkctl {
 namespace {
@@ -38,6 +39,7 @@ struct CmdType {
 //   - An array (and length) of CommandImpls that describe individual commands and their arguments.
 // Then simply #include the appropriate header and add a DEVICE_TYPE to the list below.
 constexpr CmdType kTypes[] = {
+    ADD_CMD_TYPE(ramdisk),
     // The generic commands should be last, so that various routines use them if no type matches
     ADD_CMD_TYPE(generic),
 };
