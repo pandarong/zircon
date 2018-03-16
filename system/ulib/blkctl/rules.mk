@@ -15,6 +15,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/command.cpp \
     $(LOCAL_DIR)/generic.cpp \
     $(LOCAL_DIR)/ramdisk.cpp \
+    $(LOCAL_DIR)/fvm.cpp \
 
 MODULE_LIBS := \
     system/ulib/c \

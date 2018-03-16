@@ -16,6 +16,7 @@
 #include <zircon/errors.h>
 #include <zircon/types.h>
 
+#include "fvm.h"
 #include "generic.h"
 #include "ramdisk.h"
 
@@ -40,6 +41,7 @@ struct CmdType {
 // Then simply #include the appropriate header and add a DEVICE_TYPE to the list below.
 constexpr CmdType kTypes[] = {
     ADD_CMD_TYPE(ramdisk),
+    ADD_CMD_TYPE(fvm),
     // The generic commands should be last, so that various routines use them if no type matches
     ADD_CMD_TYPE(generic),
 };
