@@ -3,5 +3,6 @@ gauss
 hikey960
 qemu
 vim2
+imx8edk
 [x64]
 pc

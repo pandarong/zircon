@@ -55,7 +55,7 @@ static cbuf_t uart_rx_buf;
 
 static bool uart_tx_irq_enabled = false;
 static event_t uart_dputc_event = EVENT_INITIAL_VALUE(uart_dputc_event, true, 0);
-static spin_lock_t uart_spinlock = SPIN_LOCK_INITIAL_VALUE;
+//static spin_lock_t uart_spinlock = SPIN_LOCK_INITIAL_VALUE;
 
 
 static void imx_uart_init(mdi_node_ref_t* node, uint level)
@@ -63,7 +63,7 @@ static void imx_uart_init(mdi_node_ref_t* node, uint level)
 
     // create circular buffer to hold received data
     cbuf_initialize(&uart_rx_buf, RXBUF_SIZE);
-
+#if 0
     // assumes interrupts are contiguous
     //zx_status_t status = register_int_handler(uart_irq, &imx_uart_irq, NULL);
     //DEBUG_ASSERT(status == ZX_OK);
@@ -91,6 +91,7 @@ static void imx_uart_init(mdi_node_ref_t* node, uint level)
     printf("UART: started IRQ driven TX\n");
     uart_tx_irq_enabled = true;
 #endif
+#endif
 }
 
 static int imx_uart_getc(bool wait)
@@ -108,9 +109,9 @@ static int imx_uart_getc(bool wait)
 static int imx_uart_pputc(char c)
 {
     /* spin while fifo is full */
-    //while (UARTREG(uart_base, UART_FR) & (1<<5))
-    //    ;
-    //UARTREG(uart_base, UART_DR) = c;
+    while (UARTREG(UART_UTS) & (1<<4))
+        ;
+    UARTREG(UART_UTXD) = c;
 
     return 1;
 }
@@ -135,7 +136,12 @@ static void imx_dputs(const char* str, size_t len,
     if (!uart_tx_irq_enabled)
         block = false;
     spin_lock_irqsave(&uart_spinlock, state);
+#endif
     while (len > 0) {
+        imx_uart_pputc(*str++);
+        len--;
+    }
+#if 0
         // Is FIFO Full ?
         while (UARTREG(uart_base, UART_FR) & (1<<5)) {
             if (block) {
@@ -206,5 +212,5 @@ static void imx_uart_init_early(mdi_node_ref_t* node, uint level) {
     pdev_register_uart(&uart_ops);
 }
 
-LK_PDEV_INIT(imx_uart_init_early, MDI_ARM_IMX_UART, imx_uart_init_early, LK_INIT_LEVEL_PLATFORM_EARLY);
-LK_PDEV_INIT(imx_uart_init, MDI_ARM_IMX_UART, imx_uart_init, LK_INIT_LEVEL_PLATFORM);
+LK_PDEV_INIT(imx_uart_init_early, MDI_ARM_NXP_IMX_UART, imx_uart_init_early, LK_INIT_LEVEL_PLATFORM_EARLY);
+LK_PDEV_INIT(imx_uart_init, MDI_ARM_NXP_IMX_UART, imx_uart_init, LK_INIT_LEVEL_PLATFORM);
