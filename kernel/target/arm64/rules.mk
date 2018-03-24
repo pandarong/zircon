@@ -8,18 +8,22 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 PLATFORM := generic-arm
 
-# Some boards need gzipped kernel image
-OUT_ZIRCON_ZIMAGE := $(BUILDDIR)/z$(LKNAME).bin
+MODULE := $(LOCAL_DIR)
 
-$(OUT_ZIRCON_ZIMAGE): $(OUTLKBIN)
-	$(call BUILDECHO,gzipping image $@)
-	$(NOECHO)gzip -c $< > $@
+BOOT_SHIM_SRC := $(LOCAL_DIR)/boot-shim.S
+BOOT_SHIM_OBJ := $(BUILDDIR)/boot-shim.o
+BOOT_SHIM_BIN := $(BUILDDIR)/boot-shim.bin
 
-GENERATED += $(OUT_ZIRCON_ZIMAGE)
-EXTRA_BUILDDEPS += $(OUT_ZIRCON_ZIMAGE)
+$(BOOT_SHIM_OBJ): $(BOOT_SHIM_SRC)
+	@$(MKDIR)
+	$(call BUILDECHO, compiling $<)
+	$(NOECHO)$(CC) -Ikernel/arch/arm64/include -Isystem/public -c $< -MMD -MP -MT $@ -MF $(@:%o=%d) -o $@
 
-GENERATED += $(OUT_ZIRCON_ZIMAGE)
-EXTRA_BUILDDEPS += $(OUT_ZIRCON_ZIMAGE)
+$(BOOT_SHIM_BIN): $(BOOT_SHIM_OBJ)
+	$(call BUILDECHO,generating $@)
+	$(NOECHO)$(OBJCOPY) -O binary $< $@
+
+GENERATED += $(BOOT_SHIM_BIN)
 
 # include rules for our various arm64 boards
 include $(LOCAL_DIR)/*/rules.mk

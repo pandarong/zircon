@@ -890,7 +890,7 @@ int write_bootitem(int fd, bool compressed,
     return 0;
 }
 
-int write_bootdata(const char* fn, item_t* item) {
+int write_bootdata(const char* fn, item_t* item, const char* header_path) {
     //TODO: re-enable for debugging someday
     bool compressed = true;
 
@@ -902,8 +902,36 @@ int write_bootdata(const char* fn, item_t* item) {
         return -1;
     }
 
+    off_t header_length = 0;
+    if (header_path) {
+        int header_fd = open(header_path, O_RDONLY);
+        if (header_fd < 0) {
+            fprintf(stderr, "error: cannot open '%s'\n", header_path);
+            return -1;
+        }
+
+        char buffer[4096];
+        while (1) {
+            int rd = read(header_fd, buffer, sizeof(buffer));
+            if (rd < 0) {
+                fprintf(stderr, "error: cannot read '%s'\n", header_path);
+                return -1;
+            } else if (rd == 0) {
+                break;
+            }
+            int written = write(fd, buffer, rd);
+            if (written != rd) {
+                fprintf(stderr, "error: cannot write '%s'\n", fn);
+                return -1;
+            }
+            header_length += rd;
+        }
+
+        close(header_fd);
+    }
+
     // Leave room for file header
-    if (lseek(fd, sizeof(bootdata_t), SEEK_SET) != sizeof(bootdata_t)) {
+    if (lseek(fd, sizeof(bootdata_t), SEEK_CUR) != header_length + sizeof(bootdata_t)) {
         fprintf(stderr, "error: cannot seek\n");
         goto fail;
     }
@@ -944,14 +972,14 @@ int write_bootdata(const char* fn, item_t* item) {
     }
 
     // Write the file header
-    if (lseek(fd, 0, SEEK_SET) != 0) {
+    if (lseek(fd, header_length, SEEK_SET) != header_length) {
         fprintf(stderr, "error: couldn't seek to bootdata file header\n");
         goto fail;
     }
 
     bootdata_t filehdr = {
         .type = BOOTDATA_CONTAINER,
-        .length = file_end - sizeof(bootdata_t),
+        .length = file_end - sizeof(bootdata_t) - header_length,
         .extra = BOOTDATA_MAGIC,
         .flags = BOOTDATA_FLAG_V2,
         .reserved0 = 0,
@@ -1102,6 +1130,7 @@ void usage(void) {
     "         --pid <vid>           specify PID for platform ID record\n"
     "         --board <board-name>  specify board name for platform ID record\n"
     "         --ramdisk             files are raw disk images, not bootdata\n"
+    "         --header <filename>   optional binary header to prepend at beginning of output file\n"
     "\n"
     "inputs:  <filename>            file containing bootdata (binary)\n"
     "                               or a manifest (target=srcpath lines)\n"
@@ -1127,6 +1156,7 @@ int main(int argc, char **argv) {
     const char* vid_arg = NULL;
     const char* pid_arg = NULL;
     const char* board_arg = NULL;
+    const char* header_path = NULL;
 
     if (argc == 1) {
         usage();
@@ -1207,6 +1237,18 @@ int main(int argc, char **argv) {
             system = false;
         } else if (!strcmp(cmd,"--ramdisk")) {
             ramdisk = true;
+        } else if (!strcmp(cmd, "--header")) {
+            if (header_path) {
+                fprintf(stderr, "error: only one header can be included\n");
+                return -1;
+            }
+            if (argc < 2) {
+                fprintf(stderr, "error: no header file given\n");
+                return -1;
+            }
+            header_path = argv[1];
+            argc--;
+            argv++;
         } else if (!strcmp(cmd,"--vid")) {
             if (argc < 2) {
                 fprintf(stderr, "error: no value given for --vid\n");
@@ -1346,5 +1388,5 @@ int main(int argc, char **argv) {
         }
     }
 
-    return write_bootdata(output_file, first_item);
+    return write_bootdata(output_file, first_item, header_path);
 }
