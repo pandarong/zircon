@@ -27,7 +27,7 @@ typedef struct meta {
   char schema[256];
   char out_path[256];
   char res_path[256];
-  char* argv;
+  char cmd[512];
 } meta_t;
 
 void write_metadata(meta_t* pkg_meta, FILE* meta_file);
@@ -158,7 +158,7 @@ void process_package(char* pkg_name,
   // The path to the directory containing benchmark executables
   char bin_dir[256];
   memset(bin_dir, 0, 256);
-  sprintf(bin_dir, "%s/0/test/benchmarks/", pkg_path);
+  sprintf(bin_dir, "%s/0/test/benchmarks", pkg_path);
 
   // Iterate over all of the files in the benchmarks directory, executing each
   // one.
@@ -210,8 +210,15 @@ void process_package(char* pkg_name,
          strcpy(pkg_meta.id, pkg_cfg->id);
          strcpy(pkg_meta.schema, pkg_cfg->schema);
          strcpy(pkg_meta.out_path, out_path);
-         // TODO: copy argv
          strcpy(pkg_meta.res_path, res_path);
+
+         int i=0, pos=0;
+         for(; i < argc; i++) {
+           pos += sprintf(&(pkg_meta.cmd[pos]), argv[i]);
+           sprintf(&(pkg_meta.cmd[pos]), " ");
+           pos++;
+         }
+
          write_metadata(&pkg_meta, meta_file);
 
          fclose(out_file);
@@ -227,10 +234,10 @@ void process_package(char* pkg_name,
 
 void write_metadata(meta_t* pkg_meta, FILE* f) {
   fprintf(f, "id=%s\n", pkg_meta->id);
+  fprintf(f, "cmd=%s\n", pkg_meta->cmd);
   fprintf(f, "results_schema=%s\n", pkg_meta->schema);
   fprintf(f, "out_path=%s\n", pkg_meta->out_path);
   fprintf(f, "res_path=%s\n", pkg_meta->res_path);
-  fprintf(f, "argv=<todo>\n");
 }
 
 // DONE(kjharland): Add a tracing example.
