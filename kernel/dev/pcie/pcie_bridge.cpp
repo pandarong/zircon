@@ -25,13 +25,14 @@
 
 using fbl::AutoLock;
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 PcieBridge::PcieBridge(PcieBusDriver& bus_drv, uint bus_id, uint dev_id, uint func_id, uint mbus_id)
     : PcieDevice(bus_drv, bus_id, dev_id, func_id, true),
       PcieUpstreamNode(bus_drv, PcieUpstreamNode::Type::BRIDGE, mbus_id) {
     /* Assign the driver-wide region pool to this bridge's allocators. */
     DEBUG_ASSERT(driver().region_bookkeeping() != nullptr);
+    pf_mmio_regions_.SetRegionPool(driver().region_bookkeeping());
     mmio_lo_regions_.SetRegionPool(driver().region_bookkeeping());
     mmio_hi_regions_.SetRegionPool(driver().region_bookkeeping());
     pio_regions_.SetRegionPool(driver().region_bookkeeping());
@@ -161,7 +162,18 @@ zx_status_t PcieBridge::ParseBusWindowsLocked() {
             static_cast<uint64_t>(cfg_->Read(PciConfig::kPrefetchableMemoryLimitUpper)) << 32;
     }
 
+    if (LOCAL_TRACE) {
+        Dump();
+    }
+
     return ZX_OK;
+}
+
+void PcieBridge::Dump() {
+    printf("PCI: bridge at %02x:%02x:%02x:\n", bus_id_, dev_id_, func_id_);
+    printf("\tio base %#x limit %#x\n", io_base_, io_limit_);
+    printf("\tmem base %#x limit %#x\n", mem_base_, mem_limit_);
+    printf("\tprefectable base %#" PRIx64 " limit %#" PRIx64 "\n", pf_mem_base_, pf_mem_limit_);
 }
 
 void PcieBridge::Unplug() {
@@ -237,6 +249,23 @@ zx_status_t PcieBridge::AllocateBridgeWindowsLocked() {
 
         DEBUG_ASSERT(mmio_window_ != nullptr);
         mmio_lo_regions().AddRegion(*mmio_window_);
+    }
+
+    if (pf_mem_base_ <= pf_mem_limit_) {
+        uint64_t size = pf_mem_limit_ - pf_mem_base_ + 1;
+        // XXX allocate out of upstream's mmio regions
+        ret = upstream->mmio_lo_regions().GetRegion({ .base = pf_mem_base_, .size = size },
+                                                    pf_mmio_window_);
+
+        if (ret != ZX_OK) {
+            TRACEF("Failed to allocate bridge prefetcable MMIO window "
+                   "[%#" PRIx64 ", %#" PRIx64 "]\n",
+                    pf_mem_base_, pf_mem_limit_);
+            return ret;
+        }
+
+        DEBUG_ASSERT(pf_mmio_window_ != nullptr);
+        pf_mmio_regions().AddRegion(*pf_mmio_window_);
     }
 
     return ZX_OK;
