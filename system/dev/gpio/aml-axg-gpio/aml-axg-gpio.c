@@ -184,6 +184,8 @@ static zx_status_t aml_gpio_write(void* ctx, uint32_t index, uint8_t value) {
     reg += block->output_offset;
     pinindex += block->output_shift;
 
+printf("aml_gpio_write index %u value %d offset %u pinindex %u\n", index, value, block->output_offset, pinindex);
+
     mtx_lock(&block->lock);
 
     uint32_t regval = readl(reg);

@@ -65,7 +65,6 @@
 
 #define S905D2_AO_GPIO_O_EN_N       0x09
 #define S905D2_AO_GPIO_I            0x0a
-#define S905D2_AO_GPIO_O            0x0d
 
 #define S905D2_AO_RTI_PINMUX_REG0   0x05
 #define S905D2_AO_RTI_PINMUX_REG1   0x06
