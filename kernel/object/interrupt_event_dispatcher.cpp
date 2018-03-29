@@ -14,6 +14,93 @@
 #include <fbl/mutex.h>
 #include <platform.h>
 
+#if ENABLE_NEW_IRQ_API
+zx_status_t InterruptEventDispatcher::Create(fbl::RefPtr<Dispatcher>* dispatcher,
+                                                 zx_rights_t* rights,
+                                                 uint32_t vector,
+                                                 uint32_t options) {
+    // Attempt to construct the dispatcher.
+    fbl::AllocChecker ac;
+    InterruptEventDispatcher* disp = new (&ac) InterruptEventDispatcher();
+    if (!ac.check())
+        return ZX_ERR_NO_MEMORY;
+
+    // Hold a ref while we check to see if someone else owns this vector or not.
+    // If things go wrong, this ref will be released and the IED will get
+    // cleaned up automatically.
+    auto disp_ref = fbl::AdoptRef<Dispatcher>(disp);
+
+    fbl::AutoLock lock(disp->get_lock());
+    bool is_virtual = !!(options & ZX_INTERRUPT_VIRTUAL);
+    uint32_t interrupt_flags = 0;
+
+    if (is_virtual) {
+        if (options != ZX_INTERRUPT_VIRTUAL) {
+            return ZX_ERR_INVALID_ARGS;
+        }
+        interrupt_flags = INTERRUPT_VIRTUAL;
+    } else {
+        if (options & ~(ZX_INTERRUPT_REMAP_IRQ | ZX_INTERRUPT_MODE_MASK))
+            return ZX_ERR_INVALID_ARGS;
+
+        // Remap the vector if we have been asked to do so.
+        if (options & ZX_INTERRUPT_REMAP_IRQ)
+            vector = remap_interrupt(vector);
+
+        if (!is_valid_interrupt(vector, 0))
+            return ZX_ERR_INVALID_ARGS;
+
+        bool default_mode = false;
+        enum interrupt_trigger_mode tm = IRQ_TRIGGER_MODE_EDGE;
+        enum interrupt_polarity pol = IRQ_POLARITY_ACTIVE_LOW;
+        switch (options & ZX_INTERRUPT_MODE_MASK) {
+        case ZX_INTERRUPT_MODE_DEFAULT:
+            default_mode = true;
+            break;
+        case ZX_INTERRUPT_MODE_EDGE_LOW:
+            tm = IRQ_TRIGGER_MODE_EDGE;
+            pol = IRQ_POLARITY_ACTIVE_LOW;
+            break;
+        case ZX_INTERRUPT_MODE_EDGE_HIGH:
+            tm = IRQ_TRIGGER_MODE_EDGE;
+            pol = IRQ_POLARITY_ACTIVE_HIGH;
+            break;
+        case ZX_INTERRUPT_MODE_LEVEL_LOW:
+            tm = IRQ_TRIGGER_MODE_LEVEL;
+            pol = IRQ_POLARITY_ACTIVE_LOW;
+            interrupt_flags = INTERRUPT_UNMASK_PREWAIT | INTERRUPT_MASK_POSTWAIT;
+            break;
+        case ZX_INTERRUPT_MODE_LEVEL_HIGH:
+            tm = IRQ_TRIGGER_MODE_LEVEL;
+            pol = IRQ_POLARITY_ACTIVE_HIGH;
+            interrupt_flags = INTERRUPT_UNMASK_PREWAIT | INTERRUPT_MASK_POSTWAIT;
+            break;
+        default:
+            return ZX_ERR_INVALID_ARGS;
+        }
+
+        if (!default_mode) {
+            zx_status_t status = configure_interrupt(vector, tm, pol);
+            if (status != ZX_OK)
+                return status;
+        }
+    }
+
+    // Register the interrupt
+    zx_status_t status = disp->RegisterInterruptHandler_HelperLocked(vector, interrupt_flags);
+    if (status != ZX_OK)
+        return status;
+
+    if (!is_virtual)
+        unmask_interrupt(vector);
+
+    // Transfer control of the new dispatcher to the creator and we are done.
+    *rights = ZX_DEFAULT_IRQ_RIGHTS;
+    *dispatcher = fbl::move(disp_ref);
+
+    return ZX_OK;
+}
+#else
 // static
 zx_status_t InterruptEventDispatcher::Create(fbl::RefPtr<Dispatcher>* dispatcher,
                                              zx_rights_t* rights) {
@@ -41,6 +128,7 @@ zx_status_t InterruptEventDispatcher::Create(fbl::RefPtr<Dispatcher>* dispatcher
 
     return ZX_OK;
 }
+#endif
 
 zx_status_t InterruptEventDispatcher::Bind(uint32_t slot, uint32_t vector, uint32_t options) {
     canary_.Assert();
@@ -115,7 +203,16 @@ zx_status_t InterruptEventDispatcher::Bind(uint32_t slot, uint32_t vector, uint3
     return ZX_OK;
 }
 
+#if ENABLE_NEW_IRQ_API
 void InterruptEventDispatcher::IrqHandler(void* ctx) {
+    InterruptEventDispatcher* thiz
+            = reinterpret_cast<InterruptEventDispatcher *>(ctx);
+
+    thiz->InterruptHandler(false);
+}
+#else
+void InterruptEventDispatcher::IrqHandler(void* ctx) {
+
     Interrupt* interrupt = reinterpret_cast<Interrupt*>(ctx);
 
     // only record timestamp if this is the first IRQ since we started waiting
@@ -130,6 +227,7 @@ void InterruptEventDispatcher::IrqHandler(void* ctx) {
 
     thiz->Signal(SIGNAL_MASK(interrupt->slot), true);
 }
+#endif
 
 void InterruptEventDispatcher::MaskInterrupt(uint32_t vector) {
     mask_interrupt(vector);
