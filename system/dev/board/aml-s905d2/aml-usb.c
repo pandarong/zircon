@@ -6,24 +6,22 @@
 #include <ddk/protocol/platform-defs.h>
 #include <hw/reg.h>
 
-#include <soc/aml-common/aml-usb-phy.h>
+#include <soc/aml-common/aml-usb-phy-v2.h>
+#include <soc/aml-s905d2/s905d2-gpio.h>
+#include <soc/aml-s905d2/s905d2-hw.h>
 
 #include "aml.h"
 
-#define BIT_MASK(start, count) (((1 << (count)) - 1) << (start))
-#define SET_BITS(dest, start, count, value) \
-        ((dest & ~BIT_MASK(start, count)) | (((value) << (start)) & BIT_MASK(start, count)))
-
 static const pbus_mmio_t xhci_mmios[] = {
     {
-        .base = 0xc9000000,
-        .length = 0x100000,
+        .base = S905D2_USB0_BASE,
+        .length = S905D2_USB0_LENGTH,
     },
 };
 
 static const pbus_irq_t xhci_irqs[] = {
     {
-        .irq = 62,
+        .irq = S905D2_USBH_IRQ,
         .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
 };
@@ -50,15 +48,22 @@ static const pbus_dev_t xhci_dev = {
 
 zx_status_t aml_usb_init(aml_bus_t* bus) {
     zx_status_t status;
-
+    io_buffer_t reset_buf;
+    io_buffer_t usbctrl_buf;
     zx_handle_t bti;
+
+    // FIXME - move to board hardware header
+    gpio_config(&bus->gpio, S905D2_GPIOH(6), GPIO_DIR_OUT);
+    gpio_write(&bus->gpio, S905D2_GPIOH(6), 1);
+
     status = iommu_get_bti(&bus->iommu, 0, BTI_BOARD, &bti);
     if (status != ZX_OK) {
-        zxlogf(ERROR, "aml_bus_bind: iommu_get_bti failed: %d\n", status);
+        zxlogf(ERROR, "aml_usb_init: iommu_get_bti failed: %d\n", status);
         return status;
     }
-    io_buffer_t usb_phy;
-    status = io_buffer_init_physical(&usb_phy, bti, 0xd0078000, 4096,  get_root_resource(),
+
+    status = io_buffer_init_physical(&reset_buf, bti, S905D2_RESET_BASE, S905D2_RESET_LENGTH,
+                                     get_root_resource(),
                                      ZX_CACHE_POLICY_UNCACHED_DEVICE);
     if (status != ZX_OK) {
         zxlogf(ERROR, "aml_usb_init io_buffer_init_physical failed %d\n", status);
@@ -66,45 +71,66 @@ zx_status_t aml_usb_init(aml_bus_t* bus) {
         return status;
     }
 
-    volatile void* regs = io_buffer_virt(&usb_phy);
-
-    // amlogic_new_usb2_init
-    for (int i = 0; i < 4; i++) {
-        volatile void* addr = regs + (i * PHY_REGISTER_SIZE) + U2P_R0_OFFSET;
-        uint32_t temp = readl(addr);
-        temp |= U2P_R0_POR;
-        temp |= U2P_R0_DMPULLDOWN;
-        temp |= U2P_R0_DPPULLDOWN;
-        if (i == 1) {
-            temp |= U2P_R0_IDPULLUP;
-        }
-        writel(temp, addr);
-        zx_nanosleep(zx_deadline_after(ZX_USEC(500)));
-        temp = readl(addr);
-        temp &= ~U2P_R0_POR;
-        writel(temp, addr);
-    }
-
-    // amlogic_new_usb3_init
-    volatile void* addr = regs + (4 * PHY_REGISTER_SIZE);
-
-    uint32_t temp = readl(addr + USB_R1_OFFSET);
-    temp = SET_BITS(temp, USB_R1_U3H_FLADJ_30MHZ_REG_START, USB_R1_U3H_FLADJ_30MHZ_REG_BITS, 0x20);
-    writel(temp, addr + USB_R1_OFFSET);
-
-    temp = readl(addr + USB_R5_OFFSET);
-    temp |= USB_R5_IDDIG_EN0;
-    temp |= USB_R5_IDDIG_EN1;
-    temp = SET_BITS(temp, USB_R5_IDDIG_TH_START, USB_R5_IDDIG_TH_BITS, 255);
-    writel(temp, addr + USB_R5_OFFSET);
-
-    io_buffer_release(&usb_phy);
-    zx_handle_close(bti);
-
-    if ((status = pbus_device_add(&bus->pbus, &xhci_dev, 0)) != ZX_OK) {
-        zxlogf(ERROR, "aml_usb_init could not add xhci_dev: %d\n", status);
+    status = io_buffer_init_physical(&usbctrl_buf, bti, S905D2_USBCTRL_BASE, S905D2_USBCTRL_LENGTH,
+                                     get_root_resource(),
+                                     ZX_CACHE_POLICY_UNCACHED_DEVICE);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_usb_init io_buffer_init_physical failed %d\n", status);
+        io_buffer_release(&reset_buf);
+        zx_handle_close(bti);
         return status;
     }
 
-    return ZX_OK;
+    volatile void* reset_regs = io_buffer_virt(&reset_buf);
+    volatile void* usbctrl_regs = io_buffer_virt(&usbctrl_buf);
+
+    // first reset USB
+	uint32_t val = readl(reset_regs + 0x21 * 4);
+	writel((val | (0x3 << 16)), reset_regs + 0x21 * 4);
+
+    volatile uint32_t* reset_1 = (uint32_t *)(reset_regs + S905D2_RESET1_REGISTER);
+    writel(readl(reset_1) | S905D2_RESET1_USB, reset_1);
+    // FIXME(voydanoff) this delay is very long, but it is what the Amlogic Linux kernel is doing.
+    zx_nanosleep(zx_deadline_after(ZX_MSEC(500)));
+
+    // amlogic_new_usb2_init
+    for (int i = 0; i < 2; i++) {
+        volatile void* addr = usbctrl_regs + (i * PHY_REGISTER_SIZE) + U2P_R0_OFFSET;
+        uint32_t temp = readl(addr);
+        temp |= U2P_R0_POR;
+        temp |= U2P_R0_HOST_DEVICE;
+        if (i == 1) {
+            temp |= U2P_R0_IDPULLUP0;
+            temp |= U2P_R0_DRVVBUS0;
+        }
+        writel(temp, addr);
+
+        zx_nanosleep(zx_deadline_after(ZX_USEC(10)));
+
+        writel(readl(reset_1) | (1 << (16 + i)), reset_1);
+
+        zx_nanosleep(zx_deadline_after(ZX_USEC(50)));
+
+        addr = usbctrl_regs + (i * PHY_REGISTER_SIZE) + USB_R1_OFFSET;
+
+        temp = readl(addr);
+        int cnt = 0;
+        while (!(temp & U2P_R1_PHY_RDY)) {
+            temp = readl(addr);
+            //we wait phy ready max 1ms, common is 100us
+            if (cnt > 200) {
+printf("XXXXXX usb loop failed!\n");
+                break;
+            }
+
+            cnt++;
+            zx_nanosleep(zx_deadline_after(ZX_USEC(5)));
+        }        
+    }
+
+    io_buffer_release(&reset_buf);
+    io_buffer_release(&usbctrl_buf);
+    zx_handle_close(bti);
+
+    return pbus_device_add(&bus->pbus, &xhci_dev, 0);
 }
