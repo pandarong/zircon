@@ -47,7 +47,7 @@ zx_status_t PinnedVmo::Pin(const zx::vmo& vmo,
     }
 
     // Now actually pin the region.
-    res = bti->initiator().pin_new(rights, vmo, 0, vmo_size, addrs.get(), page_count, &pmt_);
+    res = bti->initiator().pin(rights, vmo, 0, vmo_size, addrs.get(), page_count, &pmt_);
     if (res != ZX_OK) {
         return res;
     }
