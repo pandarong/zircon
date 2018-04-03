@@ -11,12 +11,12 @@ namespace audio {
 namespace intel_hda {
 
 zx_status_t PinnedVmo::Pin(const zx::vmo& vmo,
-                           fbl::RefPtr<RefCountedBti> bti,
+                           const fbl::RefPtr<RefCountedBti>& bti,
                            uint32_t rights) {
     // If we are holding an initiator reference, then we are already holding a
     // pinned VMO.  It is an error to try and pin a new VMO without first
     // explicitly unpinning the old one.
-    if (bti_ != nullptr) {
+    if (pmt_.is_valid()) {
         ZX_DEBUG_ASSERT(regions_ != nullptr);
         ZX_DEBUG_ASSERT(region_count_ > 0);
         return ZX_ERR_BAD_STATE;
@@ -47,16 +47,14 @@ zx_status_t PinnedVmo::Pin(const zx::vmo& vmo,
     }
 
     // Now actually pin the region.
-    res = bti->initiator().pin(rights, vmo, 0, vmo_size, addrs.get(), page_count);
+    res = bti->initiator().pin_new(rights, vmo, 0, vmo_size, addrs.get(), page_count, &pmt_);
     if (res != ZX_OK) {
         return res;
     }
 
     // From here on out, if anything goes wrong, we need to make sure to clean
-    // up.  Stash our BTI reference and setup an autocall to take care of this
-    // for us.
-    bti_ = fbl::move(bti);
-    auto cleanup = fbl::MakeAutoCall([&]() { UnpinInternal(addrs[0]); });
+    // up.  Setup an autocall to take care of this for us.
+    auto cleanup = fbl::MakeAutoCall([&]() { UnpinInternal(); });
 
     // Do a quick pass over the pages to figure out how many adjacent pages we
     // can merge.  This will let us know how many regions we will need storage
@@ -100,7 +98,7 @@ zx_status_t PinnedVmo::Pin(const zx::vmo& vmo,
 }
 
 void PinnedVmo::Unpin() {
-    if (bti_ == nullptr) {
+    if (!pmt_.is_valid()) {
         ZX_DEBUG_ASSERT(regions_ == nullptr);
         ZX_DEBUG_ASSERT(region_count_ == 0);
         return;
@@ -109,19 +107,18 @@ void PinnedVmo::Unpin() {
     ZX_DEBUG_ASSERT(regions_ != nullptr);
     ZX_DEBUG_ASSERT(region_count_ > 0);
 
-    UnpinInternal(regions_[0].phys_addr);
+    UnpinInternal();
 }
 
-void PinnedVmo::UnpinInternal(zx_paddr_t start_addr) {
-    ZX_DEBUG_ASSERT(bti_ != nullptr);
+void PinnedVmo::UnpinInternal() {
+    ZX_DEBUG_ASSERT(pmt_.is_valid());
 
     // Given the level of sanity checking we have done so far, it should be
     // completely impossible for us to fail to unpin this memory.
     __UNUSED zx_status_t res;
-    res = bti_->initiator().unpin(start_addr);
+    res = pmt_.unpin();
     ZX_DEBUG_ASSERT(res == ZX_OK);
 
-    bti_.reset();
     regions_.reset();
     region_count_ = 0;
 }
