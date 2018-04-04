@@ -34,4 +34,5 @@ In the event of failure, a negative error value is returned.
 ## SEE ALSO
 
 [bti_create](bti_create.md),
+[bti_clear_quarantine](bti_clear_quarantine.md),
 [bti_pin](bti_pin.md).
