@@ -65,6 +65,13 @@ static zx_status_t platform_dev_map_interrupt(void* ctx, uint32_t index, zx_hand
         return ZX_ERR_INVALID_ARGS;
     }
     pbus_irq_t* irq = &dev->irqs[index];
+#if ENABLE_NEW_IRQ_API
+    zx_status_t status = zx_irq_create(dev->bus->resource, irq->irq, irq->mode, out_handle);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "platform_dev_map_interrupt: zx_irq_create failed %d\n", status);
+        return status;
+    }
+#else
     zx_status_t status = zx_interrupt_create(dev->bus->resource, 0, out_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "platform_dev_map_interrupt: zx_interrupt_create failed %d\n", status);
@@ -75,6 +82,7 @@ static zx_status_t platform_dev_map_interrupt(void* ctx, uint32_t index, zx_hand
         zxlogf(ERROR, "platform_dev_map_interrupt: zx_interrupt_bind failed %d\n", status);
         zx_handle_close(*out_handle);
     }
+#endif
     return status;
 }
 
