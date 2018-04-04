@@ -24,6 +24,8 @@
 #include <vm/init.h>
 #include <zircon/compiler.h>
 
+extern void message_packet_init();
+
 extern void (*const __init_array_start[])();
 extern void (*const __init_array_end[])();
 extern int __bss_start;
@@ -79,6 +81,8 @@ void lk_main() {
     kernel_init();
 
     lk_primary_cpu_init_level(LK_INIT_LEVEL_KERNEL, LK_INIT_LEVEL_THREADING - 1);
+
+    message_packet_init();
 
     // create a thread to complete system initialization
     dprintf(SPEW, "creating bootstrap completion thread\n");

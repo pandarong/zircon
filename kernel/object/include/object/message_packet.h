@@ -11,6 +11,7 @@
 #include <lib/user_copy/user_ptr.h>
 #include <zircon/types.h>
 #include <fbl/intrusive_double_list.h>
+#include <fbl/intrusive_single_list.h>
 #include <fbl/unique_ptr.h>
 
 constexpr uint32_t kMaxMessageSize = 65536u;
@@ -24,6 +25,8 @@ class Handle;
 
 class MessagePacket : public fbl::DoublyLinkedListable<fbl::unique_ptr<MessagePacket>> {
 public:
+    static void Init();
+
     // Creates a message packet containing the provided data and space for
     // |num_handles| handles. The handles array is uninitialized and must
     // be completely overwritten by clients.
@@ -38,9 +41,7 @@ public:
 
     // Copies the packet's |data_size()| bytes to |buf|.
     // Returns an error if |buf| points to a bad user address.
-    zx_status_t CopyDataTo(user_out_ptr<void> buf) const {
-        return buf.copy_array_to_user(data(), data_size_);
-    }
+    zx_status_t CopyDataTo(user_out_ptr<void> buf) const;
 
     uint32_t num_handles() const { return num_handles_; }
     Handle* const* handles() const { return handles_; }
@@ -50,33 +51,28 @@ public:
 
     // zx_channel_call treats the leading bytes of the payload as
     // a transaction id of type zx_txid_t.
-    zx_txid_t get_txid() const {
-        if (data_size_ < sizeof(zx_txid_t)) {
-            return 0;
-        } else {
-            return *(reinterpret_cast<const zx_txid_t*>(data()));
-        }
-    }
+    zx_txid_t get_txid() const;
+
+    class Buffer;
+    typedef fbl::SinglyLinkedList<Buffer*> BufferList;
 
 private:
-    MessagePacket(uint32_t data_size, uint32_t num_handles, Handle** handles);
+    MessagePacket(BufferList* buffers, uint32_t data_size, uint32_t num_handles, Handle** handles);
     ~MessagePacket();
 
-    // Allocates a new packet that can hold the specified amount of
-    // data/handles.
-    static zx_status_t NewPacket(uint32_t data_size, uint32_t num_handles,
-                                 fbl::unique_ptr<MessagePacket>* msg);
+    static zx_status_t NewMessagePacket(fbl::unique_ptr<MessagePacket>* msg, BufferList* buffers,
+                                        uint32_t data_size, uint32_t num_handles);
+    static void AllocBuffers(BufferList* buffers, size_t num_buffers);
+    static zx_status_t FillBuffers(BufferList* buffers, user_in_ptr<const void> data, size_t data_size);
+    static void DeleteBufferList(BufferList* buffers);
 
-    // Create() uses malloc(), so we must delete using free().
-    static void operator delete(void* ptr) {
-        free(ptr);
-    }
+    static void operator delete(void* ptr);
     friend class fbl::unique_ptr<MessagePacket>;
 
     // Handles and data are stored in the same buffer: num_handles_ Handle*
     // entries first, then the data buffer.
-    void* data() const { return static_cast<void*>(handles_ + num_handles_); }
 
+    BufferList buffers_;
     Handle** const handles_;
     const uint32_t data_size_;
     const uint16_t num_handles_;
