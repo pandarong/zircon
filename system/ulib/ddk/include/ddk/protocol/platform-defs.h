@@ -80,5 +80,6 @@ __BEGIN_CDECLS;
 #define PDEV_PID_IMX8MEVK           1
 
 #define PDEV_DID_IMX_GPIO           1
+#define PDEV_DID_IMX_SDHCI          2
 
 __END_CDECLS;

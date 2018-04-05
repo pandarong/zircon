@@ -70,6 +70,11 @@ static int imx8mevk_start_thread(void* arg) {
         goto fail;
     }
 
+    if ((status = imx8m_sdhci_init(bus)) != ZX_OK) {
+        zxlogf(ERROR, "%s: failed %d\n", __FUNCTION__, status);
+        goto fail;
+    }
+
     return ZX_OK;
 
 fail:
