@@ -7,13 +7,99 @@
 #include <object/message_packet.h>
 
 #include <fbl/unique_ptr.h>
+#include <kernel/spinlock.h>
 #include <lib/unittest/unittest.h>
 #include <lib/unittest/user_memory.h>
 #include <lib/user_copy/user_ptr.h>
+#include <platform.h>
 
 namespace {
 
 using testing::UserMemory;
+
+static bool bench_create() {
+    BEGIN_TEST;
+    constexpr size_t kSize = 65536;
+    fbl::unique_ptr<UserMemory> mem = UserMemory::Create(kSize);
+    auto mem_in = make_user_in_ptr(mem->in());
+    constexpr size_t kIterations = 1000000;
+    zx_time_t time = 0;
+    zx_time_t total_time = 0;
+    spin_lock_saved_state_t state;
+    for (size_t i = 0; i < kIterations; ++i) {
+        fbl::unique_ptr<MessagePacket> mp;
+        zx_status_t status = ZX_OK;
+        arch_interrupt_save(&state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+        time = current_time();
+        {
+            status = MessagePacket::Create(mem_in, kSize, 0, &mp);
+        }
+        total_time += current_time() - time;
+        arch_interrupt_restore(state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+        assert(status == ZX_OK);
+        mp.reset();
+    }
+    printf("took %" PRIu64 " ns per iteration\n",
+           total_time / kIterations);
+    END_TEST;
+}
+
+static bool bench_copy() {
+    BEGIN_TEST;
+    constexpr size_t kSize = 65536;
+    fbl::unique_ptr<UserMemory> mem = UserMemory::Create(kSize);
+    auto mem_in = make_user_in_ptr(mem->in());
+    auto mem_out = make_user_out_ptr(mem->out());
+    constexpr size_t kIterations = 1000000;
+    zx_time_t time = 0;
+    zx_time_t total_time = 0;
+    spin_lock_saved_state_t state;
+    for (size_t i = 0; i < kIterations; ++i) {
+        fbl::unique_ptr<MessagePacket> mp;
+        zx_status_t status = ZX_OK;
+        status = MessagePacket::Create(mem_in, kSize, 0, &mp);
+        assert(status == ZX_OK);
+        arch_interrupt_save(&state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+        time = current_time();
+        {
+            status = mp->CopyDataTo(mem_out);
+        }
+        total_time += current_time() - time;
+        arch_interrupt_restore(state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+        assert(status == ZX_OK);
+        mp.reset();
+    }
+    printf("took %" PRIu64 " ns per iteration\n",
+           total_time / kIterations);
+    END_TEST;
+}
+
+static bool bench_destroy() {
+    BEGIN_TEST;
+    constexpr size_t kSize = 65536;
+    fbl::unique_ptr<UserMemory> mem = UserMemory::Create(kSize);
+    auto mem_in = make_user_in_ptr(mem->in());
+    constexpr size_t kIterations = 1000000;
+    zx_time_t time = 0;
+    zx_time_t total_time = 0;
+    spin_lock_saved_state_t state;
+    for (size_t i = 0; i < kIterations; ++i) {
+        fbl::unique_ptr<MessagePacket> mp;
+        zx_status_t status = ZX_OK;
+        status = MessagePacket::Create(mem_in, kSize, 0, &mp);
+        assert(status == ZX_OK);
+        arch_interrupt_save(&state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+        time = current_time();
+        {
+            mp.reset();
+        }
+        total_time += current_time() - time;
+        arch_interrupt_restore(state, ARCH_DEFAULT_SPIN_LOCK_FLAG_INTERRUPTS);
+    }
+    printf("took %" PRIu64 " ns per iteration\n",
+           total_time / kIterations);
+    END_TEST;
+}
 
 // Create a MessagePacket and call CopyDataTo.
 static bool create() {
@@ -104,6 +190,9 @@ static bool create_too_many_handles() {
 }  // namespace
 
 UNITTEST_START_TESTCASE(message_packet_tests)
+UNITTEST("bench_create", bench_create)
+UNITTEST("bench_copy", bench_copy)
+UNITTEST("bench_destroy", bench_destroy)
 UNITTEST("create", create)
 UNITTEST("create_void_star", create_void_star)
 UNITTEST("create_zero", create_zero)

@@ -25,8 +25,6 @@ class Handle;
 
 class MessagePacket : public fbl::DoublyLinkedListable<fbl::unique_ptr<MessagePacket>> {
 public:
-    static void Init();
-
     // Creates a message packet containing the provided data and space for
     // |num_handles| handles. The handles array is uninitialized and must
     // be completely overwritten by clients.
@@ -53,26 +51,24 @@ public:
     // a transaction id of type zx_txid_t.
     zx_txid_t get_txid() const;
 
-    class Buffer;
-    typedef fbl::SinglyLinkedList<Buffer*> BufferList;
+    struct Buffer;
 
 private:
+    typedef fbl::SinglyLinkedList<Buffer*> BufferList;
+
     MessagePacket(BufferList* buffers, uint32_t data_size, uint32_t num_handles, Handle** handles);
     ~MessagePacket();
 
-    static zx_status_t NewMessagePacket(fbl::unique_ptr<MessagePacket>* msg, BufferList* buffers,
-                                        uint32_t data_size, uint32_t num_handles);
-    static void AllocBuffers(BufferList* buffers, size_t num_buffers);
-    static zx_status_t FillBuffers(BufferList* buffers, user_in_ptr<const void> data, size_t data_size);
-    static void DeleteBufferList(BufferList* buffers);
+    template <typename PTR>
+    static zx_status_t CreateCommon(PTR data, uint32_t data_size, uint32_t num_handles,
+                                    fbl::unique_ptr<MessagePacket>* msg);
 
-    static void operator delete(void* ptr);
+    static void Free(void* p);
+
     friend class fbl::unique_ptr<MessagePacket>;
+    static void operator delete(void* ptr);
 
-    // Handles and data are stored in the same buffer: num_handles_ Handle*
-    // entries first, then the data buffer.
-
-    BufferList buffers_;
+    BufferList* buffers_;
     Handle** const handles_;
     const uint32_t data_size_;
     const uint16_t num_handles_;

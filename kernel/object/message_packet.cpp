@@ -7,165 +7,242 @@
 #include <object/message_packet.h>
 
 #include <err.h>
+#include <kernel/mutex.h>
+#include <object/handle.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <trace.h>
 #include <zxcpp/new.h>
-#include <object/handle.h>
-#include <kernel/mutex.h>
 
-constexpr size_t kBufferSize = 4096;
+constexpr size_t kOverallSize = 4096;
+// TODO(maniscalco): Figure out the real malloc overhead.
+constexpr size_t kMallocHeader = 32;
+constexpr size_t kOverhead = kMallocHeader +
+                             sizeof(fbl::SinglyLinkedListable<MessagePacket::Buffer*>);
+constexpr size_t kPayloadSize = kOverallSize - kOverhead;
 
-static mutex_t mutex = MUTEX_INITIAL_VALUE(mutex);
+struct MessagePacket::Buffer final : public fbl::SinglyLinkedListable<Buffer*> {
+    char data[kPayloadSize];
+};
+static_assert(sizeof(MessagePacket::Buffer) + kMallocHeader == kOverallSize, "");
 
-class MessagePacket::Buffer : public fbl::SinglyLinkedListable<Buffer*> {
+// FreeList is a free list of |T|* containing at most |MaxSize|.
+//
+// It's currently backed by the heap (malloc/free).
+template <typename T, size_t MaxSize>
+class FreeList {
 public:
-    Buffer() {}
-    char b[0];
+    typedef fbl::SinglyLinkedList<T*> ListType;
+
+    // Allocates |count| objects and return them on |result|.
+    //
+    // If a non-empty |result| is passed in, its elements may be removed and freed.
+    //
+    // Returns ZX_OK if successful. On error, result is unmodified.
+    zx_status_t Alloc(size_t count, ListType* result) {
+        ListType list;
+        for (size_t i = 0; i < count; ++i) {
+            if (unlikely(free_list_.is_empty())) {
+                for (size_t i = 0; i < MaxSize; ++i) {
+                    T* t = static_cast<T*>(malloc(sizeof(T)));
+                    if (unlikely(t == nullptr)) {
+                        Free(&list);
+                        return ZX_ERR_NO_MEMORY;
+                    }
+                    new (t) T;
+                    free_list_.push_front(t);
+                    ++num_elements_;
+                }
+            }
+            list.push_front(free_list_.pop_front());
+            --num_elements_;
+        }
+        list.swap(*result);
+        return ZX_OK;
+    }
+
+    // Frees |t|.
+    void FreeOne(T* t) {
+        t->~T();
+        if (num_elements_ < MaxSize) {
+            new (t) T;
+            free_list_.push_front(t);
+            ++num_elements_;
+        } else {
+            free(t);
+        }
+    }
+
+    // Frees all elements of |list|.
+    void Free(ListType* list) {
+        while (!list->is_empty()) {
+            T* t = list->pop_front();
+            FreeOne(t);
+        }
+    }
 
 private:
-    DISALLOW_COPY_ASSIGN_AND_MOVE(Buffer);
+    size_t num_elements_ = 0;
+    ListType free_list_;
 };
 
-static MessagePacket::BufferList* buffer_list;
+class Node;
+typedef FreeList<Node, 64> NodeFreeList;
+typedef FreeList<MessagePacket::Buffer, 64> BufferFreeList;
 
-// static
-void MessagePacket::AllocBuffers(BufferList* buffers, size_t num_buffers) {
-    mutex_acquire(&mutex);
-    for (size_t i = 0; i < num_buffers; ++i) {
-        buffers->push_front(buffer_list->pop_front());
-    }
-    mutex_release(&mutex);
-}
+fbl::Mutex mutex;
+static NodeFreeList node_free_list TA_GUARDED(mutex);
+static BufferFreeList buffer_free_list TA_GUARDED(mutex);
 
-// static
-zx_status_t MessagePacket::FillBuffers(BufferList* buffers, user_in_ptr<const void> data, size_t data_size) {
-    size_t rem = data_size;
-    for (auto iter = buffers->begin(); iter != buffers->end(); ++iter) {
-        const size_t copy_len = fbl::min(rem, kBufferSize);
-        const zx_status_t status = data.copy_array_from_user(iter->b, copy_len);
-        assert(status == ZX_OK);
-        data = data.byte_offset(copy_len);
-        rem -= copy_len;
-    }
-    return ZX_OK;
-}
-
-// static
-void MessagePacket::DeleteBufferList(BufferList* buffers) {
-    mutex_acquire(&mutex);
-    while (!buffers->is_empty()) {
-        buffer_list->push_front(buffers->pop_front());
-    }
-    mutex_release(&mutex);
-}
-
-class Packet : public fbl::SinglyLinkedListable<Packet*> {
+// Node holds a MessagePacket and its MessagePacket::Buffers.
+//
+// Nodes and MessagePacket::Buffers are allocated from free lists.
+class Node : public fbl::SinglyLinkedListable<Node*> {
 public:
-    Packet() {}
-    char mp[sizeof(MessagePacket) + kMaxMessageHandles * sizeof(Handle*)];
+    // Creates a Node with enough buffers to store |data_size| bytes.
+    //
+    // It is the callers responsibility to free the node with Node::Free.
+    //
+    // Does not construct the MessagePacket contained with in the node.
+    //
+    // On error, returns nullptr.
+    static Node* Create(uint32_t data_size) {
+        const size_t num_buffers = (data_size / kPayloadSize) + ((data_size % kPayloadSize) > 0);
+        NodeFreeList::ListType n;
+
+        fbl::AutoLock guard(&mutex);
+
+        if (unlikely(node_free_list.Alloc(1, &n) != ZX_OK)) {
+            return nullptr;
+        }
+        if (unlikely(buffer_free_list.Alloc(num_buffers, n.front().buffers()) != ZX_OK)) {
+            // Free any buffers that were successfully allocated and then the node.
+            buffer_free_list.Free(n.front().buffers());
+            node_free_list.Free(&n);
+            return nullptr;
+        }
+        return n.pop_front();
+    }
+
+    // Frees |node|.
+    static void Free(Node* node) {
+        fbl::AutoLock guard(&mutex);
+        buffer_free_list.Free(node->buffers());
+        node_free_list.FreeOne(node);
+    }
+
+    BufferFreeList::ListType* buffers() { return &buffers_; }
+    MessagePacket* packet() { return reinterpret_cast<MessagePacket*>(packet_); }
+    Handle** handles() { return handles_; }
 
 private:
-    DISALLOW_COPY_ASSIGN_AND_MOVE(Packet);
+    friend zx_status_t NodeFreeList::Alloc(size_t count, ListType* result);
+    friend void NodeFreeList::FreeOne(Node *t);
+    Node() {}
+
+    friend class fbl::unique_ptr<Node>;
+    static void operator delete(void* ptr) {
+        Node::Free(static_cast<Node*>(ptr));
+    }
+
+    char packet_[sizeof(MessagePacket)];
+    BufferFreeList::ListType buffers_;
+    Handle* handles_[kMaxMessageHandles];
+
+    DISALLOW_COPY_ASSIGN_AND_MOVE(Node);
 };
+static_assert(sizeof(Node) + kMallocHeader <= kOverallSize, "");
 
-typedef fbl::SinglyLinkedList<Packet*> MessagePacketList;
-static MessagePacketList* packet_list;
-
-static void* AllocPacket() {
-    mutex_acquire(&mutex);
-    Packet* node = packet_list->pop_front();
-    mutex_release(&mutex);
-    return &node->mp[0];
-}
-
-static void FreePacket(void* p) {
-    mutex_acquire(&mutex);
-    Packet* node = (Packet*)((char*)(p) - sizeof(fbl::SinglyLinkedListable<Packet*>));
-    packet_list->push_front(node);
-    mutex_release(&mutex);
-}
-
-// static
-zx_status_t MessagePacket::NewMessagePacket(fbl::unique_ptr<MessagePacket>* msg, BufferList* buffers,
-                                            uint32_t data_size, uint32_t num_handles) {
-    fbl::AllocChecker ac;
-
-    MessagePacket* mp = (MessagePacket*)AllocPacket();
-    Handle** handles = (Handle**)((char*)mp + sizeof(MessagePacket));
-    msg->reset(new (mp) MessagePacket(buffers, data_size, num_handles, handles));
-    return ZX_OK;
+void MessagePacket::Free(void* p) {
+    // p points to a MessagePacket. Find its enclosing Node and Node::Free it.
+    Node* node = reinterpret_cast<Node*>(
+        static_cast<char*>(p) - sizeof(fbl::SinglyLinkedListable<Node*>));
+    DEBUG_ASSERT(node->packet() == p);
+    Node::Free(node);
 }
 
 // static
 void MessagePacket::operator delete(void* ptr) {
-    FreePacket(ptr);
+    MessagePacket::Free(ptr);
+}
+
+// |PTR_IN| is a user_in_ptr-like type.
+template <typename PTR_IN>
+// static
+zx_status_t MessagePacket::CreateCommon(PTR_IN data, uint32_t data_size, uint32_t num_handles,
+                                        fbl::unique_ptr<MessagePacket>* msg) {
+    static_assert(kMaxMessageHandles <= UINT16_MAX, "");
+    if (unlikely(data_size > kMaxMessageSize || num_handles > kMaxMessageHandles)) {
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+    fbl::unique_ptr<Node> node(Node::Create(data_size));
+    if (unlikely(!node)) {
+        return ZX_ERR_NO_MEMORY;
+    }
+
+    size_t rem = data_size;
+    for (auto iter = node->buffers()->begin(); iter != node->buffers()->end(); ++iter) {
+        const size_t copy_len = fbl::min(rem, kPayloadSize);
+        const zx_status_t status = data.copy_array_from_user(iter->data, copy_len);
+        if (unlikely(status != ZX_OK)) {
+            return status;
+        }
+        data = data.byte_offset(copy_len);
+        rem -= copy_len;
+    }
+
+    // Construct the MessagePacket into the Node.
+    new (node->packet()) MessagePacket(node->buffers(), data_size, num_handles, node->handles());
+    msg->reset(node->packet());
+    // Now that msg owns the MessagePacket, release the enclosing Node from node.
+    __UNUSED auto ptr = node.release();
+
+    return ZX_OK;
 }
 
 // static
 zx_status_t MessagePacket::Create(user_in_ptr<const void> data, uint32_t data_size,
                                   uint32_t num_handles,
                                   fbl::unique_ptr<MessagePacket>* msg) {
-
-    static_assert(kMaxMessageHandles <= UINT16_MAX, "");
-    if (data_size > kMaxMessageSize || num_handles > kMaxMessageHandles) {
-        return ZX_ERR_OUT_OF_RANGE;
-    }
-
-    BufferList buffers;
-    const size_t num_needed = (data_size / kBufferSize) + ((data_size % kBufferSize) > 0);
-
-    MessagePacket::AllocBuffers(&buffers, num_needed);
-    zx_status_t status = MessagePacket::FillBuffers(&buffers, data, data_size);
-    if (status != ZX_OK) {
-        return status;
-    }
-    fbl::unique_ptr<MessagePacket> new_msg;
-    status = MessagePacket::NewMessagePacket(&new_msg, &buffers, data_size, num_handles);
-
-    if (status != ZX_OK) {
-        return status;
-    }
-    *msg = fbl::move(new_msg);
-    return ZX_OK;
+    return MessagePacket::CreateCommon(data, data_size, num_handles, msg);
 }
+
+// Makes a const void* look like a user_in_ptr<const void>.
+//
+// MessagePacket has two overloads of Create.  One that operates on a user_in_ptr and one that
+// operates on a kernel-space void*. KernelPtrAdapter allows us to implement the Create logic once
+// (CreateCommon) for both these overloads.
+class KernelPtrAdapter {
+public:
+    explicit KernelPtrAdapter(const void* p)
+        : p_(p) {}
+
+    zx_status_t copy_array_from_user(void* dst, size_t count) const {
+        memcpy(dst, p_, count);
+        return ZX_OK;
+    }
+
+    KernelPtrAdapter byte_offset(size_t offset) const {
+        return KernelPtrAdapter(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(p_) + offset));
+    }
+
+private:
+    const void* p_;
+};
 
 // static
 zx_status_t MessagePacket::Create(const void* data, uint32_t data_size,
                                   uint32_t num_handles,
                                   fbl::unique_ptr<MessagePacket>* msg) {
-    static_assert(kMaxMessageHandles <= UINT16_MAX, "");
-    if (data_size > kMaxMessageSize || num_handles > kMaxMessageHandles) {
-        return ZX_ERR_OUT_OF_RANGE;
-    }
-    BufferList buffers;
-    const size_t num_needed = (data_size / kBufferSize) + ((data_size % kBufferSize) > 0);
-
-    MessagePacket::AllocBuffers(&buffers, num_needed);
-    size_t rem = data_size;
-    const char* src = static_cast<const char*>(data);
-    for (auto iter = buffers.begin(); iter != buffers.end(); ++iter) {
-        size_t copy_len = fbl::min(rem, kBufferSize);
-        memcpy(iter->b, src, copy_len);
-        src += copy_len;
-        rem -= copy_len;
-    }
-    fbl::unique_ptr<MessagePacket> new_msg;
-    zx_status_t status = MessagePacket::NewMessagePacket(&new_msg, &buffers, data_size, num_handles);
-
-    if (status != ZX_OK) {
-        return status;
-    }
-    *msg = fbl::move(new_msg);
-    return ZX_OK;
+    return MessagePacket::CreateCommon(KernelPtrAdapter(data), data_size, num_handles, msg);
 }
 
 zx_status_t MessagePacket::CopyDataTo(user_out_ptr<void> buf) const {
     size_t rem = data_size_;
-    for (auto iter = buffers_.begin(); iter != buffers_.end(); ++iter) {
-        const size_t len = fbl::min(rem, kBufferSize);
-        const zx_status_t status = buf.copy_array_to_user(iter->b, len);
-        if (status != ZX_OK) {
+    for (auto iter = buffers_->cbegin(); iter != buffers_->cend(); ++iter) {
+        const size_t len = fbl::min(rem, kPayloadSize);
+        const zx_status_t status = buf.copy_array_to_user(iter->data, len);
+        if (unlikely(status != ZX_OK)) {
             return status;
         }
         buf = buf.byte_offset(len);
@@ -181,12 +258,11 @@ MessagePacket::~MessagePacket() {
             HandleOwner ho(handles_[ix]);
         }
     }
-    DeleteBufferList(&buffers_);
 }
 
 MessagePacket::MessagePacket(BufferList* buffers, uint32_t data_size,
                              uint32_t num_handles, Handle** handles)
-    : buffers_(fbl::move(*buffers)), handles_(handles), data_size_(data_size),
+    : buffers_(buffers), handles_(handles), data_size_(data_size),
       // NewPacket ensures that num_handles fits in 16 bits.
       num_handles_(static_cast<uint16_t>(num_handles)), owns_handles_(false) {
 }
@@ -196,42 +272,9 @@ zx_txid_t MessagePacket::get_txid() const {
         return 0;
     }
 
-    // TODO(maniscalco): deal with strict aliasing issue
-    const void* p = reinterpret_cast<const void*>(buffers_.front().b);
+    // GCC doesn't like it when we simply chain cast (dereferencing type-punned pointer will break
+    // strict-aliasing rules) so go through an automatic variable.
+    const void* p = reinterpret_cast<const void*>(buffers_->front().data);
     zx_txid_t txid = *reinterpret_cast<const zx_txid_t*>(p);
     return txid;
-}
-
-void message_packet_init() {
-    MessagePacket::Init();
-}
-
-// static
-void MessagePacket::Init() {
-    mutex_acquire(&mutex);
-
-    fbl::AllocChecker ac;
-    if (!buffer_list) {
-        buffer_list = new (&ac) BufferList;
-        assert(ac.check());
-        for (int i = 0; i < 1000; ++i) {
-            void* p = malloc(sizeof(Buffer) + kBufferSize);
-            assert(p);
-            new (p) Buffer;
-            buffer_list->push_front((Buffer*)p);
-        }
-    }
-
-    if (!packet_list) {
-        packet_list = new (&ac) fbl::SinglyLinkedList<Packet*>;
-        assert(ac.check());
-        for (int i = 0; i < 1000; ++i) {
-            Packet* p = new (&ac) Packet;
-            assert(ac.check());
-            assert(p);
-            packet_list->push_front(p);
-        }
-    }
-
-    mutex_release(&mutex);
 }
