@@ -81,6 +81,49 @@ zx_status_t DummyIommu::Map(uint64_t bus_txn_id, const fbl::RefPtr<VmObject>& vm
     return ZX_OK;
 }
 
+zx_status_t DummyIommu::MapContiguous(uint64_t bus_txn_id, const fbl::RefPtr<VmObject>& vmo,
+                                      uint64_t offset, size_t size, uint32_t perms,
+                                      dev_vaddr_t* vaddr, size_t* mapped_len) {
+    DEBUG_ASSERT(vaddr);
+    DEBUG_ASSERT(mapped_len);
+
+    if (!IS_PAGE_ALIGNED(offset) || size == 0) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    if (perms & ~(IOMMU_FLAG_PERM_READ | IOMMU_FLAG_PERM_WRITE | IOMMU_FLAG_PERM_EXECUTE)) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    if (perms == 0) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    if (offset + size < offset || offset + size > vmo->size()) {
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+
+    if (!vmo->is_contiguous()) {
+        return ZX_ERR_NO_RESOURCES;
+    }
+
+    auto lookup_fn = [](void* ctx, size_t offset, size_t index, paddr_t pa) {
+        paddr_t* paddr = static_cast<paddr_t*>(ctx);
+        *paddr = pa;
+        return ZX_OK;
+    };
+
+    paddr_t paddr = UINT64_MAX;
+    zx_status_t status = vmo->Lookup(offset, PAGE_SIZE, 0, lookup_fn, &paddr);
+    if (status != ZX_OK) {
+        return status;
+    }
+    if (paddr == UINT64_MAX) {
+        return ZX_ERR_BAD_STATE;
+    }
+
+    *vaddr = paddr;
+    *mapped_len = size;
+    return ZX_OK;
+}
+
 zx_status_t DummyIommu::Unmap(uint64_t bus_txn_id, dev_vaddr_t vaddr, size_t size) {
     if (!IS_PAGE_ALIGNED(vaddr) || !IS_PAGE_ALIGNED(size)) {
         return ZX_ERR_INVALID_ARGS;
