@@ -166,8 +166,14 @@ static void platform_bus_release(void* ctx) {
     platform_bus_t* bus = ctx;
 
     platform_dev_t* dev;
-    list_for_every_entry(&bus->devices, dev, platform_dev_t, node) {
+    platform_dev_t* dev_temp;
+    list_for_every_entry_safe(&bus->devices, dev, dev_temp, platform_dev_t, node) {
         platform_dev_free(dev);
+    }
+    platform_pmap_t* pmap;
+    platform_pmap_t* pmap_temp;
+    list_for_every_entry_safe(&bus->pmaps, pmap, pmap_temp, platform_pmap_t, node) {
+        free(pmap);
     }
 
     zx_handle_close(bus->dummy_iommu_handle);
@@ -222,8 +228,34 @@ static zx_status_t platform_bus_read_bootdata(platform_bus_t* bus, zx_handle_t v
             zxlogf(ERROR, "platform_bus: unexpected bootdata container header\n");
             return ZX_ERR_INTERNAL;
         case BOOTDATA_PLATFORM_ID:
-            return zx_vmo_read(vmo, &bus->platform_id, off + sizeof(bootdata_t),
+            status = zx_vmo_read(vmo, &bus->platform_id, off + sizeof(bootdata_t),
                                  sizeof(bus->platform_id));
+            if (status != ZX_OK) {
+                zxlogf(ERROR, "platform_bus: zx_vmo_read failed for BOOTDATA_PLATFORM_ID\n");
+                return status;
+            }
+            break;
+        case BOOTDATA_PARTITION_MAP: {
+            bootdata_partition_map_t map_buf;
+            status = zx_vmo_read(vmo, &map_buf, off + sizeof(bootdata_t), sizeof(map_buf));
+            if (status != ZX_OK) {
+                zxlogf(ERROR, "platform_bus: zx_vmo_read failed for BOOTDATA_PARTITION_MAP\n");
+                return status;
+            }
+            size_t partitions_size = map_buf.partition_count * sizeof(bootdata_partition_t);
+            platform_pmap_t* pmap = malloc(sizeof(platform_pmap_t) + partitions_size);
+            if (!pmap) {
+                return ZX_ERR_NO_MEMORY;
+            }
+            status = zx_vmo_read(vmo, &pmap->pmap, off + sizeof(bootdata_t), sizeof(pmap->pmap) +
+                                 partitions_size);
+            if (status != ZX_OK) {
+                zxlogf(ERROR, "platform_bus: zx_vmo_read failed for BOOTDATA_PARTITION_MAP\n");
+                return status;
+            }
+            list_add_tail(&bus->pmaps, &pmap->node);
+            break;
+        }
         default:
             break;
         }
@@ -285,6 +317,7 @@ static zx_status_t platform_bus_create(void* ctx, zx_device_t* parent, const cha
 
     // Then we attach the platform-bus device below it
     list_initialize(&bus->devices);
+    list_initialize(&bus->pmaps);
 
     zx_device_prop_t props[] = {
         {BIND_PLATFORM_DEV_VID, 0, bus->platform_id.vid},

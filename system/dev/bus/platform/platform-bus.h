@@ -23,6 +23,12 @@ typedef struct pdev_req pdev_req_t;
 // this struct is local to platform-i2c.c
 typedef struct platform_i2c_bus platform_i2c_bus_t;
 
+// partition maps from the bootdata
+typedef struct {
+    list_node_t node;
+    bootdata_partition_map_t pmap;
+} platform_pmap_t;
+
 // context structure for the platform bus
 typedef struct {
     zx_device_t* zxdev;
@@ -35,6 +41,7 @@ typedef struct {
     bootdata_platform_id_t platform_id;
 
     list_node_t devices;    // list of platform_dev_t
+    list_node_t pmaps;      // list of platform_pmap_t
 
     platform_i2c_bus_t* i2c_buses;
     uint32_t i2c_bus_count;
