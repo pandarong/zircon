@@ -26,6 +26,11 @@ enum {
     // for level triggered
     GPIO_TRIGGER_HIGH       = 1 << 2,
     GPIO_TRIGGER_LOW        = 1 << 3,
+
+    // for pull-up/pull-down
+    GPIO_PULL_DOWN            = 0 << 4,
+    GPIO_PULL_UP              = 1 << 4,
+    GPIO_PULL_MASK            = 1 << 4,
 };
 
 // In the functions below, the GPIO index is relative to the list of GPIOs for the device.
@@ -38,6 +43,7 @@ typedef struct {
     zx_status_t (*set_alt_function)(void* ctx, uint32_t index, uint64_t function);
     zx_status_t (*read)(void* ctx, uint32_t index, uint8_t* out_value);
     zx_status_t (*write)(void* ctx, uint32_t index, uint8_t value);
+    zx_status_t (*get_interrupt)(void *ctx, uint32_t pin, uint32_t flags, zx_handle_t *out_handle);
 } gpio_protocol_ops_t;
 
 typedef struct {
@@ -68,4 +74,9 @@ static inline zx_status_t gpio_write(gpio_protocol_t* gpio, uint32_t index, uint
     return gpio->ops->write(gpio->ctx, index, value);
 }
 
+// gets an interrupt object pertaining to a particular GPIO pin
+static inline zx_status_t gpio_get_interrupt(gpio_protocol_t* gpio, uint32_t index,
+                                            uint32_t flags, zx_handle_t *out_handle) {
+    return gpio->ops->get_interrupt(gpio->ctx, index, flags, out_handle);
+}
 __END_CDECLS;

@@ -14,12 +14,9 @@
 #include <ddk/protocol/platform-defs.h>
 #include <ddk/protocol/platform-device.h>
 #include <hw/reg.h>
-
+#include "aml-gxl-gpio.h"
 #include <zircon/assert.h>
 #include <zircon/types.h>
-
-#define PINS_PER_BLOCK  32
-#define ALT_FUNCTION_MAX 6
 
 typedef struct {
     uint32_t pin_count;
@@ -28,6 +25,9 @@ typedef struct {
     uint32_t output_offset;
     uint32_t output_shift;  // Used for GPIOAO block
     uint32_t mmio_index;
+    uint32_t pull_offset;
+    uint32_t pull_en_offset;
+    uint32_t pin_start;
     mtx_t lock;
 } aml_gpio_block_t;
 
@@ -48,11 +48,21 @@ typedef struct {
     gpio_protocol_t gpio;
     zx_device_t* zxdev;
     io_buffer_t mmios[2];    // separate MMIO for AO domain
+    io_buffer_t mmio_interrupt;
     aml_gpio_block_t* gpio_blocks;
     const aml_pinmux_block_t* pinmux_blocks;
     size_t block_count;
     mtx_t pinmux_lock;
+    uint32_t irq_count;
+    uint8_t irq_status;
 } aml_gpio_t;
+
+// MMIO indices (based on vim2_display_mmios)
+enum {
+    MMIO_GPIO,
+    MMIO_GPIO_A0,
+    MMIO_GPIO_INTERRUPTS,
+};
 
 #include "s912-blocks.h"
 #include "s905x-blocks.h"
@@ -71,7 +81,7 @@ static zx_status_t aml_pin_to_block(aml_gpio_t* gpio, const uint32_t pin,
     if (pin_index >= block->pin_count) {
         return ZX_ERR_NOT_FOUND;
     }
-
+    pin_index += block->output_shift;
     *out_block = block;
     *out_pin_index = pin_index;
     return ZX_OK;
@@ -88,21 +98,36 @@ static zx_status_t aml_gpio_config(void* ctx, uint32_t index, uint32_t flags) {
         return status;
     }
 
+    // Set the GPIO as IN or OUT
     volatile uint32_t* reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmios[block->mmio_index]);
     reg += block->oen_offset;
-
     mtx_lock(&block->lock);
 
     uint32_t regval = readl(reg);
-
-    if (flags & GPIO_DIR_OUT) {
+    uint32_t direction = flags & GPIO_DIR_MASK;
+    if (direction & GPIO_DIR_OUT) {
         regval &= ~(1 << pin_index);
     } else {
+        // Set the GPIO as pull-up or pull-down
+        uint32_t pull = flags & GPIO_PULL_MASK;
+        volatile uint32_t* pull_reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmios[block->mmio_index]);
+        pull_reg += block->pull_offset;
+        volatile uint32_t* pull_en_reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmios[block->mmio_index]);
+        pull_en_reg += block->pull_en_offset;
+
+        uint32_t pull_reg_val = readl(pull_reg);
+        uint32_t pull_en_reg_val = readl(pull_en_reg);
+        if (pull & GPIO_PULL_UP) {
+            pull_reg_val |= (1 << pin_index);
+        } else {
+            pull_reg_val &= ~(1 << pin_index);
+        }
+        pull_en_reg_val |= (1 << pin_index);
+        writel(pull_reg_val, pull_reg);
+        writel(pull_en_reg_val, pull_en_reg);
         regval |= (1 << pin_index);
     }
-
     writel(regval, reg);
-
     mtx_unlock(&block->lock);
 
     return ZX_OK;
@@ -132,7 +157,7 @@ static zx_status_t aml_gpio_set_alt_function(void* ctx, const uint32_t pin, uint
 
     for (uint i = 0; i < ALT_FUNCTION_MAX; i++) {
         uint32_t reg_index = mux->regs[i];
-
+        //reg_index += block->output_shift;
         if (reg_index) {
             uint32_t mask = (1 << mux->bits[i]);
             uint32_t regval = readl(reg + reg_index);
@@ -162,7 +187,6 @@ static zx_status_t aml_gpio_read(void* ctx, uint32_t pin, uint8_t* out_value) {
         zxlogf(ERROR, "aml_gpio_read: pin not found %u\n", pin);
         return status;
     }
-
     const uint32_t readmask = 1 << pin_index;
 
     volatile uint32_t* reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmios[block->mmio_index]);
@@ -196,7 +220,6 @@ static zx_status_t aml_gpio_write(void* ctx, uint32_t pin, uint8_t value) {
 
     volatile uint32_t* reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmios[block->mmio_index]);
     reg += block->output_offset;
-    pin_index += block->output_shift;
 
     mtx_lock(&block->lock);
 
@@ -215,18 +238,96 @@ static zx_status_t aml_gpio_write(void* ctx, uint32_t pin, uint8_t value) {
     return ZX_OK;
 }
 
+static uint32_t aml_gpio_get_unsed_irq_index(uint8_t status) {
+    // First isolate the rightmost 0-bit
+    uint8_t zero_bit_set = ~status & (status+1);
+    // Count no. of leading zeros
+    return __builtin_ctz(zero_bit_set);
+}
+
+static zx_status_t aml_gpio_get_interrupt(void *ctx, uint32_t pin,
+                                          uint32_t flags,
+                                          zx_handle_t *out_handle) {
+    aml_gpio_t* gpio = ctx;
+    zx_status_t status;
+    mtx_lock(&gpio->pinmux_lock);
+    if (pin > MAX_GPIO_INDEX) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    uint32_t index = aml_gpio_get_unsed_irq_index(gpio->irq_status);
+    if (index > gpio->irq_count) {
+        return ZX_ERR_NO_RESOURCES;
+    }
+
+    aml_gpio_block_t* block;
+    uint32_t pin_index;
+    if ((status = aml_pin_to_block(gpio, pin, &block, &pin_index)) != ZX_OK) {
+        zxlogf(ERROR, "aml_gpio_read: pin not found %u\n", pin);
+        return status;
+    }
+
+    // Create Interrupt Object
+    status = pdev_get_interrupt(&gpio->pdev, index, flags,
+                                    out_handle);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_gpio_get_interrupt: pdev_map_interrupt failed %d\n", status);
+        return status;
+    }
+
+    // Configure GPIO interrupt
+    volatile uint32_t* reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmio_interrupt);
+    reg  += (index>3)? S912_GPIO_4_7_PIN_SELECT: S912_GPIO_0_3_PIN_SELECT;
+
+    // Select GPIO IRQ(index) and program it to
+    // the requested GPIO PIN
+    uint32_t regval = readl(reg);
+    regval |= (((pin % PINS_PER_BLOCK) + block->pin_start) << (index * BITS_PER_GPIO_INTERRUPT));
+    writel(regval, reg);
+
+    // Configure GPIO Interrupt EDGE and Polarity
+    volatile uint32_t* mode_reg = (volatile uint32_t *)io_buffer_virt(&gpio->mmio_interrupt);
+    mode_reg += S912_GPIO_INT_EDGE_POLARITY;
+    uint32_t mode_reg_val = readl(mode_reg);
+
+    switch (flags & ZX_INTERRUPT_MODE_MASK) {
+    case ZX_INTERRUPT_MODE_EDGE_LOW:
+        mode_reg_val = mode_reg_val | (1 << index);
+        mode_reg_val = mode_reg_val | ((1 << index) << GPIO_INTERRUPT_POLARITY_SHIFT);
+        break;
+    case ZX_INTERRUPT_MODE_EDGE_HIGH:
+        mode_reg_val = mode_reg_val | (1 << index);
+        mode_reg_val = mode_reg_val & ~((1 << index) << GPIO_INTERRUPT_POLARITY_SHIFT);
+        break;
+    case ZX_INTERRUPT_MODE_LEVEL_LOW:
+        mode_reg_val = mode_reg_val & ~(1 << index);
+        mode_reg_val = mode_reg_val | ((1 << index) << GPIO_INTERRUPT_POLARITY_SHIFT);
+        break;
+    case ZX_INTERRUPT_MODE_LEVEL_HIGH:
+        mode_reg_val = mode_reg_val & ~(1 << index);
+        mode_reg_val = mode_reg_val & ~((1 << index) << GPIO_INTERRUPT_POLARITY_SHIFT);
+        break;
+    default:
+        return ZX_ERR_INVALID_ARGS;
+    }
+    writel(mode_reg_val, mode_reg);
+    gpio->irq_status |= 1 << index;
+    mtx_unlock(&gpio->pinmux_lock);
+    return ZX_OK;
+}
+
 static gpio_protocol_ops_t gpio_ops = {
     .config = aml_gpio_config,
     .set_alt_function = aml_gpio_set_alt_function,
     .read = aml_gpio_read,
     .write = aml_gpio_write,
+    .get_interrupt = aml_gpio_get_interrupt,
 };
 
 static void aml_gpio_release(void* ctx) {
     aml_gpio_t* gpio = ctx;
-    for (unsigned i = 0; i < countof(gpio->mmios); i++) {
-        io_buffer_release(&gpio->mmios[i]);
-    }
+    io_buffer_release(&gpio->mmios[0]);
+    io_buffer_release(&gpio->mmios[1]);
+    io_buffer_release(&gpio->mmio_interrupt);
     free(gpio);
 }
 
@@ -256,13 +357,25 @@ static zx_status_t aml_gpio_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
-    for (unsigned i = 0; i < countof(gpio->mmios); i++) {
-        status = pdev_map_mmio_buffer(&gpio->pdev, i, ZX_CACHE_POLICY_UNCACHED_DEVICE,
-                                      &gpio->mmios[i]);
-        if (status != ZX_OK) {
-            zxlogf(ERROR, "aml_gpio_bind: pdev_map_mmio_buffer failed\n");
-            goto fail;
-        }
+    status = pdev_map_mmio_buffer(&gpio->pdev, MMIO_GPIO, ZX_CACHE_POLICY_UNCACHED_DEVICE,
+                                    &gpio->mmios[0]);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_gpio_bind: pdev_map_mmio_buffer failed\n");
+        goto fail;
+    }
+
+    status = pdev_map_mmio_buffer(&gpio->pdev, MMIO_GPIO_A0, ZX_CACHE_POLICY_UNCACHED_DEVICE,
+                                    &gpio->mmios[1]);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_gpio_bind: pdev_map_mmio_buffer failed\n");
+        goto fail;
+    }
+
+    status = pdev_map_mmio_buffer(&gpio->pdev, MMIO_GPIO_INTERRUPTS, ZX_CACHE_POLICY_UNCACHED_DEVICE,
+                                    &gpio->mmio_interrupt);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_gpio_bind: pdev_map_mmio_buffer failed\n");
+        goto fail;
     }
 
     pdev_device_info_t info;
@@ -307,6 +420,8 @@ static zx_status_t aml_gpio_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+    gpio->irq_count = info.irq_count;
+    gpio->irq_status = 0;
     gpio->gpio.ops = &gpio_ops;
     gpio->gpio.ctx = gpio;
     pbus_set_protocol(&pbus, ZX_PROTOCOL_GPIO, &gpio->gpio);

@@ -28,49 +28,43 @@ static const pbus_mmio_t gpio_mmios[] = {
         .base = S912_GPIO_A0_BASE,
         .length = S912_GPIO_AO_LENGTH,
     },
+    {
+        .base = S912_GPIO_INTERRUPT_BASE,
+        .length = S912_GPIO_INTERRUPT_LENGTH,
+    },
 };
 
 // S905X and S912 have same GPIO IRQ numbers
 static const pbus_irq_t gpio_irqs[] = {
     {
         .irq = S912_GPIO_IRQ_0,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_1,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_2,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_3,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_4,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_5,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_6,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_GPIO_IRQ_7,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_A0_GPIO_IRQ_0,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
     {
         .irq = S912_A0_GPIO_IRQ_1,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
     },
 };
 
@@ -113,6 +107,12 @@ zx_status_t vim_gpio_init(vim_bus_t* bus) {
             // SYS_LED
             .gpio = (bus->soc_pid == PDEV_PID_AMLOGIC_S912 ? S912_GPIOAO(9) : S905X_GPIOAO(9)),
         },
+        {
+            .gpio = S912_GPIOH(7),
+        },
+        {
+            .gpio = S912_GPIOH(5),
+        }
     };
 
     const pbus_dev_t gpio_test_dev = {

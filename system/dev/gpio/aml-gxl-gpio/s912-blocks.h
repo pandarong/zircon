@@ -13,6 +13,9 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .output_offset = S912_GPIOX_OUT,
         .output_shift = 0,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG4,
+        .pull_en_offset = S912_PULL_UP_EN_REG4,
+        .pin_start = S912_GPIOX_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIODV Block
@@ -23,6 +26,9 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .output_offset = S912_GPIODV_OUT,
         .output_shift = 0,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG0,
+        .pull_en_offset = S912_PULL_UP_EN_REG0,
+        .pin_start = S912_GPIODV_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOH Block
@@ -31,8 +37,11 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .oen_offset = S912_GPIOH_0EN,
         .input_offset = S912_GPIOH_IN,
         .output_offset = S912_GPIOH_OUT,
-        .output_shift = 0,
+        .output_shift = 20,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG1,
+        .pull_en_offset = S912_PULL_UP_EN_REG1,
+        .pin_start = S912_GPIOH_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOBOOT Block
@@ -43,6 +52,9 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .output_offset = S912_GPIOBOOT_OUT,
         .output_shift = 0,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG2,
+        .pull_en_offset = S912_PULL_UP_EN_REG2,
+        .pin_start = S912_GPIOBOOT_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOCARD Block
@@ -51,8 +63,11 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .oen_offset = S912_GPIOCARD_0EN,
         .input_offset = S912_GPIOCARD_IN,
         .output_offset = S912_GPIOCARD_OUT,
-        .output_shift = 0,
+        .output_shift = 20,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG2,
+        .pull_en_offset = S912_PULL_UP_EN_REG2,
+        .pin_start = S912_GPIOCARD_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOCLK Block
@@ -61,8 +76,11 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .oen_offset = S912_GPIOCLK_0EN,
         .input_offset = S912_GPIOCLK_IN,
         .output_offset = S912_GPIOCLK_OUT,
-        .output_shift = 0,
+        .output_shift = 28,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG3,
+        .pull_en_offset = S912_PULL_UP_EN_REG3,
+        .pin_start = S912_GPIOCLK_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOZ Block
@@ -73,6 +91,9 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .output_offset = S912_GPIOZ_OUT,
         .output_shift = 0,
         .mmio_index = 0,
+        .pull_offset = S912_PULL_UP_REG3,
+        .pull_en_offset = S912_PULL_UP_EN_REG3,
+        .pin_start = S912_GPIOZ_PIN_START,
         .lock = MTX_INIT,
     },
     // GPIOAO Block
@@ -83,6 +104,9 @@ static aml_gpio_block_t s912_gpio_blocks[] = {
         .output_offset = S912_AO_GPIO_OEN_OUT,
         .output_shift = 16, // output is shared with OEN
         .mmio_index = 1,
+        .pull_offset = 0, // not supported
+        .pull_en_offset = 0, // not supported
+        .pin_start = S912_GPIOA0_PIN_START,
         .lock = MTX_INIT,
     },
 };

@@ -201,11 +201,19 @@ static zx_status_t aml_gpio_write(void* ctx, uint32_t index, uint8_t value) {
     return ZX_OK;
 }
 
+static zx_status_t aml_gpio_get_interrupt(void *ctx, uint32_t pin,
+                                        uint32_t flags,
+                                        zx_handle_t *out_handle) {
+    zxlogf(ERROR, "HELLO INTERRUPT AXG%u\n", pin);
+    return ZX_OK;
+}
+
 static gpio_protocol_ops_t gpio_ops = {
     .config = aml_gpio_config,
     .set_alt_function = aml_gpio_set_alt_function,
     .read = aml_gpio_read,
     .write = aml_gpio_write,
+    .get_interrupt = aml_gpio_get_interrupt,
 };
 
 static void aml_gpio_release(void* ctx) {
