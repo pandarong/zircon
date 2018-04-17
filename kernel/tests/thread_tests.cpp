@@ -100,6 +100,65 @@ static int mutex_test(void) {
     return 0;
 }
 
+static int mutex_inherit_thread(void *arg) {
+    mutex_t* test_mutex = static_cast<mutex_t*>(arg);
+
+    for (int i = 0; i < 100000; i++) {
+        uint r = (rand() % 4u) + 1;
+
+        //thread_set_priority(DEFAULT_PRIORITY + r);
+
+        for (int j = 0; j < (int)r; j++) {
+            mutex_acquire(&test_mutex[j]);
+        }
+
+        if ((rand() % 2) == 0) {
+            printf("sleep\n");
+            thread_sleep_relative(rand() % 1000u);
+        } else {
+            printf("yield\n");
+            thread_yield();
+        }
+
+        for (int j = r - 1; j >= 0; j--) {
+            mutex_release(&test_mutex[j]);
+        }
+
+        printf("%u %d %p\n", r, get_current_thread()->effec_priority, get_current_thread());
+    }
+
+    return 0;
+}
+
+static int mutex_inherit_test() {
+    printf("running mutex inheritance test\n");
+
+    // create a stack of mutexes and a few threads
+    mutex_t test_mutex[4];
+    for (auto &m: test_mutex) {
+        mutex_init(&m);
+    }
+
+    int i = 0;
+    thread_t* test_thread[5];
+    for (auto &t: test_thread) {
+        t = thread_create("mutex tester", &mutex_inherit_thread, test_mutex,
+                                   get_current_thread()->base_priority + i, DEFAULT_STACK_SIZE);
+        thread_resume(t);
+        i++;
+    }
+
+    for (auto &t: test_thread) {
+        thread_join(t, NULL, ZX_TIME_INFINITE);
+    }
+
+    thread_sleep_relative(ZX_MSEC(100));
+
+    printf("done with mutex inheirit test\n");
+
+    return 0;
+}
+
 static event_t e;
 
 static int event_signaler(void* arg) {
@@ -694,6 +753,8 @@ static void tls_tests() {
 }
 
 int thread_tests(void) {
+    mutex_inherit_test();
+
     kill_tests();
 
     mutex_test();
