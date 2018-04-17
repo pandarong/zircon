@@ -50,6 +50,7 @@ static zx_status_t mmc_do_switch(sdmmc_device_t* dev, uint8_t index, uint8_t val
 static zx_status_t mmc_set_bus_width(sdmmc_device_t* dev, sdmmc_bus_width_t bus_width,
                                      uint8_t mmc_ext_csd_bus_width) {
     // Switch the card to the new bus width
+    zxlogf(INFO, "MINE MINE Attempting to switch to bus_width:%d\n", mmc_ext_csd_bus_width);
     zx_status_t st = mmc_do_switch(dev, MMC_EXT_CSD_BUS_WIDTH, mmc_ext_csd_bus_width);
     if (st != ZX_OK) {
         zxlogf(ERROR, "mmc: failed to switch bus width to EXT_CSD %d, retcode = %d\n",
@@ -72,12 +73,18 @@ static zx_status_t mmc_set_bus_width(sdmmc_device_t* dev, sdmmc_bus_width_t bus_
 
 static uint8_t mmc_select_bus_width(sdmmc_device_t* dev) {
     // TODO verify host 8-bit support
-    uint8_t bus_widths[] = { SDMMC_BUS_WIDTH_8, MMC_EXT_CSD_BUS_WIDTH_8,
-                             SDMMC_BUS_WIDTH_4, MMC_EXT_CSD_BUS_WIDTH_4,
-                             SDMMC_BUS_WIDTH_1, MMC_EXT_CSD_BUS_WIDTH_1 };
-    for (unsigned i = 0; i < sizeof(bus_widths)/sizeof(unsigned); i += 2) {
-        if (mmc_set_bus_width(dev, bus_widths[i], bus_widths[i+1]) == ZX_OK) {
+    //uint8_t bus_widths[] = { SDMMC_BUS_WIDTH_8, MMC_EXT_CSD_BUS_WIDTH_8,
+    //                         SDMMC_BUS_WIDTH_4, MMC_EXT_CSD_BUS_WIDTH_4,
+    //                         SDMMC_BUS_WIDTH_1, MMC_EXT_CSD_BUS_WIDTH_1 };
+
+    uint8_t bus_widths[3] = {2, 1, 0};
+    for (unsigned i = 0; i < 3; i++) {
+        zxlogf(INFO, "%s Attempting to switch to bus_width:%d\n", __func__, bus_widths[i]);
+        if (mmc_set_bus_width(dev, bus_widths[i], bus_widths[i]) == ZX_OK) {
+            zxlogf(INFO, "MINE MINE Succesfully switched to bus_width:%d\n", bus_widths[i]);
             break;
+        } else {
+            zxlogf(INFO, "%s MINE MINE  Failed to switched to bus_width:%d\n", __func__, bus_widths[i]);
         }
     }
     return dev->bus_width;
@@ -170,7 +177,7 @@ static zx_status_t mmc_decode_csd(sdmmc_device_t* dev, const uint8_t* raw_csd) {
 }
 
 static zx_status_t mmc_decode_ext_csd(sdmmc_device_t* dev, const uint8_t* raw_ext_csd) {
-    zxlogf(SPEW, "mmc: EXT_CSD version %u CSD version %u\n", raw_ext_csd[192], raw_ext_csd[194]);
+    zxlogf(INFO, "mmc: EXT_CSD version %u CSD version %u\n", raw_ext_csd[192], raw_ext_csd[194]);
 
     // Get the capacity for the card
     uint32_t sectors = (raw_ext_csd[212] << 0) | (raw_ext_csd[213] << 8) |
@@ -178,7 +185,7 @@ static zx_status_t mmc_decode_ext_csd(sdmmc_device_t* dev, const uint8_t* raw_ex
     dev->block_info.block_count = sectors * MMC_SECTOR_SIZE / MMC_BLOCK_SIZE;
     dev->block_info.block_size = (uint32_t)MMC_BLOCK_SIZE;
 
-    zxlogf(TRACE, "mmc: found card with capacity = %" PRIu64 "B\n",
+    zxlogf(INFO, "mmc: found card with capacity = %" PRIu64 "B\n",
            dev->block_info.block_count * dev->block_info.block_size);
 
     return ZX_OK;
@@ -284,6 +291,9 @@ zx_status_t sdmmc_probe_mmc(sdmmc_device_t* dev) {
         }
         dev->signal_voltage = new_voltage;
 
+        if ((st = mmc_switch_timing(dev, SDMMC_TIMING_HS)) != ZX_OK) {
+            zxlogf(ERROR, "mmc: failed to switch to high speed timing, retcode %d\n", st);
+        }
         mmc_select_bus_width(dev);
 
         // Must perform tuning at HS200 first if HS400 is supported

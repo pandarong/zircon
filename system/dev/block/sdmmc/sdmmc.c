@@ -234,10 +234,12 @@ static zx_status_t sdmmc_wait_for_tran(sdmmc_device_t* dev) {
         }
 
         current_state = MMC_STATUS_CURRENT_STATE(response);
+        zxlogf(INFO, "sdmmc: Got current state as %0x\n", current_state);
         if (current_state == MMC_STATUS_CURRENT_STATE_RECV) {
             st = sdmmc_stop_transmission(dev);
             continue;
         } else if (current_state == MMC_STATUS_CURRENT_STATE_TRAN) {
+            zxlogf(INFO, "sdmmc: Got current state as TRAN.%0x\n", current_state);
             break;
         }
 
@@ -257,6 +259,7 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
     uint32_t cmd_idx = 0;
     uint32_t cmd_flags = 0;
 
+    zxlogf(INFO, "sdmmc_do_txn START\n");
     // Figure out which SD command we need to issue.
     switch (BLOCK_OP(txn->bop.command)) {
     case BLOCK_OP_READ:
@@ -270,6 +273,7 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
         is_read = true;
         break;
     case BLOCK_OP_WRITE:
+        zxlogf(INFO, "sdmmc_do_txn START, BLOCK_OP_WRITE\n");
         if (txn->bop.rw.length > 1) {
             cmd_idx = SDMMC_WRITE_MULTIPLE_BLOCK;
             cmd_flags = SDMMC_WRITE_MULTIPLE_BLOCK_FLAGS;
@@ -290,10 +294,11 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
         return;
     }
 
-    zxlogf(TRACE, "sdmmc: do_txn blockop 0x%x offset_vmo 0x%" PRIx64 " length 0x%x blocksize 0x%x"
-                  " max_transfer_size 0x%x\n",
+    zxlogf(TRACE, "sdmmc: do_txn blockop %d offset_vmo 0x%" PRIx64 " length 0x%x blocksize 0x%x"
+                  " max_transfer_size 0x%x txn->offset_dev : 0x%" PRIx64 "\n",
            txn->bop.command, txn->bop.rw.offset_vmo, txn->bop.rw.length,
-           dev->block_info.block_size, dev->block_info.max_transfer_size);
+           dev->block_info.block_size, dev->block_info.max_transfer_size,
+           txn->bop.rw.offset_dev);
 
     sdmmc_req_t* req = &dev->req;
     memset(req, 0, sizeof(*req));
@@ -310,6 +315,7 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
 
     zx_status_t st = ZX_OK;
     if (sdmmc_use_dma(dev)) {
+        //zxlogf(INFO, "sdmmc: Entered use_dma\n");
         if (is_read) {
             st = zx_vmo_op_range(txn->bop.rw.vmo, ZX_VMO_OP_CACHE_CLEAN_INVALIDATE,
                                  txn->bop.rw.offset_vmo, txn->bop.rw.length, NULL, 0);
@@ -328,6 +334,7 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
         req->pmt = ZX_HANDLE_INVALID;
 
     } else {
+        //zxlogf(INFO, "sdmmc: Entered do not use dma\n");
         req->use_dma = false;
         st = zx_vmar_map(zx_vmar_root_self(), 0, txn->bop.rw.vmo,
                          txn->bop.rw.offset_vmo, txn->bop.rw.length,
@@ -344,9 +351,61 @@ static void sdmmc_do_txn(sdmmc_device_t* dev, sdmmc_txn_t* txn) {
         zxlogf(TRACE, "sdmmc: do_txn error %d\n", st);
         block_complete(&txn->bop, st);
     } else {
-        zxlogf(TRACE, "sdmmc: do_txn complete\n");
         block_complete(&txn->bop, ZX_OK);
+        if (req->blockcount > 1) {
+              // Device must be in TRAN state at this point
+              //zxlogf(INFO, "SDMMC: MINE: Sending Stop Transmission\n");
+              st = sdmmc_stop_transmission(dev);
+              //st = sdmmc_wait_for_tran(dev);
+              if (st != ZX_OK) {
+                  zxlogf(ERROR, "sdmmc: Stopping transmission failed, retcode = %d\n", st);
+                  //return st;
+              }
+        }
+        zxlogf(TRACE, "sdmmc: do_txn complete\n");
     }
+}
+
+
+zx_status_t sdmmc_send_read(sdmmc_device_t* dev) {
+    sdmmc_req_t req = {
+        .cmd_idx = SDMMC_READ_BLOCK,
+        .arg = 0,
+        .cmd_flags = SDMMC_READ_BLOCK_FLAGS,
+        .blockcount = 1,
+        .blocksize = 512,
+        .use_dma  = false,
+    };
+    req.virt = calloc(1, 512);
+    zx_status_t status = sdmmc_request(&dev->host, &req);
+    zxlogf(ERROR, "sdmmc: READ 512 bytes. Status:%d\n", status);
+    hexdump8_ex(req.virt, 512, 0);
+    free(req.virt);
+    return status;
+}
+
+zx_status_t sdmmc_send_write(sdmmc_device_t* dev) {
+    sdmmc_req_t req = {
+        .cmd_idx = SDMMC_WRITE_MULTIPLE_BLOCK,
+        .arg = 0,
+        .cmd_flags = SDMMC_WRITE_MULTIPLE_BLOCK_FLAGS,
+        .blockcount = 2,
+        .blocksize = 512,
+        .use_dma  = false,
+    };
+    req.virt = calloc(1, 1024);
+    zx_status_t status = sdmmc_request(&dev->host, &req);
+    zxlogf(ERROR, "sdmmc: WRITE 512 bytes. Status:%d\n", status);
+    if (status == ZX_OK) {
+        status = sdmmc_stop_transmission(dev);
+        if (status != ZX_OK) {
+            zxlogf(ERROR, "sdmmc: Stopping transmission failed, retcode = %d\n", status);
+            //return st;
+        }
+    }
+    //hexdump8_ex(req.virt, 512, 0);
+    free(req.virt);
+    return status;
 }
 
 static int sdmmc_worker_thread(void* arg) {
@@ -385,6 +444,7 @@ static int sdmmc_worker_thread(void* arg) {
             return st;
         }
     }
+    zxlogf(INFO, "sdmmc: Done with probe. Waiting for tran state\n");
 
     // Device must be in TRAN state at this point
     st = sdmmc_wait_for_tran(dev);
@@ -394,6 +454,11 @@ static int sdmmc_worker_thread(void* arg) {
         return st;
     }
 
+    /*for (int i = 0; i < 10; i++) {
+      zxlogf(ERROR, "Trying read %dth time\n", i);
+      sdmmc_send_read(dev);
+    }*/
+    sdmmc_send_write(dev);
     device_make_visible(dev->zxdev);
 
     for (;;) {
@@ -427,7 +492,6 @@ static int sdmmc_worker_thread(void* arg) {
     }
 
     zxlogf(TRACE, "sdmmc: worker thread terminated\n");
-
     return 0;
 }
 

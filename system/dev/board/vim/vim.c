@@ -150,6 +150,11 @@ static int vim_start_thread(void* arg) {
         gpio_write(&bus->gpio, VIM2_FAN_CTL0, 1);
         gpio_write(&bus->gpio, VIM2_FAN_CTL1, 1);
     }
+    // TODO(ravoorir): Enable this when sdhci works completely
+    if ((status = vim_sdhci_init(bus)) != ZX_OK) {
+        zxlogf(ERROR, "vim_sdhci_init failed: %d\n", status);
+        goto fail;
+    }
 
     // Display driver currently supports only the S912
     if (bus->soc_pid == PDEV_PID_AMLOGIC_S912) {
