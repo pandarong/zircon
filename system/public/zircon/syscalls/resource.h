@@ -9,14 +9,11 @@
 __BEGIN_CDECLS
 
 // The root resource
-#define ZX_RSRC_KIND_ROOT        (0x0000u)
-
-// Hardware resources
-#define ZX_RSRC_KIND_MMIO        (0x1000u)
-#define ZX_RSRC_KIND_IOPORT      (0x1001u)
-#define ZX_RSRC_KIND_IRQ         (0x1002u)
-
-// Subsystem resources
-#define ZX_RSRC_KIND_HYPERVISOR  (0x2000u)
+#define ZX_RSRC_KIND_ROOT         1u
+#define ZX_RSRC_KIND_MMIO         2u
+#define ZX_RSRC_KIND_IOPORT       3u
+#define ZX_RSRC_KIND_IRQ          4u
+#define ZX_RSRC_KIND_HYPERVISOR   5u
+#define ZX_RSRC_KIND_COUNT        6u
 
 __END_CDECLS

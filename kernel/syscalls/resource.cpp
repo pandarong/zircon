@@ -32,35 +32,32 @@ zx_status_t sys_resource_create(zx_handle_t handle, uint32_t kind,
                                 user_out_handle* resource_out) {
     auto up = ProcessDispatcher::GetCurrent();
 
-    if (high < low)
+    if (high < low) {
         return ZX_ERR_INVALID_ARGS;
+    }
 
     // Obtain the parent Resource
     // WRITE access is required to create a child resource
-    zx_status_t result;
+    zx_status_t status;
     fbl::RefPtr<ResourceDispatcher> parent;
-    result = up->GetDispatcherWithRights(handle, ZX_RIGHT_WRITE, &parent);
-    if (result)
-        return result;
+    status = up->GetDispatcherWithRights(handle, ZX_RIGHT_WRITE, &parent);
+    if (status) {
+        return status;
+    }
 
-    uint32_t parent_kind = parent->get_kind();
-    if (parent_kind != ZX_RSRC_KIND_ROOT) {
-        if (kind != parent_kind)
-            return ZX_ERR_ACCESS_DENIED;
-
-        uint64_t parent_low, parent_high;
-        parent->get_range(&parent_low, &parent_high);
-
-        if ((low < parent_low) || (high > parent_high))
-            return ZX_ERR_OUT_OF_RANGE;
+    // Only holders of the root resource passed out by userboot are permitted
+    // to create resources using the syscall.
+    if (parent->get_kind() != ZX_RSRC_KIND_ROOT) {
+        return ZX_ERR_ACCESS_DENIED;
     }
 
     // Create a new Resource
     zx_rights_t rights;
     fbl::RefPtr<ResourceDispatcher> child;
-    result = ResourceDispatcher::Create(&child, &rights, kind, low, high);
-    if (result != ZX_OK)
-        return result;
+    status = ResourceDispatcher::Create(&child, &rights, kind, low, high);
+    if (status != ZX_OK) {
+        return status;
+    }
 
     // Create a handle for the child
     return resource_out->make(fbl::move(child), rights);
