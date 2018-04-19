@@ -60,10 +60,11 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/state_tracker_tests.cpp \
 
 MODULE_DEPS := \
-    kernel/lib/hypervisor \
-    kernel/lib/fbl \
-    kernel/lib/oom \
     kernel/dev/interrupt \
     kernel/dev/udisplay \
+    kernel/lib/fbl \
+    kernel/lib/hypervisor \
+    kernel/lib/oom \
+    kernel/lib/pretty \
 
 include make/module.mk

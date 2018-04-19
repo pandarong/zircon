@@ -6,17 +6,24 @@
 
 #include <zircon/compiler.h>
 
-__BEGIN_CDECLS
+// Resources that require a region allocator to handle exclusive reservations
+// are defined in a contiguous block starting at 0 up to ZX_RSRC_STATIC_COUNT-1.
+// After that point, all resource 'kinds' are abstract and need no underlying
+// bookkeeping. It's important that ZX_RSRC_STATIC_COUNT is defined for each
+// architecture to properly allocate only the bookkeeping necessary.
 
-// The root resource
-#define ZX_RSRC_KIND_ROOT        (0x0000u)
+#define ZX_RSRC_KIND_MMIO           0u
+#define ZX_RSRC_KIND_IRQ            1u
+#if defined(__x86_64__)
+    #define ZX_RSRC_KIND_IOPORT     2u
+    #define ZX_RSRC_STATIC_COUNT    3u
+#endif
+#if defined (__aarch64__)
+    #define ZX_RSRC_STATIC_COUNT    2u
+#endif
+#define ZX_RSRC_KIND_HYPERVISOR     ZX_RSRC_STATIC_COUNT
+#define ZX_RSRC_KIND_ROOT           ZX_RSRC_KIND_HYPERVISOR + 1u
+#define ZX_RSRC_KIND_COUNT          ZX_RSRC_KIND_ROOT + 1u
 
-// Hardware resources
-#define ZX_RSRC_KIND_MMIO        (0x1000u)
-#define ZX_RSRC_KIND_IOPORT      (0x1001u)
-#define ZX_RSRC_KIND_IRQ         (0x1002u)
-
-// Subsystem resources
-#define ZX_RSRC_KIND_HYPERVISOR  (0x2000u)
-
-__END_CDECLS
+#define ZX_RSRC_FLAG_EXCLUSIVE      1u
+#define ZX_RSRC_FLAGS_MASK          (ZX_RSRC_FLAG_EXCLUSIVE)

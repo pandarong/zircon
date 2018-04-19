@@ -27,40 +27,46 @@
 // Otherwise the kind of the child resource must be the same as
 // the parent and the range of the child resource must be within
 // the range of the parent.
-zx_status_t sys_resource_create(zx_handle_t handle, uint32_t kind,
-                                uint64_t low, uint64_t high,
+zx_status_t sys_resource_create(zx_handle_t handle,
+                                uint32_t kind,
+                                uint64_t base,
+                                size_t len,
+                                uint32_t flags,
+                                user_in_ptr<const char> _name,
+                                size_t name_size,
                                 user_out_handle* resource_out) {
     auto up = ProcessDispatcher::GetCurrent();
 
-    if (high < low)
-        return ZX_ERR_INVALID_ARGS;
-
     // Obtain the parent Resource
     // WRITE access is required to create a child resource
-    zx_status_t result;
+    zx_status_t status;
     fbl::RefPtr<ResourceDispatcher> parent;
-    result = up->GetDispatcherWithRights(handle, ZX_RIGHT_WRITE, &parent);
-    if (result)
-        return result;
+    status = up->GetDispatcherWithRights(handle, ZX_RIGHT_WRITE, &parent);
+    if (status) {
+        return status;
+    }
 
-    uint32_t parent_kind = parent->get_kind();
-    if (parent_kind != ZX_RSRC_KIND_ROOT) {
-        if (kind != parent_kind)
-            return ZX_ERR_ACCESS_DENIED;
+    // Only holders of the root resource are permitted to create resources using this syscall.
+    if (parent->get_kind() != ZX_RSRC_KIND_ROOT) {
+        return ZX_ERR_ACCESS_DENIED;
+    }
 
-        uint64_t parent_low, parent_high;
-        parent->get_range(&parent_low, &parent_high);
-
-        if ((low < parent_low) || (high > parent_high))
-            return ZX_ERR_OUT_OF_RANGE;
+    // Extract the name from userspace if one was provided.
+    char name[ZX_MAX_NAME_LEN];
+    size_t namelen = MIN(name_size,  ZX_MAX_NAME_LEN - 1);
+    if (name_size > 0) {
+        if (_name.copy_array_from_user(name, namelen) != ZX_OK) {
+            return ZX_ERR_INVALID_ARGS;
+        }
     }
 
     // Create a new Resource
     zx_rights_t rights;
     fbl::RefPtr<ResourceDispatcher> child;
-    result = ResourceDispatcher::Create(&child, &rights, kind, low, high);
-    if (result != ZX_OK)
-        return result;
+    status = ResourceDispatcher::Create(&child, &rights, kind, base, len, flags, name);
+    if (status != ZX_OK) {
+        return status;
+    }
 
     // Create a handle for the child
     return resource_out->make(fbl::move(child), rights);

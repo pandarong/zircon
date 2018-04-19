@@ -8,12 +8,17 @@
 
 namespace zx {
 
-zx_status_t resource::create(const resource& parent, uint32_t kind,
-                             uint64_t low, uint64_t high, resource* result) {
-    // Allow for aliasing of the same container to |result| and |parent|.
+zx_status_t resource::create(const resource& parent,
+                             uint32_t kind,
+                             uint64_t base,
+                             size_t len,
+                             uint32_t flags,
+                             const char* name,
+                             size_t namelen,
+                             resource* result) {
     resource h;
-    zx_status_t status = zx_resource_create(
-        parent.get(), kind, low, high, h.reset_and_get_address());
+    zx_status_t status = zx_resource_create(parent.get(), kind, base, len, flags, name, namelen,
+                                            h.reset_and_get_address());
     result->reset(h.release());
     return status;
 }

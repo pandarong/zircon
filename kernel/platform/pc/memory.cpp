@@ -5,6 +5,7 @@
 // https://opensource.org/licenses/MIT
 
 #include <arch/x86/bootstrap16.h>
+#include <arch/x86/feature.h>
 #include <arch/x86/mmu.h>
 #include <assert.h>
 #include <efi/boot-services.h>
@@ -12,6 +13,7 @@
 #include <fbl/algorithm.h>
 #include <inttypes.h>
 #include <lib/memory_limit.h>
+#include <lk/init.h>
 #include <platform.h>
 #include <platform/pc/bootloader.h>
 #include <string.h>
@@ -20,6 +22,7 @@
 #include <zircon/boot/e820.h>
 #include <zircon/boot/multiboot.h>
 #include <zircon/types.h>
+#include <object/resource_dispatcher.h>
 
 #include "platform_p.h"
 
@@ -89,26 +92,40 @@ static zx_status_t mem_arena_init(boot_addr_range_t* range) {
     ctx.ramdisk_base = reinterpret_cast<uintptr_t>(platform_get_ramdisk(&ctx.ramdisk_size));
 
     bool have_limit = (mem_limit_init(&ctx) == ZX_OK);
-
+    // Create the kernel's singleton for address space management
     // Set up a base arena template to use
     pmm_arena_info_t base_arena;
     snprintf(base_arena.name, sizeof(base_arena.name), "%s", "memory");
     base_arena.priority = 1;
     base_arena.flags = 0;
 
+    zx_status_t status;
     for (range->reset(range), range->advance(range); !range->is_reset; range->advance(range)) {
         LTRACEF("Range at %#" PRIx64 " of %#" PRIx64 " bytes is %smemory.\n",
                 range->base, range->size, range->is_mem ? "" : "not ");
 
-        if (!range->is_mem)
+        if (!range->is_mem) {
             continue;
+        }
 
-        /* trim off parts of memory ranges that are smaller than a page */
+        // Remove any address ranges identified as memory by the bootloader from
+        // the MMIO aaddress space allocator. This prevents physical vmos from being created
+        // against it through syscalls.
+        //auto& pasm = PhysicalAspaceManager::Get();
+        //zx_status_t status = pasm->ReserveAddressSpaceEarly(PhysicalAspaceManager::kMmioAllocator,
+                                                                 //range->base, range->size);
+
+        //if (status != ZX_OK) {
+            //printf("MEM: Failed to allocate address space for pmm range at %#" PRIxPTR
+                    //" size %zx: %d\n", range->base, range->size, status);
+        //}
+
+        // trim off parts of memory ranges that are smaller than a page
         uint64_t base = ROUNDUP(range->base, PAGE_SIZE);
         uint64_t size = ROUNDDOWN(range->base + range->size, PAGE_SIZE) -
                         base;
 
-        /* trim any memory below 1MB for safety and SMP booting purposes */
+        // trim any memory below 1MB for safety and SMP booting purposes
         if (base < 1 * MB) {
             uint64_t adjust = 1 * MB - base;
             if (adjust >= size)
@@ -118,7 +135,6 @@ static zx_status_t mem_arena_init(boot_addr_range_t* range) {
             size -= adjust;
         }
 
-        zx_status_t status = ZX_OK;
         if (have_limit) {
             status = mem_limit_add_arenas_from_range(&ctx, base, size, base_arena);
         }
@@ -339,7 +355,7 @@ static void multiboot_range_advance(boot_addr_range_t* range) {
 }
 
 static zx_status_t multiboot_range_init(boot_addr_range_t* range,
-                                multiboot_range_seq_t* seq) {
+                                        multiboot_range_seq_t* seq) {
     LTRACEF("_multiboot_info %p\n", _multiboot_info);
 
     range->seq = seq;
@@ -520,3 +536,19 @@ void pc_mem_init(void) {
         TRACEF("WARNING - Failed to assign bootstrap16 region, SMP won't work\n");
     }
 }
+
+// Initialize the higher level PhysicalAspaceManager after the heap is initialized.
+static void x86_resource_init_hook(unsigned int rl) {
+    // An error is likely fatal if the bookkeeping is broken and driver
+    ResourceDispatcher::InitializeAllocator(ZX_RSRC_KIND_MMIO,
+                                            0,
+                                            (1ull << (x86_physical_address_width())) - 1);
+    ResourceDispatcher::InitializeAllocator(ZX_RSRC_KIND_IOPORT,
+                                            0,
+                                            UINT16_MAX);
+    ResourceDispatcher::InitializeAllocator(ZX_RSRC_KIND_IRQ,
+                                            interrupt_get_base_vector(),
+                                            interrupt_get_max_vector());
+}
+
+LK_INIT_HOOK(x86_resource_init, x86_resource_init_hook, LK_INIT_LEVEL_HEAP);

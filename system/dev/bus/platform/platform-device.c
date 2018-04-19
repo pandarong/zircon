@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <zircon/syscalls/resource.h>
 
 #include "platform-bus.h"
 #include "platform-proxy.h"

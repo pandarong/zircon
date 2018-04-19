@@ -4,13 +4,20 @@
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT
 
-#include <object/resources.h>
-
 #include <fbl/ref_ptr.h>
+#include <kernel/range_check.h>
 #include <object/process_dispatcher.h>
 #include <object/resource_dispatcher.h>
+#include <object/resources.h>
 #include <zircon/syscalls/resource.h>
+#include <trace.h>
 
+#define LOCAL_TRACE 0
+// Check if the resource referenced by |handle| is of kind |kind|, or ZX_RSRC_KIND_ROOT.
+//
+// Possible errors:
+// ++ ZX_ERR_ACCESS_DENIED: |handle| is not the right |kind| of handle.
+// ++ ZX_ERR_WRONG_TYPE: |handle| is not a valid handle.
 zx_status_t validate_resource(zx_handle_t handle, uint32_t kind) {
     auto up = ProcessDispatcher::GetCurrent();
     fbl::RefPtr<ResourceDispatcher> resource;
@@ -18,32 +25,63 @@ zx_status_t validate_resource(zx_handle_t handle, uint32_t kind) {
     if (status != ZX_OK) {
         return status;
     }
-    uint32_t rkind = resource->get_kind();
-    if ((rkind == ZX_RSRC_KIND_ROOT) || (rkind == kind)) {
+
+    auto res_kind = resource->get_kind();
+    if (res_kind == kind || res_kind == ZX_RSRC_KIND_ROOT) {
         return ZX_OK;
     }
-    return ZX_ERR_ACCESS_DENIED;
+
+    return ZX_ERR_WRONG_TYPE;
 }
 
-zx_status_t validate_ranged_resource(zx_handle_t handle, uint32_t kind, uint64_t low,
-                                     uint64_t high) {
+// Check if the resource referenced by |handle| is of kind |kind|, or ZX_RSRC_KIND_ROOT. If
+// |kind| matches the resource's kind, then range validation between |base| and |size| will
+// be made against the resource's backing address space allocation.
+//
+// Possible errors:
+// ++ ZX_ERR_ACCESS_DENIED: |handle| is not a valid handle.
+// ++ ZX_ERR_WRONG_TYPE: |handle| is not a valid Resource handle, or does not match |kind|.
+// ++ ZX_ERR_OUT_OF_RANGE: The range specified by |base| and |Len| is not granted by this
+// resource.
+zx_status_t validate_ranged_resource(zx_handle_t handle,
+                                     uint32_t kind,
+                                     uintptr_t base,
+                                     size_t size) {
     auto up = ProcessDispatcher::GetCurrent();
     fbl::RefPtr<ResourceDispatcher> resource;
     auto status = up->GetDispatcher(handle, &resource);
     if (status != ZX_OK) {
         return status;
     }
-    uint32_t rsrc_kind = resource->get_kind();
-    if (rsrc_kind == ZX_RSRC_KIND_ROOT) {
-        // root resource is valid for everything
+
+    // Root gets access to everything and has no region to match against
+    if (resource->get_kind() == ZX_RSRC_KIND_ROOT) {
         return ZX_OK;
-    } else if (rsrc_kind == kind) {
-        uint64_t rsrc_low, rsrc_high;
-        resource->get_range(&rsrc_low, &rsrc_high);
-        if (low >= rsrc_low && high <= rsrc_high) {
-            return ZX_OK;
-        }
     }
 
-    return ZX_ERR_ACCESS_DENIED;
+    if (resource->get_kind() != kind) {
+        return ZX_ERR_WRONG_TYPE;
+    }
+
+    uint64_t rbase = resource->get_base();
+    size_t rsize = resource->get_size();
+    if (resource->get_kind() == ZX_RSRC_KIND_MMIO) {
+        rbase = ROUNDDOWN(rbase, PAGE_SIZE);
+        rsize = PAGE_ALIGN(rsize);
+    }
+    TRACEF("[base %#lx size %#lx] and range [base %#lx size %#lx]\n", base, size, rbase, rsize);
+
+    // Check for intersection and make sure the requested base+size fits within
+    // the resource's address space  allocation.
+    uintptr_t ibase;
+    size_t isize;
+    if (!GetIntersect(base, size, rbase, rsize, &ibase, &isize) ||
+            isize != size ||
+            ibase != base) {
+        TRACEF("out of range!\n");
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+
+    TRACEF("success!\n");
+    return ZX_OK;
 }
