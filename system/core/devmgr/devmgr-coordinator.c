@@ -62,6 +62,14 @@ static suspend_context_t suspend_ctx = {
     .devhosts = LIST_INITIAL_VALUE(suspend_ctx.devhosts),
 };
 
+typedef struct {
+    list_node_t node;
+    char* path;
+    uint32_t type;
+    uint32_t length;
+    uint8_t data[];
+} dc_metadata_t;
+
 static bool dc_in_suspend(void) {
     return !!suspend_ctx.flags;
 }
@@ -77,6 +85,7 @@ static device_t root_device = {
     .args = "root,",
     .children = LIST_INITIAL_VALUE(root_device.children),
     .pending = LIST_INITIAL_VALUE(root_device.pending),
+    .metadata = LIST_INITIAL_VALUE(root_device.metadata),
     .refcount = 1,
 };
 
@@ -89,6 +98,7 @@ static device_t misc_device = {
     .args = "misc,",
     .children = LIST_INITIAL_VALUE(misc_device.children),
     .pending = LIST_INITIAL_VALUE(misc_device.pending),
+    .metadata = LIST_INITIAL_VALUE(misc_device.metadata),
     .refcount = 1,
 };
 
@@ -100,6 +110,7 @@ static device_t sys_device = {
     .args = "sys,",
     .children = LIST_INITIAL_VALUE(sys_device.children),
     .pending = LIST_INITIAL_VALUE(sys_device.pending),
+    .metadata = LIST_INITIAL_VALUE(sys_device.metadata),
     .refcount = 1,
 };
 
@@ -112,6 +123,7 @@ static device_t test_device = {
     .args = "test,",
     .children = LIST_INITIAL_VALUE(test_device.children),
     .pending = LIST_INITIAL_VALUE(test_device.pending),
+    .metadata = LIST_INITIAL_VALUE(test_device.metadata),
     .refcount = 1,
 };
 
@@ -684,6 +696,13 @@ static void dc_release_device(device_t* dev) {
 
     cancel_work(&dev->work);
 
+    // free any attached metadata
+    dc_metadata_t* md;
+    while ((md = list_remove_head_type(&dev->metadata, dc_metadata_t, node)) != NULL) {
+        free(md->path);
+        free(md);
+    }
+
     //TODO: cancel any pending rpc responses
     free(dev);
 }
@@ -707,6 +726,7 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
     }
     list_initialize(&dev->children);
     list_initialize(&dev->pending);
+    list_initialize(&dev->metadata);
     dev->hrpc = hrpc;
     dev->prop_count = msg->datalen / sizeof(zx_device_prop_t);
     dev->protocol_id = msg->protocol_id;
@@ -794,6 +814,12 @@ static zx_status_t dc_add_device(device_t* parent, zx_handle_t hrpc,
         dc_notify(dev, DEVMGR_OP_DEVICE_ADDED);
         queue_work(&dev->work, WORK_DEVICE_ADDED, 0);
     }
+
+
+char devpath[1024] = {};
+dc_get_topo_path(dev, devpath, sizeof(devpath));
+printf("dc_add_device: %s : %s\n", dev->name, devpath);
+
     return ZX_OK;
 }
 
@@ -1002,6 +1028,76 @@ static zx_status_t dc_load_firmware(device_t* dev, const char* path,
         }
     }
     return ZX_ERR_NOT_FOUND;
+}
+
+static zx_status_t dc_get_metadata(device_t* dev, uint32_t type, void* buffer, size_t buflen,
+                                   size_t* actual) {
+    dc_metadata_t* md;
+
+    // first search dev and its parent devices for a match
+    while (dev) {
+        list_for_every_entry(&dev->metadata, md, dc_metadata_t, node) {
+            if (md->type == type) {
+                if (md->length > buflen) {
+                    return ZX_ERR_BUFFER_TOO_SMALL;
+                }
+                memcpy(buffer, md->data, md->length);
+                *actual = md->length;
+                return ZX_OK;
+            }
+            dev = dev->parent;
+        }
+    }
+
+    // next check for published metadata with matching path
+    char devpath[DC_PATH_MAX];
+    zx_status_t r = dc_get_topo_path(dev, devpath, sizeof(devpath));
+    if (r < 0) {
+        return r;
+    }
+    list_for_every_entry(&sys_device.metadata, md, dc_metadata_t, node) {
+        if (md->path && !strcmp(md->path, devpath) && md->type == type) {
+            memcpy(buffer, md->data, md->length);
+            *actual = md->length;
+            return ZX_OK;
+        }
+    }
+    
+    return ZX_ERR_NOT_FOUND;
+}
+
+static zx_status_t dc_add_metadata(device_t* dev, const char* path, uint32_t type, const void* data,
+                                   uint32_t length) {
+    dc_metadata_t* md = calloc(1, sizeof(dc_metadata_t) + length);
+    if (!md) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    if (path) {
+        md->path = strdup(path);
+        if (!md->path) {
+            free(md);
+            return ZX_ERR_NO_MEMORY;
+        }
+    }
+
+    md->type = type;
+    md->length = length;
+    memcpy(&md->data, data, length);
+    list_add_head(&dev->metadata, &md->node);
+    return ZX_OK;
+}
+
+static zx_status_t dc_publish_metadata(device_t* dev, const char* path, uint32_t type,
+                                       const void* data, uint32_t length) {
+    if (strncmp(path, "/sys/", strlen("/sys/"))) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    if (dev != &sys_device) {
+        // only sys should be publishing metadata
+        return ZX_ERR_ACCESS_DENIED;
+    }
+
+    return dc_add_metadata(dev, path, type, data, length);
 }
 
 static zx_status_t dc_handle_device_read(device_t* dev) {
@@ -1215,7 +1311,34 @@ static zx_status_t dc_handle_device_read(device_t* dev) {
         free(pending);
         return ZX_OK;
     }
-
+    case DC_OP_GET_METADATA: {
+        if (hcount != 0) {
+            goto fail_wrong_hcount;
+        }
+        struct {
+            dc_status_t rsp;
+            uint8_t data[DC_MAX_DATA];
+        } reply;
+        size_t actual = 0;
+        reply.rsp.status = dc_get_metadata(dev, msg.value, &reply.data, sizeof(reply.data),
+                                           &actual);
+        reply.rsp.txid = msg.txid;
+        return zx_channel_write(dev->hrpc, 0, &reply, sizeof(reply.rsp) + actual, NULL, 0);
+    }
+    case DC_OP_ADD_METADATA: {
+        if (hcount != 0) {
+            goto fail_wrong_hcount;
+        }
+        r = dc_add_metadata(dev, NULL, msg.value, data, msg.datalen);
+        break;
+    }
+    case DC_OP_PUBLISH_METADATA: {
+        if (hcount != 0) {
+            goto fail_wrong_hcount;
+        }
+        r = dc_publish_metadata(dev, args, msg.value, data, msg.datalen);
+        break;
+    }
     default:
         log(ERROR, "devcoord: invalid rpc op %08x\n", msg.op);
         r = ZX_ERR_NOT_SUPPORTED;

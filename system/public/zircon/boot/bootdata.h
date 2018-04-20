@@ -57,6 +57,10 @@
 // Content: bootdata_partition_map_t
 #define BOOTDATA_PARTITION_MAP    (0x54524150) // PART
 
+// MAC Address for Ethernet, Wifi, Bluetooth, etc.
+// Content: uint8_t[] (variable length based on type of MAC address)
+#define BOOTDATA_MAC_ADDRESS      (0x4142414D) // MACA
+
 // Flag indicating that the bootfs is compressed.
 #define BOOTDATA_BOOTFS_FLAG_COMPRESSED  (1 << 0)
 
