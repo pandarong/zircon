@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <zircon/boot/bootdata.h>
 #include <zircon/device/block.h>
 
 // block_op_t's are submitted for processing via the queue() method
@@ -69,6 +70,13 @@ typedef struct block_protocol_ops {
     // be reported via the completion_cb() in the block_op_t.  This
     // callback may be called before the queue() method returns.
     void (*queue)(void* ctx, block_op_t* txn);
+
+    // Returns the bootdata_partition_map_t for the block device,
+    // if the device has an associated partition map in the bootdata.
+    // Otherwise returns ZX_ERR_NOT_SUPPORTED.
+    // Returns ZX_ERR_BUFFER_TOO_SMALL if size of the partition map
+    // is greater than buf_size.
+    void (*get_partition_map)(void* ctx, bootdata_partition_map_t* buf, size_t buf_size);
 } block_protocol_ops_t;
 
 typedef struct block_protocol {

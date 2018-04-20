@@ -12,6 +12,7 @@
 #include <ddk/protocol/platform-defs.h>
 #include <zircon/boot/bootdata.h>
 #include <zircon/boot/driver-config.h>
+#include <zircon/hw/gpt.h>
 
 // uncomment to dump device tree at boot
 // #define PRINT_DEVICE_TREE

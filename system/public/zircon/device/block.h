@@ -87,6 +87,7 @@
 
 #define BLOCK_FLAG_READONLY 0x00000001
 #define BLOCK_FLAG_REMOVABLE 0x00000002
+#define BLOCK_FLAG_BOOTDATA_PARTITION_MAP 0x00000004
 
 typedef struct {
     uint64_t block_count;       // The number of blocks in this block device
