@@ -1045,7 +1045,11 @@ static zx_status_t dc_get_metadata(device_t* dev, uint32_t type, void* buffer, s
                 *actual = md->length;
                 return ZX_OK;
             }
+#if 0
             dev = dev->parent;
+#else
+            dev = NULL;
+#endif
         }
     }
 
