@@ -427,7 +427,6 @@ static int sdmmc_worker_thread(void* arg) {
     }
 
     zxlogf(TRACE, "sdmmc: worker thread terminated\n");
-
     return 0;
 }
 
