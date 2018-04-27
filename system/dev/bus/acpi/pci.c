@@ -361,7 +361,7 @@ static zx_status_t find_pci_config(zx_pci_init_arg_t* arg) {
  *
  * @return ZX_OK on success
  */
-zx_status_t get_pci_init_arg(zx_pci_init_arg_t** arg, uint32_t* size) {
+zx_status_t get_pci_init_arg(zx_pci_init_arg_t** arg, size_t* size) {
     zx_pci_init_arg_t* res = NULL;
 
     // TODO(teisenbe): We assume only one ECAM window right now...

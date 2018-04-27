@@ -34,6 +34,7 @@ MODULE_SRCS := \
     $(LOCAL_DIR)/debug.c \
     $(LOCAL_DIR)/init.c \
     $(LOCAL_DIR)/pci.c \
+	$(LOCAL_DIR)/pciroot.c \
     $(LOCAL_DIR)/power.c \
     $(LOCAL_DIR)/powerbtn.c \
     $(LOCAL_DIR)/resources.c \
