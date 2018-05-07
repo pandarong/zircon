@@ -9,23 +9,19 @@ MODULE := $(LOCAL_DIR)
 MODULE_TYPE := driver
 
 MODULE_SRCS += \
-    $(LOCAL_DIR)/aml.c \
-    $(LOCAL_DIR)/aml-gpio.c \
-    $(LOCAL_DIR)/aml-i2c.c \
-    $(LOCAL_DIR)/aml-usb.c \
     $(LOCAL_DIR)/aml-rawnand.c \
+    $(LOCAL_DIR)/rawnand_tests.c \
+    $(LOCAL_DIR)/nand.c \
 
 MODULE_STATIC_LIBS := \
-    system/dev/soc/amlogic \
     system/ulib/ddk \
-    system/ulib/sync
+    system/ulib/sync \
 
 MODULE_LIBS := \
     system/ulib/driver \
     system/ulib/c \
-    system/ulib/zircon
+    system/ulib/zircon \
 
-MODULE_HEADER_DEPS := \
-    system/dev/soc/amlogic
+MODULE_HEADER_DEPS := system/dev/soc/amlogic
 
 include make/module.mk

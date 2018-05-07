@@ -28,6 +28,7 @@ enum {
     BTI_AUDIO_IN,
     BTI_AUDIO_OUT,
     BTI_USB_XHCI,
+    BTI_AML_RAWNAND,    
 };
 
 typedef struct {
@@ -63,3 +64,7 @@ zx_status_t gauss_clk_init(gauss_bus_t* bus);
 
 // gauss-pcie.c
 zx_status_t gauss_pcie_init(gauss_bus_t* bus);
+
+// gauss-rawnand.c
+zx_status_t gauss_rawnand_init(gauss_bus_t* bus);
+

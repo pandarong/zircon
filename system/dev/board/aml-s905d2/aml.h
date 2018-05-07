@@ -16,6 +16,7 @@
 enum {
     BTI_BOARD,
     BTI_USB_XHCI,
+    BTI_AML_RAWNAND,    
 };
 
 typedef struct {
@@ -35,3 +36,7 @@ zx_status_t aml_i2c_init(aml_bus_t* bus);
 
 // aml-usb.c
 zx_status_t aml_usb_init(aml_bus_t* bus);
+
+// aml-rawnand.c
+zx_status_t aml_rawnand_init(aml_bus_t* bus);
+

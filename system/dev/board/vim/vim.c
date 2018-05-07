@@ -154,6 +154,14 @@ static int vim_start_thread(void* arg) {
         goto fail;
     }
 
+    zxlogf(ERROR,
+           "*** MOHAN *** PRINT vim_start_thread: BEFORE BOARD CHECK !!\n");
+    
+    if ((status = vim_rawnand_init(bus)) != ZX_OK) {
+        zxlogf(ERROR, "vim_rawnand_init failed: %d\n", status);
+        goto fail;
+    }
+
     if ((status = pbus_device_add(&bus->pbus, &led2472g_dev, 0)) != ZX_OK) {
       zxlogf(ERROR, "vim_start_thread could not add led2472g_dev: %d\n", status);
       goto fail;

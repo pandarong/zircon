@@ -268,3 +268,21 @@
 #define S912_EMMC_CMD_FN        1
 #define S912_EMMC_DS            S912_GPIOBOOT(15)
 #define S912_EMMC_DS_FN         1
+
+// rawnand controller 
+#define S912_RAWNAND_CE0            S912_GPIOBOOT(8)
+#define S912_RAWNAND_CE0_FN         2
+#define S912_RAWNAND_CE1            S912_GPIOBOOT(9)
+#define S912_RAWNAND_CE1_FN         2
+#define S912_RAWNAND_RB0            S912_GPIOBOOT(10)
+#define S912_RAWNAND_RB0_FN         2
+#define S912_RAWNAND_ALE            S912_GPIOBOOT(11)
+#define S912_RAWNAND_ALE_FN         2
+#define S912_RAWNAND_CLE            S912_GPIOBOOT(12)
+#define S912_RAWNAND_CLE_FN         2
+#define S912_RAWNAND_WEN_CLK        S912_GPIOBOOT(13)
+#define S912_RAWNAND_WEN_CLK_FN     2
+#define S912_RAWNAND_REN_WR         S912_GPIOBOOT(14)
+#define S912_RAWNAND_REN_WR_FN      2
+#define S912_RAWNAND_NAND_DQS       S912_GPIOBOOT(15)
+#define S912_RAWNAND_NAND_DQS_FN    2
