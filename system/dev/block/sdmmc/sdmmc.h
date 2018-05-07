@@ -18,6 +18,7 @@ __BEGIN_CDECLS;
 typedef enum sdmmc_type {
     SDMMC_TYPE_SD,
     SDMMC_TYPE_MMC,
+    SDMMC_TYPE_SDIO,
 } sdmmc_type_t;
 
 #define SDMMC_REQ_COUNT   16
@@ -94,5 +95,6 @@ zx_status_t mmc_switch(sdmmc_device_t* dev, uint8_t index, uint8_t value);
 
 zx_status_t sdmmc_probe_sd(sdmmc_device_t* dev);
 zx_status_t sdmmc_probe_mmc(sdmmc_device_t* dev);
+zx_status_t sdmmc_probe_sdio(sdmmc_device_t* dev);
 
 __END_CDECLS;

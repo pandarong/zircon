@@ -462,6 +462,7 @@ static zx_status_t sdmmc_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+  if (0) {
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "sdmmc",
@@ -476,6 +477,7 @@ static zx_status_t sdmmc_bind(void* ctx, zx_device_t* parent) {
     if (st != ZX_OK) {
         goto fail;
     }
+  }
 
     // bootstrap in a thread
     int rc = thrd_create_with_name(&dev->worker_thread, sdmmc_worker_thread, dev, "sdmmc-worker");
