@@ -29,7 +29,7 @@
 
 // Limit maximum number of descriptors to 512 for now
 #define AML_DMA_DESC_MAX_COUNT      512
-#define AML_SD_EMMC_TRACE(fmt, ...) zxlogf(TRACE, "%s: " fmt, __func__, ##__VA_ARGS__)
+#define AML_SD_EMMC_TRACE(fmt, ...) zxlogf(INFO, "%s: " fmt, __func__, ##__VA_ARGS__)
 #define AML_SD_EMMC_INFO(fmt, ...)  zxlogf(INFO, "%s: "fmt, __func__, ##__VA_ARGS__)
 #define AML_SD_EMMC_ERROR(fmt, ...) zxlogf(ERROR, "%s: " fmt, __func__, ##__VA_ARGS__)
 #define AML_SD_EMMC_COMMAND(c)      ((0x80) | (c))
@@ -67,7 +67,7 @@ static void aml_sd_emmc_dump_cfg(uint32_t cfg);
 static void aml_sd_emmc_dump_regs(aml_sd_emmc_t* dev) {
     aml_sd_emmc_regs_t* regs = dev->regs;
     AML_SD_EMMC_TRACE("sd_emmc_clock : 0x%x\n", regs->sd_emmc_clock);
-    AML_SD_EMMC_TRACE("sd_emmc_delay1 : 0x%x\n", regs->sd_emmc_delay1);
+    /*AML_SD_EMMC_TRACE("sd_emmc_delay1 : 0x%x\n", regs->sd_emmc_delay1);
     AML_SD_EMMC_TRACE("sd_emmc_delay2 : 0x%x\n", regs->sd_emmc_delay2);
     AML_SD_EMMC_TRACE("sd_emmc_adjust : 0x%x\n", regs->sd_emmc_adjust);
     AML_SD_EMMC_TRACE("sd_emmc_calout : 0x%x\n", regs->sd_emmc_calout);
@@ -95,7 +95,7 @@ static void aml_sd_emmc_dump_regs(aml_sd_emmc_t* dev) {
     AML_SD_EMMC_TRACE("sd_emmc_txd : 0x%x\n", regs->sd_emmc_txd);
     AML_SD_EMMC_TRACE("sramDesc : %p\n",regs->sramDesc);
     AML_SD_EMMC_TRACE("ping : %p\n", regs->ping);
-    AML_SD_EMMC_TRACE("pong : %p\n", regs->pong);
+    AML_SD_EMMC_TRACE("pong : %p\n", regs->pong);*/
 }
 
 static void aml_sd_emmc_dump_status(uint32_t status) {
@@ -906,7 +906,7 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     dev->max_freq = AML_SD_EMMC_MAX_FREQ;
     dev->min_freq = AML_SD_EMMC_MIN_FREQ;
     // Create the device.
-    aml_sd_emmc_dump_regs(dev);
+    //aml_sd_emmc_dump_regs(dev);
     if(0) {
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
