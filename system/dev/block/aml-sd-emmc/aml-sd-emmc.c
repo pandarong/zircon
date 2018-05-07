@@ -813,7 +813,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     return req->status;
 }
 
-static zx_protocol_device_t aml_sd_emmc_device_proto = {
+/*static zx_protocol_device_t aml_sd_emmc_device_proto = {
     .version = DEVICE_OPS_VERSION,
     .release = aml_sd_emmc_release,
 };
@@ -827,10 +827,11 @@ static sdmmc_protocol_ops_t aml_sdmmc_proto = {
     .hw_reset = aml_sd_emmc_hw_reset,
     .perform_tuning = aml_sd_emmc_perform_tuning,
     .request = aml_sd_emmc_request,
-};
+};*/
 
 static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
-    aml_sd_emmc_t* dev = calloc(1, sizeof(aml_sd_emmc_t));
+    zxlogf(INFO, "aml_sd_emmc_bind: MINE: START\n");
+    /* aml_sd_emmc_t* dev = calloc(1, sizeof(aml_sd_emmc_t));
     if (!dev) {
         zxlogf(ERROR, "aml-dev_bind: out of memory\n");
         return ZX_ERR_NO_MEMORY;
@@ -901,9 +902,9 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
     dev->max_freq = AML_SD_EMMC_MAX_FREQ;
-    dev->min_freq = AML_SD_EMMC_MIN_FREQ;
+    dev->min_freq = AML_SD_EMMC_MIN_FREQ;*/
     // Create the device.
-    device_add_args_t args = {
+    /*device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "aml-sd-emmc",
         .ctx = dev,
@@ -915,11 +916,11 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     status = device_add(parent, &args, &dev->zxdev);
     if (status != ZX_OK) {
         goto fail;
-    }
+    }*/
     return ZX_OK;
-fail:
-    aml_sd_emmc_release(dev);
-    return status;
+//fail:
+//    aml_sd_emmc_release(dev);
+//    return status;
 }
 
 
