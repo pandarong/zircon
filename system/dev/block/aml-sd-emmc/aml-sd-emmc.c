@@ -906,7 +906,7 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     dev->max_freq = AML_SD_EMMC_MAX_FREQ;
     dev->min_freq = AML_SD_EMMC_MIN_FREQ;
     // Create the device.
-    //aml_sd_emmc_dump_regs(dev);
+    aml_sd_emmc_dump_regs(dev);
     if(0) {
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
