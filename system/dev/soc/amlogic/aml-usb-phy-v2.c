@@ -110,6 +110,20 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti) {
         zxlogf(ERROR, "aml_usb_init: set_usb_pll failed: %d\n", status);
     }
 
+    // experimental change
+    {
+        io_buffer_t buf;
+        io_buffer_init_physical(&buf, bti, S905D2_USBPHY21_BASE, PAGE_SIZE, get_root_resource(),
+                                ZX_CACHE_POLICY_UNCACHED_DEVICE);
+        volatile uint32_t* ptr = (uint32_t *)(io_buffer_virt(&buf) + 0x050);
+        *ptr = 0xfe18;
+        ptr = (uint32_t *)(io_buffer_virt(&buf) + 0x010);
+        *ptr = 0xfff;
+        ptr = (uint32_t *)(io_buffer_virt(&buf) + 0x034);
+        *ptr = 0xc8000;
+        io_buffer_release(&buf);
+    }
+
     io_buffer_release(&reset_buf);
     io_buffer_release(&usbctrl_buf);
 
