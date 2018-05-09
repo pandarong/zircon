@@ -216,10 +216,10 @@ static void sdmmc_queue(void* ctx, block_op_t* btxn) {
 }
 
 // Block protocol
-static block_protocol_ops_t block_proto = {
+/*static block_protocol_ops_t block_proto = {
     .query = sdmmc_query,
     .queue = sdmmc_queue,
-};
+};*/
 
 static zx_status_t sdmmc_wait_for_tran(sdmmc_device_t* dev) {
     uint32_t current_state;
@@ -384,13 +384,16 @@ static int sdmmc_worker_thread(void* arg) {
         device_remove(dev->zxdev);
         return st;
     }
+    zxlogf(INFO, "sdmmc: SDMMC_GO_IDLE_STATE PASSED\n");
 
     // Probe for SD, then MMC
-    if ((st = sdmmc_probe_sd(dev)) != ZX_OK) {
-        if ((st = sdmmc_probe_mmc(dev)) != ZX_OK) {
-            zxlogf(ERROR, "sdmmc: failed to probe\n");
-            device_remove(dev->zxdev);
-            return st;
+    if ((st = sdmmc_probe_sdio(dev)) != ZX_OK) {
+        if ((st = sdmmc_probe_sd(dev)) != ZX_OK) {
+            if ((st = sdmmc_probe_mmc(dev)) != ZX_OK) {
+                zxlogf(ERROR, "sdmmc: failed to probe\n");
+                device_remove(dev->zxdev);
+                return st;
+            }
         }
     }
 
@@ -462,14 +465,14 @@ static zx_status_t sdmmc_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
-  if (0) {
+  if (1) {
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "sdmmc",
         .ctx = dev,
         .ops = &sdmmc_device_proto,
-        .proto_id = ZX_PROTOCOL_BLOCK_IMPL,
-        .proto_ops = &block_proto,
+        //.proto_id = ZX_PROTOCOL_BLOCK_IMPL,
+        //.proto_ops = &block_proto,
         .flags = DEVICE_ADD_INVISIBLE,
     };
 

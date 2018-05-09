@@ -67,7 +67,7 @@ static void aml_sd_emmc_dump_cfg(uint32_t cfg);
 static void aml_sd_emmc_dump_regs(aml_sd_emmc_t* dev) {
     aml_sd_emmc_regs_t* regs = dev->regs;
     AML_SD_EMMC_TRACE("sd_emmc_clock : 0x%x\n", regs->sd_emmc_clock);
-    /*AML_SD_EMMC_TRACE("sd_emmc_delay1 : 0x%x\n", regs->sd_emmc_delay1);
+    AML_SD_EMMC_TRACE("sd_emmc_delay1 : 0x%x\n", regs->sd_emmc_delay1);
     AML_SD_EMMC_TRACE("sd_emmc_delay2 : 0x%x\n", regs->sd_emmc_delay2);
     AML_SD_EMMC_TRACE("sd_emmc_adjust : 0x%x\n", regs->sd_emmc_adjust);
     AML_SD_EMMC_TRACE("sd_emmc_calout : 0x%x\n", regs->sd_emmc_calout);
@@ -95,7 +95,7 @@ static void aml_sd_emmc_dump_regs(aml_sd_emmc_t* dev) {
     AML_SD_EMMC_TRACE("sd_emmc_txd : 0x%x\n", regs->sd_emmc_txd);
     AML_SD_EMMC_TRACE("sramDesc : %p\n",regs->sramDesc);
     AML_SD_EMMC_TRACE("ping : %p\n", regs->ping);
-    AML_SD_EMMC_TRACE("pong : %p\n", regs->pong);*/
+    AML_SD_EMMC_TRACE("pong : %p\n", regs->pong);
 }
 
 static void aml_sd_emmc_dump_status(uint32_t status) {
@@ -413,6 +413,15 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
     aml_sd_emmc_regs_t* regs = dev->regs;
     uint32_t config = 0;
     uint32_t clk_val = 0;
+    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_CO_PHASE_MASK,
+                AML_SD_EMMC_CLOCK_CFG_CO_PHASE_LOC, AML_SD_EMMC_DEFAULT_CLK_CORE_PHASE);
+    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_SRC_MASK, AML_SD_EMMC_CLOCK_CFG_SRC_LOC,
+                AML_SD_EMMC_DEFAULT_CLK_SRC);
+    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_DIV_MASK, AML_SD_EMMC_CLOCK_CFG_DIV_LOC,
+                AML_SD_EMMC_DEFAULT_CLK_DIV);
+    clk_val |= AML_SD_EMMC_CLOCK_CFG_ALWAYS_ON;
+    regs->sd_emmc_clock = clk_val;
+
     update_bits(&config, AML_SD_EMMC_CFG_BL_LEN_MASK, AML_SD_EMMC_CFG_BL_LEN_LOC,
                 AML_SD_EMMC_DEFAULT_BL_LEN);
     update_bits(&config, AML_SD_EMMC_CFG_RESP_TIMEOUT_MASK, AML_SD_EMMC_CFG_RESP_TIMEOUT_LOC,
@@ -421,15 +430,7 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
                 AML_SD_EMMC_DEFAULT_RC_CC);
     update_bits(&config, AML_SD_EMMC_CFG_BUS_WIDTH_MASK, AML_SD_EMMC_CFG_BUS_WIDTH_LOC,
                  AML_SD_EMMC_CFG_BUS_WIDTH_1BIT);
-    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_CO_PHASE_MASK,
-                AML_SD_EMMC_CLOCK_CFG_CO_PHASE_LOC, AML_SD_EMMC_DEFAULT_CLK_CORE_PHASE);
-    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_SRC_MASK, AML_SD_EMMC_CLOCK_CFG_SRC_LOC,
-                AML_SD_EMMC_DEFAULT_CLK_SRC);
-    update_bits(&clk_val, AML_SD_EMMC_CLOCK_CFG_DIV_MASK, AML_SD_EMMC_CLOCK_CFG_DIV_LOC,
-                AML_SD_EMMC_DEFAULT_CLK_DIV);
-    clk_val |= AML_SD_EMMC_CLOCK_CFG_ALWAYS_ON;
 
-    regs->sd_emmc_clock = clk_val;
     regs->sd_emmc_cfg = config;
     regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
@@ -512,6 +513,7 @@ static int aml_sd_emmc_irq_thread(void *ctx) {
             break;
         }
 
+        zxlogf(INFO, "aml_sd_emmc_irq_thread: zx_interrupt_wait got interrupt for req->cmd_idx: %d\n", req->cmd_idx);
         status_irq = regs->sd_emmc_status;
         if (!(status_irq & AML_SD_EMMC_STATUS_END_OF_CHAIN)) {
             status = ZX_ERR_IO_INVALID;
@@ -906,8 +908,7 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     dev->max_freq = AML_SD_EMMC_MAX_FREQ;
     dev->min_freq = AML_SD_EMMC_MIN_FREQ;
     // Create the device.
-    aml_sd_emmc_dump_regs(dev);
-    if(0) {
+    if(1) {
     device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "aml-sd-emmc",

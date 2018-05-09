@@ -22,6 +22,7 @@
 zx_status_t sdmmc_probe_sdio(sdmmc_device_t* dev) {
     zx_status_t st = ZX_OK;
     dev->type = SDMMC_TYPE_SDIO;
-    zxlogf(INFO, "sdmmc_probe_sdio Reached START\n");
+    zxlogf(INFO, "sdmmc_probe_sdio HAHA Reached START\n");
+    st = ZX_ERR_NOT_SUPPORTED;
     return st;
 }
