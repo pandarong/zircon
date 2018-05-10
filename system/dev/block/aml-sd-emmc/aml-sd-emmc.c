@@ -34,6 +34,7 @@
 #define AML_SD_EMMC_ERROR(fmt, ...) zxlogf(ERROR, "%s: " fmt, __func__, ##__VA_ARGS__)
 #define AML_SD_EMMC_COMMAND(c)      ((0x80) | (c))
 #define PAGE_MASK                   (PAGE_SIZE - 1ull)
+#define NEW_SUBMIT_REQUEST
 
 typedef struct aml_sd_emmc_t {
     platform_device_protocol_t pdev;
@@ -52,6 +53,7 @@ typedef struct aml_sd_emmc_t {
     mtx_t mtx;
     // Controller info
     sdmmc_host_info_t info;
+    aml_sd_emmc_desc_t cur_desc;
     // cur pending req
     uint32_t max_freq;
     uint32_t min_freq;
@@ -432,8 +434,8 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
                  AML_SD_EMMC_CFG_BUS_WIDTH_1BIT);
 
     regs->sd_emmc_cfg = config;
-    regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
-    regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
+    //regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
+    //regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
 }
 
 static void aml_sd_emmc_hw_reset(void* ctx) {
@@ -490,95 +492,6 @@ static zx_status_t aml_sd_emmc_set_signal_voltage(void* ctx, sdmmc_voltage_t vol
 }
 
 static int aml_sd_emmc_irq_thread(void *ctx) {
-    aml_sd_emmc_t* dev = ctx;
-    uint32_t status_irq;
-
-    while (1) {
-        zx_status_t status = ZX_OK;
-        status = zx_interrupt_wait(dev->irq_handle, NULL);
-        if (status != ZX_OK) {
-            zxlogf(ERROR, "aml_sd_emmc_irq_thread: zx_interrupt_wait got %d\n", status);
-            break;
-        }
-        mtx_lock(&dev->mtx);
-        aml_sd_emmc_regs_t* regs = dev->regs;
-        sdmmc_req_t *req = dev->cur_req;
-
-        if (req == NULL) {
-            status = ZX_ERR_IO_INVALID;
-            zxlogf(ERROR, "aml_sd_emmc_irq_thread: Got a spurious interrupt\n");
-            //TODO(ravoorir): Do some error recovery here and continue instead
-            // of breaking.
-            mtx_unlock(&dev->mtx);
-            break;
-        }
-
-        zxlogf(INFO, "aml_sd_emmc_irq_thread: zx_interrupt_wait got interrupt for req->cmd_idx: %d\n", req->cmd_idx);
-        status_irq = regs->sd_emmc_status;
-        if (!(status_irq & AML_SD_EMMC_STATUS_END_OF_CHAIN)) {
-            status = ZX_ERR_IO_INVALID;
-            goto complete;
-        }
-
-        uint32_t rxd_err = get_bits(status_irq, AML_SD_EMMC_STATUS_RXD_ERR_MASK,
-                                    AML_SD_EMMC_STATUS_RXD_ERR_LOC);
-        if (rxd_err) {
-            AML_SD_EMMC_ERROR("RX Data CRC Error cmd%d, status=0x%x, RXD_ERR:%d\n", req->cmd_idx,
-                              status_irq, rxd_err);
-            status = ZX_ERR_IO_DATA_INTEGRITY;
-            goto complete;
-        }
-        if (status_irq & AML_SD_EMMC_STATUS_TXD_ERR) {
-            AML_SD_EMMC_ERROR("TX Data CRC Error, cmd%d, status=0x%x TXD_ERR\n", req->cmd_idx,
-                              status_irq);
-            status = ZX_ERR_IO_DATA_INTEGRITY;
-            goto complete;
-        }
-        if (status_irq & AML_SD_EMMC_STATUS_DESC_ERR) {
-            AML_SD_EMMC_ERROR("Controller does not own the descriptor, cmd%d, status=0x%x\n",
-                              req->cmd_idx, status_irq);
-            status = ZX_ERR_IO_INVALID;
-            goto complete;
-        }
-        if (status_irq & AML_SD_EMMC_STATUS_RESP_ERR) {
-            AML_SD_EMMC_ERROR("Response CRC Error, cmd%d, status=0x%x\n", req->cmd_idx, status_irq);
-            status = ZX_ERR_IO_DATA_INTEGRITY;
-            goto complete;
-        }
-        if (status_irq & AML_SD_EMMC_STATUS_RESP_TIMEOUT) {
-            AML_SD_EMMC_ERROR("No response reived before time limit, cmd%d, status=0x%x\n",
-                    req->cmd_idx, status_irq);
-            status = ZX_ERR_TIMED_OUT;
-            goto complete;
-        }
-        if (status_irq & AML_SD_EMMC_STATUS_DESC_TIMEOUT) {
-            AML_SD_EMMC_ERROR("Descriptor execution timed out, cmd%d, status=0x%x\n", req->cmd_idx,
-                        status_irq);
-            status = ZX_ERR_TIMED_OUT;
-            goto complete;
-        }
-
-        if (req->cmd_flags & SDMMC_RESP_LEN_136) {
-            req->response[0] = regs->sd_emmc_cmd_rsp;
-            req->response[1] = regs->sd_emmc_cmd_rsp1;
-            req->response[2] = regs->sd_emmc_cmd_rsp2;
-            req->response[3] = regs->sd_emmc_cmd_rsp3;
-        } else {
-            req->response[0] = regs->sd_emmc_cmd_rsp;
-        }
-        if ((!req->use_dma) && (req->cmd_flags & SDMMC_CMD_READ)) {
-            memcpy(req->virt, (void *)(io_buffer_virt(&dev->data_buffer)),
-                   req->blockcount * req->blocksize);
-        }
-
-complete:
-        req->status = status;
-        regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
-        dev->cur_req = NULL;
-        io_buffer_release(&dev->data_buffer);
-        completion_signal(&dev->req_completion);
-        mtx_unlock(&dev->mtx);
-    }
     return 0;
 }
 
@@ -767,54 +680,118 @@ static zx_status_t aml_sd_emmc_finish_req(aml_sd_emmc_t* dev, sdmmc_req_t* req) 
 }
 
 zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
+   uint32_t status_irq;
+    uint32_t cmd = 0;
     aml_sd_emmc_t *dev = (aml_sd_emmc_t *)ctx;
-    zx_status_t status = ZX_OK;
-
-    mtx_lock(&dev->mtx);
+    aml_sd_emmc_desc_t* desc = &(dev->cur_desc);
     aml_sd_emmc_regs_t* regs = dev->regs;
 
-    // stop executing
-    uint32_t start_reg = regs->sd_emmc_start;
-    start_reg &= ~AML_SD_EMMC_START_DESC_BUSY;
-    regs->sd_emmc_start = start_reg;
-
-    aml_sd_emmc_desc_t* desc = io_buffer_virt(&dev->descs_buffer);
-    memset(desc, 0, dev->descs_buffer.size);
-
+    memset(desc, 0, sizeof(*desc));
     aml_sd_emmc_init_desc(req, desc);
-    aml_sd_emmc_desc_t* last_desc = desc;
+
     if (req->cmd_flags & SDMMC_RESP_DATA_PRESENT) {
-        status = aml_sd_emmc_setup_data_descs(dev, req, desc, &last_desc);
-        if (status != ZX_OK) {
-            zxlogf(ERROR, "aml_sd_emmc_request: Failed to setup data descriptors\n");
-            mtx_unlock(&dev->mtx);
-            return status;
+        cmd |= AML_SD_EMMC_CMD_INFO_DATA_IO;
+        zx_paddr_t buffer_phys = io_buffer_phys(&dev->data_buffer);
+
+        if (!(req->cmd_flags & SDMMC_CMD_READ)) {
+            cmd |= AML_SD_EMMC_CMD_INFO_DATA_WR;
+            memcpy((void *)(io_buffer_virt(&dev->data_buffer)), req->virt,
+                   req->blockcount * req->blocksize);
+            io_buffer_cache_flush(&dev->data_buffer, 0, dev->info.max_transfer_size);
+        } else if (req->cmd_flags & SDMMC_CMD_READ) {
+            io_buffer_cache_flush_invalidate(&dev->data_buffer, 0, dev->info.max_transfer_size);
+        }
+
+        if (req->blockcount > 1) {
+            cmd |= AML_SD_EMMC_CMD_INFO_BLOCK_MODE;
+            update_bits(&cmd, AML_SD_EMMC_CMD_INFO_LEN_MASK, AML_SD_EMMC_CMD_INFO_LEN_LOC,
+                        req->blockcount);
+        } else{
+            update_bits(&cmd, AML_SD_EMMC_CMD_INFO_LEN_MASK, AML_SD_EMMC_CMD_INFO_LEN_LOC,
+                        req->blocksize);
+        }
+        desc->data_addr = (uint32_t)buffer_phys;
+        // data_addr[0] = 0 for DDR. data_addr[0] = 1 if address is from SRAM
+        // Our address comes from DDR. However we do not need to clear this,
+        // Since physical address is always page-aligned.
+        //desc->data_addr &= ~(1 << 0);
+        ZX_DEBUG_ASSERT(!(desc->data_addr & 1));
+    }
+
+    update_bits(&cmd, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK, AML_SD_EMMC_CMD_INFO_CMD_IDX_LOC,
+                AML_SD_EMMC_COMMAND(req->cmd_idx));
+    cmd |= AML_SD_EMMC_CMD_INFO_OWNER;
+    cmd |= AML_SD_EMMC_CMD_INFO_END_OF_CHAIN;
+    desc->cmd_info = cmd;
+
+    // TODO(ravoorir): Use DMA descriptors to queue multiple commands
+    AML_SD_EMMC_TRACE("SUBMIT cmd_idx: %d cmd_cfg: 0x%x cmd_dat: 0x%x cmd_arg: 0x%x\n",
+                       get_bits(cmd, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK,
+                                AML_SD_EMMC_CMD_INFO_CMD_IDX_LOC),
+                       desc->cmd_info, desc->data_addr, desc->cmd_arg);
+    regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
+    regs->sd_emmc_cmd_cfg = desc->cmd_info;
+    regs->sd_emmc_cmd_dat = desc->data_addr;
+    regs->sd_emmc_cmd_arg = desc->cmd_arg;
+
+    // TODO(ravoorir): Complete requests asynchronously on a different thread.
+    while (1) {
+        status_irq = regs->sd_emmc_status;
+        if (status_irq & AML_SD_EMMC_STATUS_END_OF_CHAIN) {
+            break;
         }
     }
 
-    last_desc->cmd_info |= AML_SD_EMMC_CMD_INFO_END_OF_CHAIN;
-    AML_SD_EMMC_TRACE("SUBMIT req:%p cmd_idx: %d cmd_cfg: 0x%x cmd_dat: 0x%x cmd_arg: 0x%x\n", req,
-                      req->cmd_idx, desc->cmd_info, desc->data_addr, desc->cmd_arg);
+    uint32_t rxd_err = get_bits(status_irq, AML_SD_EMMC_STATUS_RXD_ERR_MASK,
+                                AML_SD_EMMC_STATUS_RXD_ERR_LOC);
+    if (rxd_err) {
+        AML_SD_EMMC_ERROR("RX Data CRC Error cmd%d, status=0x%x, RXD_ERR:%d\n", req->cmd_idx,
+                          status_irq, rxd_err);
+        return ZX_ERR_IO_DATA_INTEGRITY;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_TXD_ERR) {
+        AML_SD_EMMC_ERROR("TX Data CRC Error, cmd%d, status=0x%x TXD_ERR\n", req->cmd_idx,
+                          status_irq);
+        return ZX_ERR_IO_DATA_INTEGRITY;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_DESC_ERR) {
+        AML_SD_EMMC_ERROR("Controller does not own the descriptor, cmd%d, status=0x%x\n",
+                          req->cmd_idx, status_irq);
+        return ZX_ERR_IO_INVALID;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_RESP_ERR) {
+        AML_SD_EMMC_ERROR("Response CRC Error, cmd%d, status=0x%x\n", req->cmd_idx, status_irq);
+        return ZX_ERR_IO_DATA_INTEGRITY;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_RESP_TIMEOUT) {
+        AML_SD_EMMC_ERROR("No response reived before time limit, cmd%d, status=0x%x\n",
+                req->cmd_idx, status_irq);
+        return ZX_ERR_TIMED_OUT;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_DESC_TIMEOUT) {
+        AML_SD_EMMC_ERROR("Descriptor execution timed out, cmd%d, status=0x%x\n", req->cmd_idx,
+                    status_irq);
+        return ZX_ERR_TIMED_OUT;
+    }
+    if (status_irq & AML_SD_EMMC_STATUS_BUS_CORE_BUSY) {
+        AML_SD_EMMC_ERROR("Core is busy, cmd%d, status=0x%x\n", req->cmd_idx, status_irq);
+        return ZX_ERR_SHOULD_WAIT;
+    }
 
-    dev->cur_req = req;
-    zx_paddr_t dma_desc_phys = io_buffer_phys(&dev->descs_buffer);
-    io_buffer_cache_flush(&dev->descs_buffer, 0,
-                          AML_DMA_DESC_MAX_COUNT * sizeof(aml_sd_emmc_desc_t));
+    if (req->cmd_flags & SDMMC_RESP_LEN_136) {
+        req->response[0] = regs->sd_emmc_cmd_rsp;
+        req->response[1] = regs->sd_emmc_cmd_rsp1;
+        req->response[2] = regs->sd_emmc_cmd_rsp2;
+        req->response[3] = regs->sd_emmc_cmd_rsp3;
+    } else {
+        req->response[0] = regs->sd_emmc_cmd_rsp;
+    }
+    if (req->cmd_flags & SDMMC_CMD_READ) {
+        memcpy(req->virt, (void *)(io_buffer_virt(&dev->data_buffer)),
+               req->blockcount * req->blocksize);
+    }
 
-    start_reg = regs->sd_emmc_start;
-    start_reg &= ~AML_SD_EMMC_START_DESC_INT;
-    start_reg |= AML_SD_EMMC_START_DESC_BUSY;
-    // DDR address, 8 byte aligned
-    update_bits(&start_reg, AML_SD_EMMC_START_DESC_ADDR_MASK, AML_SD_EMMC_START_DESC_ADDR_LOC,
-                (((uint32_t)dma_desc_phys) >> 2));
-
-    mtx_unlock(&dev->mtx);
-    regs->sd_emmc_start = start_reg;
-
-    completion_wait(&dev->req_completion, ZX_TIME_INFINITE);
-    aml_sd_emmc_finish_req(dev, req);
-    completion_reset(&dev->req_completion);
-    return req->status;
+    return ZX_OK;
 }
 
 static zx_protocol_device_t aml_sd_emmc_device_proto = {
@@ -867,7 +844,7 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     }
 
     dev->gpio_count = info.gpio_count;
-    dev->info.caps = SDMMC_HOST_CAP_BUS_WIDTH_8 | SDMMC_HOST_CAP_VOLTAGE_330 | SDMMC_HOST_CAP_ADMA2;
+    dev->info.caps = SDMMC_HOST_CAP_BUS_WIDTH_8 | SDMMC_HOST_CAP_VOLTAGE_330;
     dev->info.max_transfer_size = AML_DMA_DESC_MAX_COUNT * PAGE_SIZE;
 
     status = pdev_get_bti(&dev->pdev, 0, &dev->bti);
@@ -905,6 +882,14 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
         zxlogf(ERROR, "aml_sd_emmc_bind: Failed to allocate dma descriptors\n");
         goto fail;
     }
+
+    status = io_buffer_init(&dev->data_buffer, dev->bti, dev->info.max_transfer_size,
+                            IO_BUFFER_RW | IO_BUFFER_CONTIG);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_sd_emmc_bind: Failed to initiate data buffer\n");
+        goto fail;
+    }
+
     dev->max_freq = AML_SD_EMMC_MAX_FREQ;
     dev->min_freq = AML_SD_EMMC_MIN_FREQ;
     // Create the device.
