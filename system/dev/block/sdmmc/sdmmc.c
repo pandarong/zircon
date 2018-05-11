@@ -379,12 +379,12 @@ static int sdmmc_worker_thread(void* arg) {
 
     // No matter what state the card is in, issuing the GO_IDLE_STATE command will
     // put the card into the idle state.
-    if ((st = sdmmc_go_idle(dev)) != ZX_OK) {
+    /*if ((st = sdmmc_go_idle(dev)) != ZX_OK) {
         zxlogf(ERROR, "sdmmc: SDMMC_GO_IDLE_STATE failed, retcode = %d\n", st);
         device_remove(dev->zxdev);
         return st;
     }
-    zxlogf(INFO, "sdmmc: SDMMC_GO_IDLE_STATE PASSED\n");
+    zxlogf(INFO, "sdmmc: SDMMC_GO_IDLE_STATE PASSED\n");*/
 
     // Probe for SD, then MMC
     if ((st = sdmmc_probe_sdio(dev)) != ZX_OK) {

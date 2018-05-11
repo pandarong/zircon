@@ -35,6 +35,12 @@ static const pbus_bti_t sdio_btis[] = {
     },
 };
 
+static const pbus_gpio_t sdio_gpios[] = {
+    {
+        .gpio = S905D2_GPIOX(6),
+    },
+};
+
 static const pbus_dev_t sdio_dev = {
     .name = "aml_sdio",
     .vid = PDEV_VID_AMLOGIC,
@@ -46,6 +52,9 @@ static const pbus_dev_t sdio_dev = {
     .irq_count = countof(sdio_irqs),
     .btis = sdio_btis,
     .bti_count = countof(sdio_btis),
+    .gpios = sdio_gpios,
+    .gpio_count = countof(sdio_gpios),
+
 };
 
 zx_status_t aml_sdio_init(aml_bus_t* bus) {

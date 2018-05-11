@@ -34,6 +34,21 @@ __BEGIN_CDECLS;
 #define SDMMC_CMD_READ           (1 << 15)
 #define SDMMC_CMD_MULTI_BLK      (1 << 16)
 
+//SDIO
+#define SDMMC_RESP_SPI_S1      (1 << 17)
+#define SDMMC_RESP_SPI_S2      (1 << 18)
+#define SDMMC_RESP_SPI_BUSY    (1 << 19)
+#define SDMMC_RESP_SPI_B4      (1 << 20)
+
+//SDIO
+#define SDMMC_RESP_SPI_R1  (SDMMC_RESP_SPI_S1)
+#define SDMMC_RESP_SPI_R1B (SDMMC_RESP_SPI_S1|SDMMC_RSP_SPI_BUSY)
+#define SDMMC_RESP_SPI_R2  (SDMMC_RESP_SPI_S1|SDMMC_RESP_SPI_S2)
+#define SDMMC_RESP_SPI_R3  (SDMMC_RESP_SPI_S1|SDMMC_RESP_SPI_B4)
+#define SDMMC_RESP_SPI_R4  (SDMMC_RESP_SPI_S1|SDMMC_RESP_SPI_B4)
+#define SDMMC_RESP_SPI_R5  (SDMMC_RESP_SPI_S1|SDMMC_RESP_SPI_S2)
+#define SDMMC_RESP_SPI_R7  (SDMMC_RESP_SPI_S1|SDMMC_RESP_SPI_B4)
+
 #define SDMMC_RESP_NONE (0x0)
 #define SDMMC_RESP_R1   (SDMMC_RESP_LEN_48 | SDMMC_RESP_CMD_IDX_CHECK | SDMMC_RESP_CRC_CHECK)
 #define SDMMC_RESP_R1b  (SDMMC_RESP_LEN_48B | SDMMC_RESP_CMD_IDX_CHECK | SDMMC_RESP_CRC_CHECK)
@@ -44,7 +59,6 @@ __BEGIN_CDECLS;
 #define SDMMC_RESP_R5b  (SDMMC_RESP_LEN_48B | SDMMC_RESP_CMD_IDX_CHECK | SDMMC_RESP_CRC_CHECK)
 #define SDMMC_RESP_R6   (SDMMC_RESP_LEN_48 | SDMMC_RESP_CMD_IDX_CHECK | SDMMC_RESP_CRC_CHECK)
 #define SDMMC_RESP_R7   (SDMMC_RESP_LEN_48 | SDMMC_RESP_CMD_IDX_CHECK | SDMMC_RESP_CRC_CHECK)
-
 
 // Common SD/MMC commands
 #define SDMMC_GO_IDLE_STATE_FLAGS           SDMMC_RESP_NONE
@@ -82,6 +96,9 @@ __BEGIN_CDECLS;
 #define MMC_SEND_TUNING_BLOCK_FLAGS         SDMMC_RESP_R1 | SDMMC_RESP_DATA_PRESENT | \
                                             SDMMC_CMD_READ
 
+// SDIO Commands
+#define SDIO_IO_RW_DIRECT_FLAGS             SDMMC_RESP_R5 | SDMMC_CMD_TYPE_ABORT
+
 // Common SD/MMC commands
 #define SDMMC_GO_IDLE_STATE           0
 #define SDMMC_ALL_SEND_CID            2
@@ -111,6 +128,9 @@ __BEGIN_CDECLS;
 #define MMC_SELECT_CARD               7
 #define MMC_SEND_EXT_CSD              8
 #define MMC_SEND_TUNING_BLOCK         21
+
+// SDIO Commands
+#define SDIO_IO_RW_DIRECT             52
 
 // CID fields (SD/MMC)
 #define MMC_CID_SPEC_VRSN_40    3
@@ -171,5 +191,29 @@ __BEGIN_CDECLS;
 #define MMC_STATUS_SWITCH_ERR           (1 << 7)
 #define MMC_STATUS_EXCEPTION_EVENT      (1 << 6)
 #define MMC_STATUS_APP_CMD              (1 << 5)
+
+
+
+//SDIO
+#define SDIO_CCCR_IOEx          0x02
+#define SDIO_CCCR_IORx          0x03
+
+#define SDIO_CCCR_IENx          0x04    /* Function/Master Interrupt Enable */
+#define SDIO_CCCR_INTx          0x05    /* Function Interrupt Pending */
+
+#define SDIO_CCCR_ABORT         0x06    /* function abort/card reset */
+
+#define SDIO_CCCR_IF            0x07    /* bus interface controls */
+
+#define  SDIO_BUS_WIDTH_MASK    0x03    /* data bus width setting */
+#define  SDIO_BUS_WIDTH_1BIT    0x00
+#define  SDIO_BUS_WIDTH_RESERVED 0x01
+#define  SDIO_BUS_WIDTH_4BIT    0x02
+#define  SDIO_BUS_ECSI          0x20    /* Enable continuous SPI interrupt */
+#define  SDIO_BUS_SCSI          0x40    /* Support continuous SPI interrupt */
+
+
+
+
 
 __END_CDECLS;

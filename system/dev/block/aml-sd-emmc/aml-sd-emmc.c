@@ -69,12 +69,14 @@ static void aml_sd_emmc_dump_cfg(uint32_t cfg);
 static void aml_sd_emmc_dump_regs(aml_sd_emmc_t* dev) {
     aml_sd_emmc_regs_t* regs = dev->regs;
     AML_SD_EMMC_TRACE("sd_emmc_clock : 0x%x\n", regs->sd_emmc_clock);
+    aml_sd_emmc_dump_clock(regs->sd_emmc_clock);
     AML_SD_EMMC_TRACE("sd_emmc_delay1 : 0x%x\n", regs->sd_emmc_delay1);
     AML_SD_EMMC_TRACE("sd_emmc_delay2 : 0x%x\n", regs->sd_emmc_delay2);
     AML_SD_EMMC_TRACE("sd_emmc_adjust : 0x%x\n", regs->sd_emmc_adjust);
     AML_SD_EMMC_TRACE("sd_emmc_calout : 0x%x\n", regs->sd_emmc_calout);
     AML_SD_EMMC_TRACE("sd_emmc_start : 0x%x\n", regs->sd_emmc_start);
     AML_SD_EMMC_TRACE("sd_emmc_cfg : 0x%x\n", regs->sd_emmc_cfg);
+    aml_sd_emmc_dump_cfg(regs->sd_emmc_cfg);
     AML_SD_EMMC_TRACE("sd_emmc_status : 0x%x\n", regs->sd_emmc_status);
     AML_SD_EMMC_TRACE("sd_emmc_irq_en : 0x%x\n", regs->sd_emmc_irq_en);
     AML_SD_EMMC_TRACE("sd_emmc_cmd_cfg : 0x%x\n", regs->sd_emmc_cmd_cfg);
@@ -433,9 +435,11 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
     update_bits(&config, AML_SD_EMMC_CFG_BUS_WIDTH_MASK, AML_SD_EMMC_CFG_BUS_WIDTH_LOC,
                  AML_SD_EMMC_CFG_BUS_WIDTH_1BIT);
 
-    regs->sd_emmc_cfg = config;
+    //regs->sd_emmc_cfg = config;
     //regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     //regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
+    regs->sd_emmc_cfg = 0x804800;
+    regs->sd_emmc_clock = 0x100003c;
 }
 
 static void aml_sd_emmc_hw_reset(void* ctx) {
@@ -444,9 +448,10 @@ static void aml_sd_emmc_hw_reset(void* ctx) {
     if (dev->gpio_count == 1) {
         //Currently we only have 1 gpio
         gpio_config(&dev->gpio, 0, GPIO_DIR_OUT);
-        gpio_write(&dev->gpio, 0, 0);
-        usleep(10 * 1000);
         gpio_write(&dev->gpio, 0, 1);
+        zxlogf(INFO, "Set the GPIO\n");
+        usleep(10 * 1000);
+        gpio_write(&dev->gpio, 0, 0);
     }
     aml_sd_emmc_init_regs(dev);
     mtx_unlock(&dev->mtx);
@@ -498,6 +503,7 @@ static int aml_sd_emmc_irq_thread(void *ctx) {
 static void aml_sd_emmc_init_desc(sdmmc_req_t* req, aml_sd_emmc_desc_t *desc) {
     uint32_t cmd_info = 0;
     if (req->cmd_flags == 0) {
+        zxlogf(INFO, "MINE aml_sd_emmc_init_desc : Setting NO RESP in cmd_info\n");
         cmd_info |= AML_SD_EMMC_CMD_INFO_NO_RESP;
     } else {
         if (req->cmd_flags & SDMMC_RESP_LEN_136) {
@@ -520,6 +526,8 @@ static void aml_sd_emmc_init_desc(sdmmc_req_t* req, aml_sd_emmc_desc_t *desc) {
     cmd_info &= ~AML_SD_EMMC_CMD_INFO_ERROR;
     cmd_info |= AML_SD_EMMC_CMD_INFO_OWNER;
     cmd_info &= ~AML_SD_EMMC_CMD_INFO_END_OF_CHAIN;
+    update_bits(&cmd_info, AML_SD_EMMC_CMD_INFO_TIMEOUT_MASK, AML_SD_EMMC_CMD_INFO_TIMEOUT_LOC, 0xa);
+    zxlogf(INFO, "cmd_info in init_desc is 0x%x\n", cmd_info);
     desc->cmd_info = cmd_info;
     desc->cmd_arg = req->arg;
 }
@@ -681,7 +689,6 @@ static zx_status_t aml_sd_emmc_finish_req(aml_sd_emmc_t* dev, sdmmc_req_t* req) 
 
 zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
    uint32_t status_irq;
-    uint32_t cmd = 0;
     aml_sd_emmc_t *dev = (aml_sd_emmc_t *)ctx;
     aml_sd_emmc_desc_t* desc = &(dev->cur_desc);
     aml_sd_emmc_regs_t* regs = dev->regs;
@@ -689,6 +696,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     memset(desc, 0, sizeof(*desc));
     aml_sd_emmc_init_desc(req, desc);
 
+    uint32_t cmd = desc->cmd_info;
     if (req->cmd_flags & SDMMC_RESP_DATA_PRESENT) {
         cmd |= AML_SD_EMMC_CMD_INFO_DATA_IO;
         zx_paddr_t buffer_phys = io_buffer_phys(&dev->data_buffer);
@@ -724,6 +732,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     cmd |= AML_SD_EMMC_CMD_INFO_END_OF_CHAIN;
     desc->cmd_info = cmd;
 
+    aml_sd_emmc_dump_regs(dev);
     // TODO(ravoorir): Use DMA descriptors to queue multiple commands
     AML_SD_EMMC_TRACE("SUBMIT cmd_idx: %d cmd_cfg: 0x%x cmd_dat: 0x%x cmd_arg: 0x%x\n",
                        get_bits(cmd, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK,
