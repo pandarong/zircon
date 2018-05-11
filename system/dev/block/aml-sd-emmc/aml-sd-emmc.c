@@ -435,11 +435,11 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
     update_bits(&config, AML_SD_EMMC_CFG_BUS_WIDTH_MASK, AML_SD_EMMC_CFG_BUS_WIDTH_LOC,
                  AML_SD_EMMC_CFG_BUS_WIDTH_1BIT);
 
-    //regs->sd_emmc_cfg = config;
+    regs->sd_emmc_cfg = config;
     //regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     //regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
-    regs->sd_emmc_cfg = 0x804800;
-    regs->sd_emmc_clock = 0x100003c;
+    //regs->sd_emmc_cfg = 0x804800;
+    //regs->sd_emmc_clock = 0x100003c;
 }
 
 static void aml_sd_emmc_hw_reset(void* ctx) {
@@ -688,7 +688,7 @@ static zx_status_t aml_sd_emmc_finish_req(aml_sd_emmc_t* dev, sdmmc_req_t* req) 
 }
 
 zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
-   uint32_t status_irq;
+    uint32_t status_irq;
     aml_sd_emmc_t *dev = (aml_sd_emmc_t *)ctx;
     aml_sd_emmc_desc_t* desc = &(dev->cur_desc);
     aml_sd_emmc_regs_t* regs = dev->regs;
