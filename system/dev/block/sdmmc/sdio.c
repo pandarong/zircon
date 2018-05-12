@@ -59,11 +59,28 @@ zx_status_t sdmmc_probe_sdio(sdmmc_device_t* dev) {
     dev->type = SDMMC_TYPE_SDIO;
     zxlogf(INFO, "sdmmc_probe_sdio HAHA Reached START\n");
     st = sdio_reset(dev);
+
+    //0
     if ((st = sdmmc_go_idle(dev)) != ZX_OK) {
         zxlogf(ERROR, "sdmmc: SDMMC_GO_IDLE_STATE failed, retcode = %d\n", st);
         device_remove(dev->zxdev);
         return st;
     }
+
+    //8
+    if ((st = sd_send_if_cond(dev)) != ZX_OK) {
+        zxlogf(ERROR, "sdmmc: SD_SEND_IF_COND failed, retcode = %d\n", st);
+        //device_remove(dev->zxdev);
+        //return st;
+    }
+
+    //5
+    uint32_t ocr;
+    if ((st = sdio_send_op_cond(dev, 0, &ocr)) != ZX_OK) {
+        zxlogf(ERROR, "mmc: MMC_SEND_OP_COND failed, retcode = %d\n", st);
+        return st;
+    }
+    zxlogf(INFO, "sdmmc_probe_sdio OOHHOO Got OCR as :0x%x\n", ocr);
     zxlogf(INFO, "sdmmc_probe_sdio COMPLETE Status:%d\n", st);
     return ZX_OK;
 }

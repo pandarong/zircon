@@ -83,6 +83,9 @@ zx_status_t sdmmc_stop_transmission(sdmmc_device_t* dev);
 
 zx_status_t sd_send_if_cond(sdmmc_device_t* dev);
 
+// SDIO ops
+zx_status_t sdio_send_op_cond(sdmmc_device_t* dev, uint32_t ocr, uint32_t* rocr);
+
 // MMC ops
 
 zx_status_t mmc_send_op_cond(sdmmc_device_t* dev, uint32_t ocr, uint32_t* rocr);

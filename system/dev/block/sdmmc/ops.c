@@ -76,6 +76,30 @@ zx_status_t sd_send_if_cond(sdmmc_device_t* dev) {
     }
 }
 
+// SDIO ops
+
+zx_status_t sdio_send_op_cond(sdmmc_device_t* dev, uint32_t ocr, uint32_t* rocr) {
+    zx_status_t st = ZX_OK;
+    sdmmc_req_t req = {
+        .cmd_idx = SDIO_SEND_OP_COND,
+        .arg = ocr,
+        .cmd_flags = SDIO_SEND_OP_COND_FLAGS,
+    };
+    for (int i = 100; i; i--) {
+        if ((st = sdmmc_request(&dev->host, &req)) != ZX_OK) {
+            // fail on request error
+            break;
+        }
+        // No need to wait for busy clear if probing
+        if ((ocr == 0) || (req.response[0] & MMC_OCR_BUSY)) {
+            *rocr = req.response[0];
+            break;
+        }
+        zx_nanosleep(zx_deadline_after(ZX_MSEC(10)));
+    }
+    return st;
+}
+
 // MMC ops
 
 zx_status_t mmc_send_op_cond(sdmmc_device_t* dev, uint32_t ocr, uint32_t* rocr) {

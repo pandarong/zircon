@@ -95,9 +95,9 @@ __BEGIN_CDECLS;
                                             SDMMC_CMD_READ
 #define MMC_SEND_TUNING_BLOCK_FLAGS         SDMMC_RESP_R1 | SDMMC_RESP_DATA_PRESENT | \
                                             SDMMC_CMD_READ
-
 // SDIO Commands
 #define SDIO_IO_RW_DIRECT_FLAGS             SDMMC_RESP_R5 | SDMMC_CMD_TYPE_ABORT
+#define SDIO_SEND_OP_COND_FLAGS             SDMMC_RESP_R4
 
 // Common SD/MMC commands
 #define SDMMC_GO_IDLE_STATE           0
@@ -131,6 +131,7 @@ __BEGIN_CDECLS;
 
 // SDIO Commands
 #define SDIO_IO_RW_DIRECT             52
+#define SDIO_SEND_OP_COND             5
 
 // CID fields (SD/MMC)
 #define MMC_CID_SPEC_VRSN_40    3

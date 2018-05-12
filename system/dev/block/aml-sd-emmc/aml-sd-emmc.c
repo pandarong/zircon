@@ -438,8 +438,9 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
     regs->sd_emmc_cfg = config;
     //regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     //regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
-    //regs->sd_emmc_cfg = 0x804800;
-    //regs->sd_emmc_clock = 0x100003c;
+    regs->sd_emmc_cfg = 0x804800;
+    regs->sd_emmc_clock = 0x100033c;
+    aml_sd_emmc_dump_clock(regs->sd_emmc_clock);
 }
 
 static void aml_sd_emmc_hw_reset(void* ctx) {
@@ -518,8 +519,9 @@ static void aml_sd_emmc_init_desc(sdmmc_req_t* req, aml_sd_emmc_desc_t *desc) {
             cmd_info |= AML_SD_EMMC_CMD_INFO_R1B;
         }
 
-        desc->resp_addr = (unsigned long)req->response;
-        cmd_info &= ~AML_SD_EMMC_CMD_INFO_RESP_NUM;
+        //desc->resp_addr = (unsigned long)req->response;
+        desc->resp_addr = 0;
+        cmd_info |= AML_SD_EMMC_CMD_INFO_RESP_NUM;
     }
     update_bits(&cmd_info, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK, AML_SD_EMMC_CMD_INFO_CMD_IDX_LOC,
                 AML_SD_EMMC_COMMAND(req->cmd_idx));
@@ -527,7 +529,6 @@ static void aml_sd_emmc_init_desc(sdmmc_req_t* req, aml_sd_emmc_desc_t *desc) {
     cmd_info |= AML_SD_EMMC_CMD_INFO_OWNER;
     cmd_info &= ~AML_SD_EMMC_CMD_INFO_END_OF_CHAIN;
     update_bits(&cmd_info, AML_SD_EMMC_CMD_INFO_TIMEOUT_MASK, AML_SD_EMMC_CMD_INFO_TIMEOUT_LOC, 0xa);
-    zxlogf(INFO, "cmd_info in init_desc is 0x%x\n", cmd_info);
     desc->cmd_info = cmd_info;
     desc->cmd_arg = req->arg;
 }
