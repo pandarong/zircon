@@ -139,8 +139,13 @@ static int vim_start_thread(void* arg) {
         goto fail;
     }
 
-    if ((status = vim_sd_emmc_init(bus)) != ZX_OK) {
+    /*if ((status = vim_sd_emmc_init(bus)) != ZX_OK) {
         zxlogf(ERROR, "vim_sd_emmc_init failed: %d\n", status);
+        goto fail;
+    }*/
+
+    if ((status = vim_sdio_init(bus)) != ZX_OK) {
+        zxlogf(ERROR, "vim_sdio_init failed: %d\n", status);
         goto fail;
     }
 

@@ -26,6 +26,14 @@
 #define S905D2_USBPHY21_BASE            0xff63a000
 #define S905D2_USBPHY21_LENGTH          0x2000
 
+//SDIO
+#define S905D2_EMMC_A_SDIO_BASE         0xffe03000
+#define S905D2_EMMC_A_SDIO_LENGTH       0x2000
+
+//CBUS
+#define S905D2_CBUS_BASE                0xff63c000
+#define S905D2_CBUS_LENGTH              0x1000
+
 // Reset register offsets
 #define S905D2_RESET0_REGISTER          0x04
 #define S905D2_RESET1_REGISTER          0x08
@@ -63,9 +71,6 @@
 #define S905D2_A0_GPIO_IRQ_1            239
 #define S905D2_EMMC_A_SDIO_IRQ          189
 
-//SDIO
-#define S905D2_EMMC_A_SDIO_BASE         0xffe03000
-#define S905D2_EMMC_A_SDIO_LENGTH       0x2000
 
 // Alternate Functions for SDIO
 #define S905D2_WIFI_SDIO_D0           S905D2_GPIOX(0)

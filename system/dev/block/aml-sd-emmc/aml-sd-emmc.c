@@ -41,6 +41,7 @@ typedef struct aml_sd_emmc_t {
     zx_device_t* zxdev;
     gpio_protocol_t gpio;
     uint32_t gpio_count;
+    io_buffer_t mmio_cbus;
     io_buffer_t mmio;
     // virt address of mmio
     aml_sd_emmc_regs_t* regs;
@@ -166,6 +167,7 @@ static void aml_sd_emmc_release(void* ctx) {
     zx_interrupt_destroy(dev->irq_handle);
     thrd_join(dev->irq_thread, NULL);
     io_buffer_release(&dev->mmio);
+    io_buffer_release(&dev->mmio_cbus);
     io_buffer_release(&dev->descs_buffer);
     zx_handle_close(dev->bti);
     free(dev);
@@ -439,7 +441,7 @@ static void aml_sd_emmc_init_regs(aml_sd_emmc_t* dev) {
     //regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     //regs->sd_emmc_irq_en = AML_SD_EMMC_IRQ_ALL_CLEAR;
     regs->sd_emmc_cfg = 0x804800;
-    regs->sd_emmc_clock = 0x100033c;
+    //regs->sd_emmc_clock = 0x100033c;
     aml_sd_emmc_dump_clock(regs->sd_emmc_clock);
 }
 
@@ -452,6 +454,7 @@ static void aml_sd_emmc_hw_reset(void* ctx) {
         gpio_write(&dev->gpio, 0, 1);
         zxlogf(INFO, "Set the GPIO\n");
         usleep(10 * 1000);
+        usleep(20000 * 1000);
         gpio_write(&dev->gpio, 0, 0);
     }
     aml_sd_emmc_init_regs(dev);
@@ -519,9 +522,10 @@ static void aml_sd_emmc_init_desc(sdmmc_req_t* req, aml_sd_emmc_desc_t *desc) {
             cmd_info |= AML_SD_EMMC_CMD_INFO_R1B;
         }
 
-        //desc->resp_addr = (unsigned long)req->response;
-        desc->resp_addr = 0;
-        cmd_info |= AML_SD_EMMC_CMD_INFO_RESP_NUM;
+        desc->resp_addr = (unsigned long)req->response;
+        //desc->resp_addr = 0;
+        //cmd_info |= AML_SD_EMMC_CMD_INFO_RESP_NUM;
+        cmd_info &= ~AML_SD_EMMC_CMD_INFO_RESP_NUM;
     }
     update_bits(&cmd_info, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK, AML_SD_EMMC_CMD_INFO_CMD_IDX_LOC,
                 AML_SD_EMMC_COMMAND(req->cmd_idx));
@@ -694,6 +698,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     aml_sd_emmc_desc_t* desc = &(dev->cur_desc);
     aml_sd_emmc_regs_t* regs = dev->regs;
 
+    mtx_lock(&dev->mtx);
     memset(desc, 0, sizeof(*desc));
     aml_sd_emmc_init_desc(req, desc);
 
@@ -736,9 +741,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     aml_sd_emmc_dump_regs(dev);
     // TODO(ravoorir): Use DMA descriptors to queue multiple commands
     AML_SD_EMMC_TRACE("SUBMIT cmd_idx: %d cmd_cfg: 0x%x cmd_dat: 0x%x cmd_arg: 0x%x\n",
-                       get_bits(cmd, AML_SD_EMMC_CMD_INFO_CMD_IDX_MASK,
-                                AML_SD_EMMC_CMD_INFO_CMD_IDX_LOC),
-                       desc->cmd_info, desc->data_addr, desc->cmd_arg);
+                       req->cmd_idx, desc->cmd_info, desc->data_addr, desc->cmd_arg);
     regs->sd_emmc_status = AML_SD_EMMC_IRQ_ALL_CLEAR;
     regs->sd_emmc_cmd_cfg = desc->cmd_info;
     regs->sd_emmc_cmd_dat = desc->data_addr;
@@ -757,34 +760,41 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
     if (rxd_err) {
         AML_SD_EMMC_ERROR("RX Data CRC Error cmd%d, status=0x%x, RXD_ERR:%d\n", req->cmd_idx,
                           status_irq, rxd_err);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_IO_DATA_INTEGRITY;
     }
     if (status_irq & AML_SD_EMMC_STATUS_TXD_ERR) {
         AML_SD_EMMC_ERROR("TX Data CRC Error, cmd%d, status=0x%x TXD_ERR\n", req->cmd_idx,
                           status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_IO_DATA_INTEGRITY;
     }
     if (status_irq & AML_SD_EMMC_STATUS_DESC_ERR) {
         AML_SD_EMMC_ERROR("Controller does not own the descriptor, cmd%d, status=0x%x\n",
                           req->cmd_idx, status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_IO_INVALID;
     }
     if (status_irq & AML_SD_EMMC_STATUS_RESP_ERR) {
         AML_SD_EMMC_ERROR("Response CRC Error, cmd%d, status=0x%x\n", req->cmd_idx, status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_IO_DATA_INTEGRITY;
     }
     if (status_irq & AML_SD_EMMC_STATUS_RESP_TIMEOUT) {
         AML_SD_EMMC_ERROR("No response reived before time limit, cmd%d, status=0x%x\n",
                 req->cmd_idx, status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_TIMED_OUT;
     }
     if (status_irq & AML_SD_EMMC_STATUS_DESC_TIMEOUT) {
         AML_SD_EMMC_ERROR("Descriptor execution timed out, cmd%d, status=0x%x\n", req->cmd_idx,
                     status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_TIMED_OUT;
     }
     if (status_irq & AML_SD_EMMC_STATUS_BUS_CORE_BUSY) {
         AML_SD_EMMC_ERROR("Core is busy, cmd%d, status=0x%x\n", req->cmd_idx, status_irq);
+        mtx_unlock(&dev->mtx);
         return ZX_ERR_SHOULD_WAIT;
     }
 
@@ -801,6 +811,7 @@ zx_status_t aml_sd_emmc_request(void *ctx, sdmmc_req_t* req) {
                req->blockcount * req->blocksize);
     }
 
+    mtx_unlock(&dev->mtx);
     return ZX_OK;
 }
 
@@ -846,12 +857,12 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
         zxlogf(ERROR, "aml_sd_emmc_bind: pdev_get_device_info failed\n");
         goto fail;
     }
-    if (info.mmio_count != info.irq_count) {
+    /*if (info.mmio_count != info.irq_count) {
          zxlogf(ERROR, "aml_sd_emmc_bind: mmio_count %u does not match irq_count %u\n",
                info.mmio_count, info.irq_count);
         status = ZX_ERR_INVALID_ARGS;
         goto fail;
-    }
+    }*/
 
     dev->gpio_count = info.gpio_count;
     dev->info.caps = SDMMC_HOST_CAP_BUS_WIDTH_8 | SDMMC_HOST_CAP_VOLTAGE_330;
@@ -864,6 +875,12 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     }
 
     status = pdev_map_mmio_buffer(&dev->pdev, 0, ZX_CACHE_POLICY_UNCACHED_DEVICE, &dev->mmio);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "aml_sd_emmc_bind: pdev_map_mmio_buffer failed %d\n", status);
+        goto fail;
+    }
+
+    status = pdev_map_mmio_buffer(&dev->pdev, 1, ZX_CACHE_POLICY_UNCACHED_DEVICE, &dev->mmio_cbus);
     if (status != ZX_OK) {
         zxlogf(ERROR, "aml_sd_emmc_bind: pdev_map_mmio_buffer failed %d\n", status);
         goto fail;
@@ -885,6 +902,21 @@ static zx_status_t aml_sd_emmc_bind(void* ctx, zx_device_t* parent) {
     }
     dev->regs = (aml_sd_emmc_regs_t*)io_buffer_virt(&dev->mmio);
 
+    // Enable SDIO clock gate bit 24
+    // clk_en
+    uint32_t cbus_reg = readl(io_buffer_virt(&dev->mmio_cbus) + 320);
+    zxlogf(ERROR, "aml_sd_emmc_bind: MINE Got cbus reg as 0x%x\n", cbus_reg);
+    uint32_t enable_sdio = cbus_reg | (1 << 24);
+    writel(enable_sdio, io_buffer_virt(&dev->mmio_cbus) + 320);
+    zxlogf(ERROR, "aml_sd_emmc_bind: MINE cbus reg after enabling sdio 0x%x\n", readl(io_buffer_virt(&dev->mmio_cbus) + 320));
+
+    // clk_cntl
+    cbus_reg = readl(io_buffer_virt(&dev->mmio_cbus) + 612);
+    zxlogf(ERROR, "aml_sd_emmc_bind: MINE Got clk cntl reg as 0x%x\n", cbus_reg);
+    enable_sdio = cbus_reg | (1 << 7);
+    update_bits(&enable_sdio, 0x7f, 0, 1);
+    writel(enable_sdio, io_buffer_virt(&dev->mmio_cbus) + 612);
+    zxlogf(ERROR, "aml_sd_emmc_bind: MINE clk cntl reg after enabling sdio 0x%x\n", readl(io_buffer_virt(&dev->mmio_cbus) + 612));
     status = io_buffer_init(&dev->descs_buffer, dev->bti,
                             AML_DMA_DESC_MAX_COUNT * sizeof(aml_sd_emmc_desc_t),
                             IO_BUFFER_RW | IO_BUFFER_CONTIG);
