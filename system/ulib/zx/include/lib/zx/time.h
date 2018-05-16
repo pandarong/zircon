@@ -5,33 +5,61 @@
 #pragma once
 
 #include <stdint.h>
+#include <zircon/compiler.h>
 #include <zircon/syscalls.h>
 
 namespace zx {
+
+// TODO(maniscalco): Document these classes.
 
 class duration {
 public:
     constexpr duration() = default;
 
-    explicit constexpr duration(zx_duration_t value) : value_(value) {}
+    explicit constexpr duration(zx_duration_t value)
+        : value_(value) {}
 
     static constexpr duration infinite() { return duration(ZX_TIME_INFINITE); }
 
     constexpr zx_duration_t get() const { return value_; }
 
-    constexpr duration operator+(duration other) const {
-        return duration(value_ + other.value_);
+    duration operator+(duration other) const {
+        zx_duration_t x = 0;
+        if (unlikely(add_overflow(value_, other.value_, &x))) {
+            if (x >= 0) {
+                return duration(INT64_MIN);
+            } else {
+                return duration(ZX_TIME_INFINITE);
+            }
+        }
+        return duration(x);
     }
 
-    constexpr duration operator-(duration other) const {
-        return duration(value_ - other.value_);
+    duration operator-(duration other) const {
+        zx_duration_t x = 0;
+        if (unlikely(sub_overflow(value_, other.value_, &x))) {
+            if (x >= 0) {
+                return duration(INT64_MIN);
+            } else {
+                return duration(ZX_TIME_INFINITE);
+            }
+        }
+        return duration(x);
     }
 
-    constexpr duration operator*(uint64_t multiplier) const {
-        return duration(value_ * multiplier);
+    duration operator*(int64_t multiplier) const {
+        zx_duration_t x = 0;
+        if (unlikely(mul_overflow(value_, multiplier, &x))) {
+            if ((value_ > 0 && multiplier > 0) || (value_ < 0 && multiplier < 0)) {
+                return duration(ZX_TIME_INFINITE);
+            } else {
+                return duration(INT64_MIN);
+            }
+        }
+        return duration(x);
     }
 
-    constexpr duration operator/(uint64_t divisor) const {
+    constexpr duration operator/(int64_t divisor) const {
         return duration(value_ / divisor);
     }
 
@@ -39,28 +67,50 @@ public:
         return duration(value_ % divisor.value_);
     }
 
-    constexpr uint64_t operator/(duration other) const {
+    constexpr int64_t operator/(duration other) const {
         return value_ / other.value_;
     }
 
     duration& operator+=(duration other) {
-        value_ += other.value_;
+        if (unlikely(add_overflow(value_, other.value_, &value_))) {
+            if (value_ >= 0) {
+                value_ = INT64_MIN;
+            } else {
+                value_ = ZX_TIME_INFINITE;
+            }
+        }
         return *this;
     }
 
     duration& operator-=(duration other) {
-      value_ -= other.value_;
-      return *this;
-    }
-
-    duration& operator*=(uint64_t multiplier) {
-        value_ *= multiplier;
+        if (unlikely(sub_overflow(value_, other.value_, &value_))) {
+            if (value_ >= 0) {
+                value_ = INT64_MIN;
+            } else {
+                value_ = ZX_TIME_INFINITE;
+            }
+        }
         return *this;
     }
 
-    duration& operator/=(uint64_t divisor) {
-      value_ /= divisor;
-      return *this;
+    duration& operator*=(int64_t multiplier) {
+        zx_duration_t x = 0;
+        if (unlikely(mul_overflow(value_, multiplier, &x))) {
+            if ((value_ > 0 && multiplier > 0) || (value_ < 0 && multiplier < 0)) {
+                value_ = ZX_TIME_INFINITE;
+                return *this;
+            } else {
+                value_ = INT64_MIN;
+                return *this;
+            }
+        }
+        value_ = x;
+        return *this;
+    }
+
+    duration& operator/=(int64_t divisor) {
+        value_ /= divisor;
+        return *this;
     }
 
     constexpr bool operator==(duration other) const { return value_ == other.value_; }
@@ -70,17 +120,17 @@ public:
     constexpr bool operator>(duration other) const { return value_ > other.value_; }
     constexpr bool operator>=(duration other) const { return value_ >= other.value_; }
 
-    constexpr uint64_t to_nsecs() const { return value_; }
+    constexpr int64_t to_nsecs() const { return value_; }
 
-    constexpr uint64_t to_usecs() const { return value_ / ZX_USEC(1); }
+    constexpr int64_t to_usecs() const { return value_ / ZX_USEC(1); }
 
-    constexpr uint64_t to_msecs() const { return value_ / ZX_MSEC(1); }
+    constexpr int64_t to_msecs() const { return value_ / ZX_MSEC(1); }
 
-    constexpr uint64_t to_secs() const { return value_ / ZX_SEC(1); }
+    constexpr int64_t to_secs() const { return value_ / ZX_SEC(1); }
 
-    constexpr uint64_t to_mins() const { return value_ / ZX_MIN(1); }
+    constexpr int64_t to_mins() const { return value_ / ZX_MIN(1); }
 
-    constexpr uint64_t to_hours() const { return value_ / ZX_HOUR(1); }
+    constexpr int64_t to_hours() const { return value_ / ZX_HOUR(1); }
 
 private:
     zx_duration_t value_ = 0;
@@ -127,8 +177,8 @@ public:
     }
 
     ticks& operator-=(ticks other) {
-      value_ -= other.value_;
-      return *this;
+        value_ -= other.value_;
+        return *this;
     }
 
     ticks& operator*=(uint64_t multiplier) {
@@ -137,8 +187,8 @@ public:
     }
 
     ticks& operator/=(uint64_t divisor) {
-      value_ /= divisor;
-      return *this;
+        value_ /= divisor;
+        return *this;
     }
 
     constexpr bool operator==(ticks other) const { return value_ == other.value_; }
@@ -156,7 +206,8 @@ class time {
 public:
     constexpr time() = default;
 
-    explicit constexpr time(zx_time_t value) : value_(value) {}
+    explicit constexpr time(zx_time_t value)
+        : value_(value) {}
 
     static constexpr time infinite() { return time(ZX_TIME_INFINITE); }
 
@@ -164,26 +215,62 @@ public:
 
     zx_time_t* get_address() { return &value_; }
 
-    constexpr duration operator-(time other) const {
-        return duration(value_ - other.value_);
+    duration operator-(time other) const {
+        zx_duration_t x = 0;
+        if (unlikely(sub_overflow(value_, other.value_, &x))) {
+            if (x >= 0) {
+                return duration(INT64_MIN);
+            } else {
+                return duration(ZX_TIME_INFINITE);
+            }
+        }
+        return duration(x);
     }
 
-    constexpr time operator+(duration delta) const {
-        return time(value_ + delta.get());
+    time operator+(duration delta) const {
+        zx_time_t x = 0;
+        if (unlikely(add_overflow(value_, delta.get(), &x))) {
+            if (x >= 0) {
+                return time(INT64_MIN);
+            } else {
+                return time(ZX_TIME_INFINITE);
+            }
+        }
+        return time(x);
     }
 
-    constexpr time operator-(duration delta) const {
-        return time(value_ - delta.get());
+    time operator-(duration delta) const {
+        zx_time_t x = 0;
+        if (unlikely(sub_overflow(value_, delta.get(), &x))) {
+            if (x >= 0) {
+                return time(INT64_MIN);
+            } else {
+                return time(ZX_TIME_INFINITE);
+            }
+        }
+        return time(x);
     }
 
     time& operator+=(duration delta) {
-      value_ += delta.get();
-      return *this;
+        if (unlikely(add_overflow(value_, delta.get(), &value_))) {
+            if (value_ >= 0) {
+                value_ = INT64_MIN;
+            } else {
+                value_ = ZX_TIME_INFINITE;
+            }
+        }
+        return *this;
     }
 
     time& operator-=(duration delta) {
-      value_ -= delta.get();
-      return *this;
+        if (unlikely(sub_overflow(value_, delta.get(), &value_))) {
+            if (value_ >= 0) {
+                value_ = INT64_MIN;
+            } else {
+                value_ = ZX_TIME_INFINITE;
+            }
+        }
+        return *this;
     }
 
     constexpr bool operator==(time other) const { return value_ == other.value_; }
@@ -205,17 +292,17 @@ static inline time get(zx_clock_t clock_id) {
 
 } // namespace clock
 
-constexpr inline duration nsec(uint64_t n) { return duration(ZX_NSEC(n)); }
+constexpr inline duration nsec(int64_t n) { return duration(ZX_NSEC(n)); }
 
-constexpr inline duration usec(uint64_t n) { return duration(ZX_USEC(n)); }
+constexpr inline duration usec(int64_t n) { return duration(ZX_USEC(n)); }
 
-constexpr inline duration msec(uint64_t n) { return duration(ZX_MSEC(n)); }
+constexpr inline duration msec(int64_t n) { return duration(ZX_MSEC(n)); }
 
-constexpr inline duration sec(uint64_t n) { return duration(ZX_SEC(n)); }
+constexpr inline duration sec(int64_t n) { return duration(ZX_SEC(n)); }
 
-constexpr inline duration min(uint64_t n) { return duration(ZX_MIN(n)); }
+constexpr inline duration min(int64_t n) { return duration(ZX_MIN(n)); }
 
-constexpr inline duration hour(uint64_t n) { return duration(ZX_HOUR(n)); }
+constexpr inline duration hour(int64_t n) { return duration(ZX_HOUR(n)); }
 
 inline zx_status_t nanosleep(zx::time deadline) {
     return zx_nanosleep(deadline.get());

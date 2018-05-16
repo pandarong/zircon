@@ -118,8 +118,8 @@ static int cmd_threadstats(int argc, const cmd_args* argv, uint32_t flags) {
             continue;
 
         printf("thread stats (cpu %u):\n", i);
-        printf("\ttotal idle time: %" PRIu64 "\n", percpu[i].stats.idle_time);
-        printf("\ttotal busy time: %" PRIu64 "\n",
+        printf("\ttotal idle time: %" PRIi64 "\n", percpu[i].stats.idle_time);
+        printf("\ttotal busy time: %" PRIi64 "\n",
                current_time() - percpu[i].stats.idle_time);
         printf("\treschedules: %lu\n", percpu[i].stats.reschedules);
         printf("\treschedule_ipis: %lu\n", percpu[i].stats.reschedule_ipis);

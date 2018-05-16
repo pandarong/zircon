@@ -8,11 +8,11 @@
 
 zx_time_t _zx_deadline_after(zx_duration_t nanoseconds) {
     auto now = VDSO_zx_clock_get_monotonic();
-    auto deadline = nanoseconds + now;
-    // Check for overflow.  |nanoseconds| is unsigned, so we only get a
-    // deadline in the past if overflow occurred.
-    if (deadline < now)
+
+    zx_time_t deadline;
+    if (add_overflow(nanoseconds, now, &deadline)) {
         return ZX_TIME_INFINITE;
+    }
     return deadline;
 }
 

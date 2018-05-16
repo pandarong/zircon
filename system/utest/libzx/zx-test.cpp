@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -245,12 +246,19 @@ static bool port_test() {
 static bool time_test() {
     BEGIN_TEST;
 
+    // time construction
+    ASSERT_EQ(zx::time(-1).get(), -1);
+    ASSERT_EQ(zx::time(INT64_MIN).get(), INT64_MIN);
     ASSERT_EQ(zx::time().get(), 0);
     ASSERT_EQ(zx::time::infinite().get(), ZX_TIME_INFINITE);
 
+    // duration construction
+    ASSERT_EQ(zx::duration(-1).get(), -1);
+    ASSERT_EQ(zx::duration(INT64_MIN).get(), INT64_MIN);
     ASSERT_EQ(zx::duration().get(), 0);
     ASSERT_EQ(zx::duration::infinite().get(), ZX_TIME_INFINITE);
 
+    // duration to/from ???
     ASSERT_EQ(zx::nsec(10).get(), ZX_NSEC(10));
     ASSERT_EQ(zx::nsec(10).to_nsecs(), 10);
     ASSERT_EQ(zx::usec(10).get(), ZX_USEC(10));
@@ -268,6 +276,8 @@ static bool time_test() {
     ASSERT_EQ((zx::time::infinite() - zx::time()).get(), ZX_TIME_INFINITE);
     ASSERT_EQ((zx::time::infinite() - zx::time::infinite()).get(), 0);
     ASSERT_EQ((zx::time() + zx::duration::infinite()).get(), ZX_TIME_INFINITE);
+
+    // TODO(maniscalco): Add more tests, esp. for underflow/overflow behavior.
 
     zx::duration d(0u);
     d += zx::nsec(19);

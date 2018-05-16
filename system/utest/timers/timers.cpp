@@ -22,7 +22,7 @@ static bool deadline_test() {
     auto one_hour_later = zx_deadline_after(ZX_HOUR(1));
     EXPECT_LT(then, one_hour_later);
 
-    uint64_t too_big = UINT64_MAX - 100u;
+    zx_duration_t too_big = INT64_MAX - 100;
     auto clamped = zx_deadline_after(too_big);
     EXPECT_EQ(clamped, ZX_TIME_INFINITE);
     END_TEST;

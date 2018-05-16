@@ -73,8 +73,8 @@ void timer_init(timer_t*);
 // timer: the timer to use
 // deadline: absolute time, in ns, after which the timer is executed
 // mode: type of slack to apply, either symmetrical or one-sided to early or late
-// slack: delta time in nanoseconds from |deadline| after or before is
-//        acceptable to execute the timer.
+// slack: delta time in nanoseconds from |deadline| after or before it is
+//        acceptable to execute the timer. Must be >= 0.
 // callback: the function to call when the timer expires
 // arg: the argument to pass to the callback
 //
@@ -88,7 +88,7 @@ void timer_init(timer_t*);
 // - TIMER_SLACK_LATE: |dealine| to |deadline + slack|
 // - TIMER_SLACK_EARLY: |deadline - slack| to |deadline|
 void timer_set(timer_t* timer, zx_time_t deadline,
-               enum slack_mode mode, uint64_t slack, timer_callback callback, void* arg);
+               enum slack_mode mode, zx_duration_t slack, timer_callback callback, void* arg);
 
 //
 // Cancel a pending timer

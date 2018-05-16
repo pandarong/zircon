@@ -341,7 +341,7 @@ void dlog_bluescreen_init(void) {
 
     // replay debug log?
 
-    dprintf(INFO, "\nZIRCON KERNEL PANIC\n\nUPTIME: %" PRIu64 "ms\n",
+    dprintf(INFO, "\nZIRCON KERNEL PANIC\n\nUPTIME: %" PRIi64 "ms\n",
             current_time() / ZX_MSEC(1));
     dprintf(INFO, "BUILDID %s\n\n", version.buildid);
 

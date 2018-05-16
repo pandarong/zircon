@@ -54,6 +54,8 @@ In the event of failure, a negative error value is returned.
 
 **ZX_ERR_ACCESS_DENIED**  *handle* lacks the right *ZX_RIGHT_WRITE*.
 
+**ZX_ERR_OUT_OF_RANGE**  *slack* is negative.
+
 ## SEE ALSO
 
 [timer_create](timer_create.md),

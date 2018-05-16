@@ -49,6 +49,9 @@ static int timer_irq;
 struct fp_32_64 cntpct_per_ns;
 struct fp_32_64 ns_per_cntpct;
 
+// TODO(maniscalco): Could be some bugs below. Review the u64_mul functions and see if we should
+// add/use some i64_mul versions instead. Guard against overflow/underflow.
+
 static uint64_t zx_time_to_cntpct(zx_time_t zx_time)
 {
     return u64_mul_u64_fp32_64(zx_time, cntpct_per_ns);
@@ -214,6 +217,10 @@ zx_status_t platform_set_oneshot_timer(zx_time_t deadline)
 {
     DEBUG_ASSERT(arch_ints_disabled());
 
+    if (deadline < 0) {
+        deadline = 0;
+    }
+
     // Add one to the deadline, since with very high probability the deadline
     // straddles a counter tick.
     const uint64_t cntpct_deadline = zx_time_to_cntpct(deadline) + 1;
@@ -281,7 +288,7 @@ static void test_zx_time_to_cntpct(uint32_t cntfrq, zx_time_t zx_time)
     uint64_t expected_cntpct = ((uint64_t)cntfrq * zx_time + nanos_per_sec / 2) / nanos_per_sec;
 
     test_time_conversion_check_result(cntpct, expected_cntpct, 1, false);
-    LTRACEF_LEVEL(2, "zx_time_to_cntpct(%" PRIu64 "): got %" PRIu64
+    LTRACEF_LEVEL(2, "zx_time_to_cntpct(%" PRIi64 "): got %" PRIu64
                   ", expect %" PRIu64 "\n",
                   zx_time, cntpct, expected_cntpct);
 }
@@ -294,7 +301,7 @@ static void test_cntpct_to_zx_time(uint32_t cntfrq, uint64_t expected_s)
 
     test_time_conversion_check_result(zx_time, expected_zx_time, (1000 * 1000 + cntfrq - 1) / cntfrq, false);
     LTRACEF_LEVEL(2, "cntpct_to_zx_time(%" PRIu64
-                  "): got %" PRIu64 ", expect %" PRIu64 "\n",
+                  "): got %" PRIi64 ", expect %" PRIi64 "\n",
                   cntpct, zx_time, expected_zx_time);
 }
 

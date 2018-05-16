@@ -54,7 +54,7 @@ static void update_platform_timer(uint cpu, zx_time_t new_deadline) {
     DEBUG_ASSERT(arch_ints_disabled());
     DEBUG_ASSERT(cpu == arch_curr_cpu_num());
     if (new_deadline < percpu[cpu].next_timer_deadline) {
-        LTRACEF("rescheduling timer for %" PRIu64 " nsecs\n", new_deadline);
+        LTRACEF("rescheduling timer for %" PRIi64 " nsecs\n", new_deadline);
         platform_set_oneshot_timer(new_deadline);
         percpu[cpu].next_timer_deadline = new_deadline;
     }
@@ -64,7 +64,7 @@ static void insert_timer_in_queue(uint cpu, timer_t* timer,
                                   uint64_t early_slack, uint64_t late_slack) {
 
     DEBUG_ASSERT(arch_ints_disabled());
-    LTRACEF("timer %p, cpu %u, scheduled %" PRIu64 "\n", timer, cpu, timer->scheduled_time);
+    LTRACEF("timer %p, cpu %u, scheduled %" PRIi64 "\n", timer, cpu, timer->scheduled_time);
 
     zx_time_t earliest_deadline = timer->scheduled_time - early_slack;
     zx_time_t latest_deadline = timer->scheduled_time + late_slack;
@@ -170,18 +170,20 @@ static void insert_timer_in_queue(uint cpu, timer_t* timer,
     }
 
     // Walked off the end of the list and there was no overlap.
-    timer->slack = 0ull;
+    timer->slack = 0;
     list_add_tail(&percpu[cpu].timer_queue, &timer->node);
 }
 
 void timer_set(timer_t* timer, zx_time_t deadline,
-               enum slack_mode mode, uint64_t slack,
+               enum slack_mode mode, zx_duration_t slack,
                timer_callback callback, void* arg) {
-    LTRACEF("timer %p deadline %" PRIu64 " slack %" PRIu64 " callback %p arg %p\n",
+    LTRACEF("timer %p deadline %" PRIi64 " slack %" PRIi64 " callback %p arg %p\n",
             timer, deadline, slack, callback, arg);
 
     DEBUG_ASSERT(timer->magic == TIMER_MAGIC);
+    DEBUG_ASSERT(deadline >= 0);
     DEBUG_ASSERT(mode <= TIMER_SLACK_EARLY);
+    DEBUG_ASSERT(slack >= 0);
 
     if (list_in_list(&timer->node)) {
         panic("timer %p already in list\n", timer);
@@ -190,17 +192,20 @@ void timer_set(timer_t* timer, zx_time_t deadline,
     zx_duration_t late_slack;
     zx_duration_t early_slack;
 
-    if (slack == 0u) {
-        late_slack = 0u;
-        early_slack = 0u;
+    if (slack == 0) {
+        late_slack = 0;
+        early_slack = 0;
     } else {
         switch (mode) {
         case TIMER_SLACK_CENTER:
-            late_slack = ((deadline + slack) < deadline) ? (UINT64_MAX - deadline) : slack;
+
+            // TODO(maniscalco): Could be some bugs below. Guard against underflow/underflow.
+
+            late_slack = ((deadline + slack) < deadline) ? (INT64_MAX - deadline) : slack;
             early_slack = ((deadline - slack) > deadline) ? deadline : slack;
             break;
         case TIMER_SLACK_LATE:
-            late_slack = ((deadline + slack) < deadline) ? (UINT64_MAX - deadline) : slack;
+            late_slack = ((deadline + slack) < deadline) ? (INT64_MAX - deadline) : slack;
             early_slack = 0u;
             break;
         case TIMER_SLACK_EARLY:
@@ -233,7 +238,7 @@ void timer_set(timer_t* timer, zx_time_t deadline,
     timer->cancel = false;
     // We don't need to modify timer->active_cpu because it is managed by timer_tick().
 
-    LTRACEF("scheduled time %" PRIu64 "\n", timer->scheduled_time);
+    LTRACEF("scheduled time %" PRIi64 "\n", timer->scheduled_time);
 
     insert_timer_in_queue(cpu, timer, early_slack, late_slack);
 
@@ -251,7 +256,7 @@ void timer_preempt_reset(zx_time_t deadline) {
 
     uint cpu = arch_curr_cpu_num();
 
-    LTRACEF("preempt timer cpu %u deadline %" PRIu64 "\n", cpu, deadline);
+    LTRACEF("preempt timer cpu %u deadline %" PRIi64 "\n", cpu, deadline);
 
     percpu[cpu].preempt_timer_deadline = deadline;
 
@@ -353,7 +358,7 @@ void timer_tick(zx_time_t now) {
 
     uint cpu = arch_curr_cpu_num();
 
-    LTRACEF("cpu %u now %" PRIu64 ", sp %p\n", cpu, now, __GET_FRAME());
+    LTRACEF("cpu %u now %" PRIi64 ", sp %p\n", cpu, now, __GET_FRAME());
 
     // platform timer has fired, no deadline is set
     percpu[cpu].next_timer_deadline = ZX_TIME_INFINITE;
@@ -371,7 +376,7 @@ void timer_tick(zx_time_t now) {
         timer = list_peek_head_type(&percpu[cpu].timer_queue, timer_t, node);
         if (likely(timer == 0))
             break;
-        LTRACEF("next item on timer queue %p at %" PRIu64 " now %" PRIu64 " (%p, arg %p)\n",
+        LTRACEF("next item on timer queue %p at %" PRIi64 " now %" PRIi64 " (%p, arg %p)\n",
                 timer, timer->scheduled_time, now, timer->callback, timer->arg);
         if (likely(now < timer->scheduled_time))
             break;
@@ -390,7 +395,7 @@ void timer_tick(zx_time_t now) {
         // we pulled it off the list, release the list lock to handle it
         spin_unlock(&timer_lock);
 
-        LTRACEF("dequeued timer %p, scheduled %" PRIu64 "\n", timer, timer->scheduled_time);
+        LTRACEF("dequeued timer %p, scheduled %" PRIi64 "\n", timer, timer->scheduled_time);
 
         CPU_STATS_INC(timers);
 
@@ -518,7 +523,7 @@ static void dump_timer_queues(char* buf, size_t len) {
                 zx_duration_t delta_now = (t->scheduled_time > now) ? (t->scheduled_time - now) : 0;
                 zx_duration_t delta_last = (t->scheduled_time > last) ? (t->scheduled_time - last) : 0;
                 ptr += snprintf(buf + ptr, len - ptr,
-                                "\ttime %" PRIu64 " delta_now %" PRIu64 " delta_last %" PRIu64 " func %p arg %p\n",
+                                "\ttime %" PRIi64 " delta_now %" PRIi64 " delta_last %" PRIi64 " func %p arg %p\n",
                                 t->scheduled_time, delta_now, delta_last, t->callback, t->arg);
                 last = t->scheduled_time;
             }

@@ -37,7 +37,7 @@ struct TestArgs {
 void do_test(uint32_t duration, const TestArgs& test_args) {
     __UNUSED zx_status_t status;
 
-    uint64_t duration_ns = duration * 1000000000ull;
+    int64_t duration_ns = duration * 1000000000ll;
 
     // We'll write to mp[0] (and read from mp[1]).
     zx_handle_t mp[2] = {ZX_HANDLE_INVALID, ZX_HANDLE_INVALID};

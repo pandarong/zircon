@@ -141,29 +141,29 @@ zx_time_t current_time(void) {
 // Round up t to a clock tick, so that when the APIC timer fires, the wall time
 // will have elapsed.
 static zx_time_t discrete_time_roundup(zx_time_t t) {
-    zx_time_t value = t;
+    zx_time_t value;
     switch (wall_clock) {
     case CLOCK_TSC: {
-        value += ns_per_tsc_rounded_up;
+        value = ns_per_tsc_rounded_up;
         break;
     }
     case CLOCK_HPET: {
-        value += ns_per_hpet_rounded_up;
+        value = ns_per_hpet_rounded_up;
         break;
     }
     case CLOCK_PIT: {
-        value += ns_per_pit_rounded_up;
+        value = ns_per_pit_rounded_up;
         break;
     }
     default:
         panic("Invalid wall clock source\n");
     }
 
-    // Check for overflow
-    if (unlikely(t > value)) {
-        return UINT64_MAX;
+    zx_time_t sum;
+    if (unlikely(add_overflow(t, value, &sum))) {
+        return ZX_TIME_INFINITE;
     }
-    return value;
+    return sum;
 }
 
 zx_ticks_t ticks_per_second(void) {

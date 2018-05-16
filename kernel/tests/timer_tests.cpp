@@ -89,7 +89,7 @@ static void timer_test_coalescing(enum slack_mode mode, uint64_t slack,
         timer_init(&timer[ix]);
         zx_time_t dl = deadline[ix];
         timer_set(&timer[ix], dl, mode, slack, timer_cb2, &timer_count);
-        printf("[%zu] %" PRIu64 "  -> %" PRIu64 ", %" PRIi64 "\n",
+        printf("[%zu] %" PRIi64 "  -> %" PRIi64 ", %" PRIi64 "\n",
                ix, dl, timer[ix].scheduled_time, timer[ix].slack);
 
         if (timer[ix].slack != expected_adj[ix]) {
@@ -122,7 +122,7 @@ static void timer_test_coalescing_center(void) {
     };
 
     const int64_t expected_adj[fbl::count_of(deadline)] = {
-        0, 0, ZX_USEC(10), 0, -(int64_t)ZX_USEC(10), 0, ZX_USEC(10), 0};
+        0, 0, ZX_USEC(10), 0, -ZX_USEC(10), 0, ZX_USEC(10), 0};
 
     timer_test_coalescing(
         TIMER_SLACK_CENTER, slack, deadline, expected_adj, fbl::count_of(deadline));
@@ -166,7 +166,7 @@ static void timer_test_coalescing_early(void) {
     };
 
     const int64_t expected_adj[fbl::count_of(deadline)] = {
-        0, -(int64_t)ZX_USEC(20), 0, 0, 0, -(int64_t)ZX_USEC(10), -(int64_t)ZX_USEC(10)};
+        0, -ZX_USEC(20), 0, 0, 0, -ZX_USEC(10), -ZX_USEC(10)};
 
     timer_test_coalescing(
         TIMER_SLACK_EARLY, slack, deadline, expected_adj, fbl::count_of(deadline));
@@ -179,7 +179,7 @@ static void timer_far_deadline(void) {
     event_init(&event, false, 0);
     timer_init(&timer);
 
-    timer_set(&timer, UINT64_MAX - 5, TIMER_SLACK_CENTER, 0, timer_cb, &event);
+    timer_set(&timer, ZX_TIME_INFINITE - 5, TIMER_SLACK_CENTER, 0, timer_cb, &event);
     zx_status_t st = event_wait_deadline(&event, current_time() + ZX_MSEC(100), false);
     if (st != ZX_ERR_TIMED_OUT) {
         printf("error: unexpected timer fired!\n");
