@@ -16,6 +16,11 @@
 #include "pci.h"
 #include "pciroot-private.h"
 
+// - Add pciroot to ARM, probably define get_auxdata and get_bti as ZX_ERR_NOT_SUPPORTED, only matters
+//   for the amlogic board. Also may matter for arm qemu?
+// - Convert zx_pci_init to make the call rather than getting the arg when called
+// - Add the aspace handles to the call, but they won't be used yet since PCI is still in the kernel
+// - Add a #define to not build kernel PCI, stub a userspace PCI driver
 static ACPI_STATUS find_pci_child_callback(ACPI_HANDLE object, uint32_t nesting_level,
                                            void* context, void** out_value) {
     ACPI_DEVICE_INFO* info;
