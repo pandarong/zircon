@@ -52,3 +52,5 @@ enum {
 #define I2C_BACKLIGHT_ADDR (0x2C)
 // astro-touch.c
 zx_status_t astro_touch_init(aml_bus_t* bus);
+
+zx_status_t astro_tdm_init(aml_bus_t* bus);

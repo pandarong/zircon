@@ -79,7 +79,10 @@ static int aml_start_thread(void* arg) {
         zxlogf(ERROR, "aml_display_init failed: %d\n", status);
         goto fail;
     }
-
+    if ((status = astro_tdm_init(bus)) != ZX_OK) {
+        zxlogf(ERROR, "astro_tdm_init failed: %d\n", status);
+        goto fail;
+    }
     return ZX_OK;
 fail:
     zxlogf(ERROR, "aml_start_thread failed, not all devices have been initialized\n");

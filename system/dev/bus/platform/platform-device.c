@@ -687,7 +687,8 @@ zx_status_t platform_device_enable(platform_dev_t* dev, bool enable) {
             .props = props,
             .prop_count = countof(props),
             .proxy_args = (new_devhost ? argstr : NULL),
-            .flags = (new_devhost ? DEVICE_ADD_MUST_ISOLATE : 0),
+            .flags = (new_devhost ? DEVICE_ADD_MUST_ISOLATE : 0) |
+                     (dev->boot_metadata_count ? DEVICE_ADD_INVISIBLE : 0),
         };
         // add PCI root at top level
         zx_device_t* parent = dev->bus->zxdev;
@@ -706,7 +707,12 @@ zx_status_t platform_device_enable(platform_dev_t* dev, bool enable) {
 
         if (dev->boot_metadata_count) {
             for (uint32_t i = 0; i < dev->boot_metadata_count; i++) {
-                platform_device_add_metadata(dev, i);
+                if ((dev->boot_metadata[i].data) && (dev->boot_metadata[i].len)) {
+                    device_add_metadata(dev->zxdev, dev->boot_metadata[i].type,
+                        dev->boot_metadata[i].data, dev->boot_metadata[i].len);
+                } else {
+                    platform_device_add_metadata(dev, i);
+                }
             }
             device_make_visible(dev->zxdev);
         }
