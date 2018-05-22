@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <blkctl/command.h>
 #include <fbl/macros.h>
 #include <fbl/string.h>
 #include <fbl/unique_ptr.h>
@@ -19,20 +20,23 @@ class Command;
 
 class BlkCtl final {
 public:
-    BlkCtl()
-        : force_(false), argn_(0) {}
+    BlkCtl() : force_(false), argn_(0), canned_(nullptr) {}
     ~BlkCtl() {}
 
+    const Command* cmd() const { return cmd_ ? cmd_.get() : nullptr; }
     Command* cmd() { return cmd_ ? cmd_.get() : nullptr; }
+
+    void set_force(bool force) { force_ = force; }
 
     // Prints usage information based on the available |CommandSets|.
     void Usage() const;
 
-    // Converts the command line arguments into a |Command| object and runs it..
+    // Converts the command line arguments into a |Command| object and runs it.
     static zx_status_t Execute(int argc, char** argv);
 
-    // Converts the command line arguments into a |Command| object and runs it..
-    zx_status_t Parse(int argc, char** argv);
+    // Converts the command line arguments into a |Command| object and runs it.  Tests can provide
+    // |canned| responses for |Prompt|, delimited by '\n'.
+    zx_status_t Parse(int argc, char** argv, const char* canned = nullptr);
 
     // Convenience functions to get the successive arguments.  If the next argument is of the wrong
     // type, or is missing and the optional flag is not set, it will return |ZX_ERR_INVALID_ARGS|.
@@ -50,6 +54,11 @@ public:
     // action.  Returns ZX_ERR_CANCELED if the user does not confirm, ZX_OK otherwise.
     zx_status_t Confirm() const;
 
+    // If |canned_| has not been set, prints the |prompt| and reads up to |n| characters of the
+    // user's response into |s|.  If |canned_| is set, it reads up to the next newline from that
+    // string instead.  Returns ZX_OK on success, or ZX_ERR_IO on error.
+    zx_status_t Prompt(const char* prompt, char* s, size_t n);
+
 private:
     DISALLOW_COPY_AND_ASSIGN_ALLOW_MOVE(BlkCtl);
 
@@ -63,6 +72,8 @@ private:
     bool force_;
     // Index to the next argument
     size_t argn_;
+    // Canned input, primarily for testing
+    const char* canned_;
 };
 
 } // namespace blkctl

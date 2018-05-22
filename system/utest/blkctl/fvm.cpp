@@ -17,232 +17,235 @@ namespace {
 
 bool TestBadCommand(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
 
     // Missing command
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm"));
 
     // Gibberish
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm booplesnoot"));
 
     END_TEST;
 }
 
 bool TestInitDestroy(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedRamdisk ramdisk;
     ScopedRamdisk nonfvm;
     ASSERT_TRUE(ramdisk.Init());
     ASSERT_TRUE(nonfvm.Init());
 
     // Missing/bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init booplesnoot"));
 
     // Missing/bad slice size
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init %s", ramdisk.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init %s foo", ramdisk.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init %s -1", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init %s", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init %s foo", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init %s -1", ramdisk.path()));
 
     // Too many args
-    EXPECT_TRUE(
-        ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm init %s %zu foo", ramdisk.path(), kSliceSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm init %s %zu foo", ramdisk.path(), kSliceSize));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm init --force %s %zu", ramdisk.path(), kSliceSize));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm init %s %zu", ramdisk.path(), kSliceSize));
 
     // Missing/bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm destroy"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm destroy booplesnoot"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm destroy %s", nonfvm.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm destroy"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm destroy booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm destroy %s", nonfvm.path()));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm destroy %s foo", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm destroy %s foo", ramdisk.path()));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm destroy --force %s", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm destroy %s", ramdisk.path()));
 
     END_TEST;
 }
 
 bool TestDump(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmPartition partition;
     ASSERT_TRUE(partition.Init());
     const ScopedFvmVolume& volume = partition.volume();
     const ScopedRamdisk& ramdisk = volume.ramdisk();
 
     // Missing/bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm dump"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm dump booplesnoot"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm dump"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm dump booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s", ramdisk.path()));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm dump %s foo", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm dump %s foo", volume.path()));
 
     // Valid for volume
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm dump %s", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm dump %s", volume.path()));
 
     // Valid for partition
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm dump %s", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm dump %s", partition.path()));
 
     END_TEST;
 }
 
 bool TestAdd(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmVolume volume;
     ASSERT_TRUE(volume.Init());
     const ScopedRamdisk& ramdisk = volume.ramdisk();
 
     // Missing device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add booplesnoot"));
 
     // Missing/bad name and/or slices
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s", volume.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s foo", volume.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s foo bar", volume.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s foo -1", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s foo", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s foo bar", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s foo -1", volume.path()));
 
     // GUID is optional
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm add --force %s foo %zu", volume.path(),
-                            volume.slices() / 2));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm add %s foo %zu", volume.path(), volume.slices() / 2));
 
     // Bad GUID
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS,
-                            "blkctl fvm add %s bar %zu 00000000-0000-0000-0000000000000000",
-                            volume.path(), volume.slices()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS,
-                            "blkctl fvm add %s bar %zu thisisno-thex-adec-imal-anditmustbe!",
-                            volume.path(), volume.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS,
+                           "fvm add %s bar %zu 00000000-0000-0000-0000000000000000", volume.path(),
+                           volume.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS,
+                           "fvm add %s bar %zu thisisno-thex-adec-imal-anditmustbe!", volume.path(),
+                           volume.slices()));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS,
-                            "blkctl fvm add %s bar %zu deadbeef-dead-beef-dead-beefdeadbeef bar",
-                            volume.path(), volume.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS,
+                           "fvm add %s bar %zu deadbeef-dead-beef-dead-beefdeadbeef bar",
+                           volume.path(), volume.slices()));
 
     // Bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm add %s bar %zu", ramdisk.path(),
-                            volume.slices() / 2));
+    EXPECT_TRUE(
+        blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm add %s bar %zu", ramdisk.path(), volume.slices() / 2));
 
     // Valid
-    EXPECT_TRUE(
-        ParseAndRun(ZX_OK, "blkctl fvm add --force %s bar %zu deadbeef-dead-beef-dead-beefdeadbeef",
-                    volume.path(), volume.slices() / 2));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm add %s bar %zu deadbeef-dead-beef-dead-beefdeadbeef",
+                           volume.path(), volume.slices() / 2));
 
     END_TEST;
 }
 
 bool TestQuery(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmPartition partition;
     ASSERT_TRUE(partition.Init());
     const ScopedFvmVolume& volume = partition.volume();
 
     // Missing/bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm query"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm query booplesnoot"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm query %s", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm query"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm query booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm query %s", volume.path()));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm query %s foo", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm query %s foo", partition.path()));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm query %s", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm query %s", partition.path()));
 
     END_TEST;
 }
 
 bool TestExtend(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmPartition partition;
     ASSERT_TRUE(partition.Init());
     const ScopedFvmVolume& volume = partition.volume();
 
     // Missing device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend booplesnoot"));
 
     // Missing/bad start and/or length
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s %zu", partition.path(),
-                            partition.slices()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s foo 1", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s -1 1", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s %zu foo", partition.path(),
-                            partition.slices()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s %zu -1", partition.path(),
-                            partition.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s", partition.path()));
+    EXPECT_TRUE(
+        blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s %zu", partition.path(), partition.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s foo 1", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s -1 1", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s %zu foo", partition.path(),
+                           partition.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s %zu -1", partition.path(),
+                           partition.slices()));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s %zu 1 foo", partition.path(),
-                            partition.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s %zu 1 foo", partition.path(),
+                           partition.slices()));
 
     // Bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm extend %s %zu 1", volume.path(),
-                            partition.slices()));
+    EXPECT_TRUE(
+        blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm extend %s %zu 1", volume.path(), partition.slices()));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm extend --force %s %zu 1", partition.path(),
-                            partition.slices()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm extend %s %zu 1", partition.path(), partition.slices()));
 
     END_TEST;
 }
 
 bool TestShrink(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmPartition partition;
     ASSERT_TRUE(partition.Init());
     const ScopedFvmVolume& volume = partition.volume();
 
     // Missing device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink booplesnoot"));
 
     // Missing/bad start and/or length
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s %zu", partition.path(),
-                            partition.slices() - 1));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s foo 1", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s -1 1", partition.path()));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s %zu foo", partition.path(),
-                            partition.slices() - 1));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s %zu -1", partition.path(),
-                            partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s %zu", partition.path(),
+                           partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s foo 1", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s -1 1", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s %zu foo", partition.path(),
+                           partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s %zu -1", partition.path(),
+                           partition.slices() - 1));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s %zu 1 foo", partition.path(),
-                            partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s %zu 1 foo", partition.path(),
+                           partition.slices() - 1));
 
     // Bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm shrink %s %zu 1", volume.path(),
-                            partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm shrink %s %zu 1", volume.path(),
+                           partition.slices() - 1));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm shrink --force %s %zu 1", partition.path(),
-                            partition.slices() - 1));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm shrink %s %zu 1", partition.path(), partition.slices() - 1));
 
     END_TEST;
 }
 
 bool TestRemove(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedFvmPartition partition;
     ASSERT_TRUE(partition.Init());
     const ScopedFvmVolume& volume = partition.volume();
 
     // Missing device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm remove"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm remove booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm remove"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm remove booplesnoot"));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm remove %s foo", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm remove %s foo", partition.path()));
 
     // Bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl fvm remove %s", volume.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "fvm remove %s", volume.path()));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl fvm remove --force %s", partition.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "fvm remove %s", partition.path()));
 
     END_TEST;
 }

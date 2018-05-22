@@ -16,19 +16,24 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/generic.cpp \
     $(LOCAL_DIR)/ramdisk.cpp \
     $(LOCAL_DIR)/fvm.cpp \
+    $(LOCAL_DIR)/zxcrypt.cpp \
 
 MODULE_LIBS := \
     system/ulib/c \
+    system/ulib/crypto \
     system/ulib/digest \
     system/ulib/fdio \
     system/ulib/fs-management \
     system/ulib/zircon \
+    system/ulib/zxcrypt \
 
 MODULE_STATIC_LIBS := \
+    system/ulib/ddk \
     system/ulib/fbl \
     system/ulib/fvm \
     system/ulib/fs \
     system/ulib/gpt \
     system/ulib/zx \
+    system/ulib/zxcpp \
 
 include make/module.mk

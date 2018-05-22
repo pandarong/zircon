@@ -13,6 +13,7 @@
 
 #include <blkctl/blkctl.h>
 #include <blkctl/command.h>
+#include <fbl/auto_call.h>
 #include <fbl/unique_ptr.h>
 #include <fbl/vector.h>
 #include <fs-management/fvm.h>
@@ -31,55 +32,77 @@ namespace blkctl {
 namespace testing {
 namespace {
 
-bool VSplitArgs(fbl::Vector<char*>* out, char* buf, size_t buf_len, const char* fmt, va_list ap) {
-    BEGIN_HELPER;
-    ASSERT_NONNULL(out);
-    ASSERT_NONNULL(buf);
+const char* kBinName = "blkctl";
 
-    ssize_t len = vsnprintf(buf, buf_len, fmt, ap);
+} // namespace
+
+bool BlkCtlTest::SetCanned(const char* fmt, ...) {
+    BEGIN_HELPER;
+
+    va_list ap;
+    va_start(ap, fmt);
+    ssize_t len = vsnprintf(canned_, sizeof(canned_), fmt, ap);
+    va_end(ap);
+
     ASSERT_GE(len, 0);
     size_t n = static_cast<size_t>(len);
-    ASSERT_LT(n, buf_len);
+    ASSERT_LT(n, sizeof(canned_));
 
+    use_canned_ = true;
+
+    END_HELPER;
+}
+
+bool BlkCtlTest::Run(zx_status_t expected, const char* fmt, ...) {
+    BEGIN_HELPER;
+
+    // Consume canned responses.
+    const char* canned = use_canned_ ? canned_ : nullptr;
+    use_canned_ = false;
+
+    // Construct command line.
+    char buf[PAGE_SIZE / 2];
+    va_list ap;
+    va_start(ap, fmt);
+    ssize_t len = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    // Make a copy for error reporting
+    char cmd[PAGE_SIZE / 2];
+    snprintf(cmd, sizeof(cmd), "When executing 'blkctl %s'", buf);
+
+    ASSERT_GE(len, 0, cmd);
+    size_t n = static_cast<size_t>(len);
+    ASSERT_LT(n, sizeof(buf), cmd);
+    fbl::Vector<char*> args;
     fbl::AllocChecker ac;
+
+    // Push argv[0]
+    args.push_back(const_cast<char*>(kBinName), &ac);
+    ASSERT_TRUE(ac.check(), cmd);
+
+    // Split remaining args
     bool token = true;
     for (size_t i = 0; i < n; ++i) {
         if (isspace(buf[i])) {
             buf[i] = '\0';
             token = true;
         } else if (token && isprint(buf[i])) {
-            out->push_back(&buf[i], &ac);
-            ASSERT_TRUE(ac.check());
+            args.push_back(&buf[i], &ac);
+            ASSERT_TRUE(ac.check(), cmd);
             token = false;
         }
     }
-    END_HELPER;
-}
 
-} // namespace
-
-bool SplitArgs(fbl::Vector<char*>* out, char* buf, size_t buf_len, const char* fmt, ...) {
-    BEGIN_HELPER;
-
-    va_list ap;
-    va_start(ap, fmt);
-    ASSERT_TRUE(VSplitArgs(out, buf, buf_len, fmt, ap));
-    va_end(ap);
-
-    END_HELPER;
-}
-
-bool ParseAndRun(zx_status_t expected, const char* fmt, ...) {
-    BEGIN_HELPER;
-
-    char buf[PATH_MAX];
-    va_list ap;
-    va_start(ap, fmt);
-    fbl::Vector<char*> args;
-    ASSERT_TRUE(VSplitArgs(&args, buf, sizeof(buf), fmt, ap));
-    va_end(ap);
-
-    EXPECT_EQ(BlkCtl::Execute(static_cast<int>(args.size()), args.get()), expected);
+    // |expected| may match either parsing or execution
+    zx_status_t rc;
+    if ((rc = obj_.Parse(static_cast<int>(args.size()), args.get(), canned)) != ZX_OK) {
+        EXPECT_EQ(rc, expected, cmd);
+    } else {
+        // Always skip confirmations
+        obj_.set_force(true);
+        EXPECT_EQ(obj_.cmd()->Run(), expected, cmd);
+    }
 
     END_HELPER;
 }
@@ -116,6 +139,9 @@ ScopedRamdisk::~ScopedRamdisk() {
 
 bool ScopedRamdisk::Init(fbl::unique_fd* out) {
     BEGIN_HELPER;
+    if (size_ != 0) {
+        destroy_ramdisk(path());
+    }
     char path[PATH_MAX];
     ASSERT_EQ(create_ramdisk(kBlockSize, kBlockCount, path), 0);
     ASSERT_TRUE(Open(path, nullptr, out));

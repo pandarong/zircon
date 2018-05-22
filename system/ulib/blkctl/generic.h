@@ -13,7 +13,7 @@ DEFINE_COMMAND(Help);
 DEFINE_COMMAND(List);
 DEFINE_COMMAND(Dump);
 
-constexpr const char *kType = nullptr;
+constexpr const char* kType = nullptr;
 
 constexpr Cmd kCommands[] = {
     {"help", "", "Print this message and exit.", Instantiate<generic::Help>},

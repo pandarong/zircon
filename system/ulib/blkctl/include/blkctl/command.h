@@ -7,11 +7,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <fbl/alloc_checker.h>
 #include <fbl/macros.h>
 #include <fbl/string.h>
 #include <fbl/unique_fd.h>
 #include <fbl/unique_ptr.h>
-#include <fbl/alloc_checker.h>
 #include <zircon/types.h>
 
 namespace blkctl {
@@ -28,7 +28,7 @@ public:
 
     virtual ~Command();
 
-    const char * devname() const { return devname_.c_str(); }
+    const char* devname() const { return devname_.c_str(); }
 
     // Execute the command.  See subclasses for specific behavior.
     virtual zx_status_t Run() { return ZX_ERR_NOT_SUPPORTED; }
@@ -38,8 +38,10 @@ protected:
 
     BlkCtl* cmdline() { return cmdline_; }
 
-    // Convenience functions to create a random GUIDs, parse GUIDs from strings, and print GUIDs.
+    // Convenience functions to create a random GUIDs, parse hex strings, parse GUIDs from strings,
+    // and print GUIDs.
     static void GenerateGuid(uint8_t* out, size_t out_len);
+    static zx_status_t ParseHex(const char* in, uint8_t* out, size_t out_len, char delim = '\0');
     static zx_status_t ParseGuid(const char* in, uint8_t* out, size_t out_len);
     static void PrintGuid(const uint8_t* guid, size_t guid_len);
 
@@ -50,8 +52,9 @@ protected:
     zx_status_t GetNumArg(const char* argname, uint64_t* out, bool optional = false);
     zx_status_t GetStrArg(const char* argname, const char** out, bool optional = false);
 
-    // Open the device as read-only and return a file descriptor to it via |out|.
-    zx_status_t OpenReadable(const char* dev, int* out);
+    // Open the device described by |argname| as read-only and return a file descriptor to it via
+    // |out|.
+    zx_status_t OpenReadable(const char* argname, int* out);
 
     // Reopen the file descriptor to the device as read/write and returns it via |out|.
     zx_status_t ReopenWritable(int* out);
@@ -91,13 +94,18 @@ private:
 //   > blkctl example foo <device>
 //   > blkctl example bar
 
-// This macro can be used to define new command functors with the given |Name|.
-#define DEFINE_COMMAND(Name)                                                                       \
-    class Name : public Command {                                                                  \
+// This macro can be used to define new command functors with the given |Name|.  |Base| should be a
+// subclass of |Command| that includes any additional shared functionality.
+#define DEFINE_DERIVED_COMMAND(Base, Name)                                                         \
+    class Name : public Base {                                                                     \
     public:                                                                                        \
-        Name(BlkCtl* cmdline) : Command(cmdline) {}                                               \
+        Name(BlkCtl* cmdline) : Base(cmdline) {}                                                   \
         zx_status_t Run() override;                                                                \
     }
+
+// This macro is simply |DEFINE_DERIVED_COMMAND| with |Command| as the base class.  This is useful
+// with no additional shared functionality is required.
+#define DEFINE_COMMAND(Name) DEFINE_DERIVED_COMMAND(Command, Name)
 
 // |Cmd| describes a command and provides a way to build the command functor.  Specific command
 // types must provide an array of these named |kCommands| with length |kNumCommands|.

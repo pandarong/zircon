@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <ctype.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -19,11 +21,12 @@
 #include "fvm.h"
 #include "generic.h"
 #include "ramdisk.h"
+#include "zxcrypt.h"
 
 namespace blkctl {
 namespace {
 
-#define ADD_CMD_TYPE(T)                                                                         \
+#define ADD_CMD_TYPE(T)                                                                            \
     { T::kType, T::kCommands, T::kNumCommands }
 struct CmdType {
     const char* type;
@@ -42,6 +45,7 @@ struct CmdType {
 constexpr CmdType kTypes[] = {
     ADD_CMD_TYPE(ramdisk),
     ADD_CMD_TYPE(fvm),
+    ADD_CMD_TYPE(zxcrypt),
     // The generic commands should be last, so that various routines use them if no type matches
     ADD_CMD_TYPE(generic),
 };
@@ -103,18 +107,22 @@ zx_status_t BlkCtl::Execute(int argc, char** argv) {
         return rc;
     }
 
-    Command *cmd = tmp.cmd();
+    Command* cmd = tmp.cmd();
     return cmd->Run();
 }
 
-
-zx_status_t BlkCtl::Parse(int argc, char** argv) {
+zx_status_t BlkCtl::Parse(int argc, char** argv, const char* canned) {
     zx_status_t rc;
 
     if (argc == 0 || !argv) {
         fprintf(stderr, "bad arguments: argc=%d, argv=%p\n", argc, argv);
         return ZX_ERR_INVALID_ARGS;
     }
+
+    // Reset the internal state of the command line
+    force_ = false;
+    argn_ = 0;
+    canned_ = canned;
 
     // Consume binname
     fbl::AllocChecker ac;
@@ -240,13 +248,41 @@ zx_status_t BlkCtl::Confirm() const {
     }
     printf("About to commit changes to disk.  Are you sure? [y/N] ");
     fflush(stdout);
-    switch (getchar()) {
+    int c = fgetc(stdin);
+    printf("\n");
+    switch (c) {
     case 'y':
     case 'Y':
         return ZX_OK;
     default:
         return ZX_ERR_CANCELED;
     }
+}
+
+zx_status_t BlkCtl::Prompt(const char* prompt, char* s, size_t n) {
+    if (!canned_) {
+        printf("Enter %s: ", prompt);
+        fflush(stdout);
+    }
+    for (size_t i = 0; i < n;) {
+        int c = canned_ ? *canned_++ : fgetc(stdin);
+        if (c == 0x7f && i != 0) {
+            printf("\x1b[D\x1b[K");
+            fflush(stdout);
+            --i;
+        } else if (c == '\0' || c == '\n' || c == '\r') {
+            s[i] = '\0';
+            printf("\n");
+            break;
+        } else if (!iscntrl(c)) {
+            printf("%c", c);
+            fflush(stdout);
+            s[i] = static_cast<char>(c);
+            ++i;
+        }
+    }
+
+    return ZX_OK;
 }
 
 } // namespace blkctl

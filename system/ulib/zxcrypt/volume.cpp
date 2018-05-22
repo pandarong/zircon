@@ -642,6 +642,7 @@ zx_status_t Volume::Unseal(const crypto::Secret& key, key_slot_t slot) {
         }
     }
 
+    xprintf("unable to unseal with the given %zu-byte key\n", key.len());
     return ZX_ERR_ACCESS_DENIED;
 }
 

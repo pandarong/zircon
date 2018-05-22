@@ -7,10 +7,12 @@
 #include <limits.h>
 #include <stddef.h>
 
+#include <blkctl/blkctl.h>
+#include <blkctl/command.h>
 #include <fbl/macros.h>
 #include <fbl/unique_fd.h>
-#include <zircon/types.h>
 #include <fbl/vector.h>
+#include <zircon/types.h>
 
 namespace blkctl {
 namespace testing {
@@ -19,6 +21,34 @@ constexpr size_t kBlockCount = 512;
 constexpr size_t kBlockSize = 512;
 constexpr size_t kSliceSize = 8192;
 constexpr size_t kSliceCount = (kBlockCount * kBlockSize) / kSliceSize;
+
+// |BlkCtlTest| wraps accesses to a |BlkCtl| object with enough state to pass canned responses in
+// and get device names back out during testing.
+class BlkCtlTest {
+public:
+    BlkCtlTest() : use_canned_(false) {}
+    ~BlkCtlTest() {}
+
+    const char* devname() const { return obj_.cmd()->devname(); }
+
+    // Sets the the canned response to prompts, using a printf-style |fmt| string and arguments.
+    bool SetCanned(const char* fmt, ...);
+
+    // Produces a formatted command line from |fmt| and the trailing arguments, then parses and runs
+    // it. If parsing returns an error, it it checked against |expected|, otherwise the result of
+    // running it is checked.
+    bool Run(zx_status_t expected, const char* fmt, ...);
+
+private:
+    DISALLOW_COPY_ASSIGN_AND_MOVE(BlkCtlTest);
+
+    // The wrapped object
+    BlkCtl obj_;
+
+    // Canned responses to prompts
+    char canned_[PATH_MAX];
+    bool use_canned_;
+};
 
 // |ScopedDevice| is the base class for creating block devices during testing that will
 // automatically clean up on test completion.
@@ -101,16 +131,6 @@ private:
     // Number of slices initially allocated to this partition
     size_t slices_;
 };
-
-// Prints formatted command line arguments to |buf| using |fmt| and the trailing arguments, then
-// breaks them up into individual arguments returned via |out|.  Useful for creating "argv" from
-// printf-style arguments that can be passed to |Command::Parse|.
-bool SplitArgs(fbl::Vector<char*>* out, char* buf, size_t buf_len, const char* fmt, ...);
-
-// Produces a formatted command line from |fmt| and the trailing arguments, then parses and runs it.
-// If parsing returns an error, it it checked against |expected|, otherwise the result of running it
-// is checked.
-bool ParseAndRun(zx_status_t expected, const char* fmt, ...);
 
 } // namespace testing
 } // namespace blkctl

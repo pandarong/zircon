@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <stddef.h>
 
+#include <fbl/auto_call.h>
 #include <fbl/unique_ptr.h>
 #include <unittest/unittest.h>
 #include <zircon/types.h>
@@ -17,15 +18,18 @@ namespace {
 
 bool TestBadCommand(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
 
     // Missing everything!
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, ""));
+    EXPECT_EQ(ZX_ERR_INVALID_ARGS, BlkCtl::Execute(0, nullptr));
 
     // Missing command
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl"));
+    char* argv0 = strdup("blkctl");
+    auto cleanup = fbl::MakeAutoCall([argv0]() { free(argv0); });
+    EXPECT_EQ(ZX_ERR_INVALID_ARGS, BlkCtl::Execute(1, &argv0));
 
     // Gibberish
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "booplesnoot"));
 
     END_TEST;
 }
@@ -33,14 +37,15 @@ bool TestBadCommand(void) {
 // blkctl ls
 bool TestList(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedRamdisk ramdisk;
     ASSERT_TRUE(ramdisk.Init());
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ls foo"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ls foo"));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl ls"));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "ls"));
 
     END_TEST;
 }
@@ -48,17 +53,18 @@ bool TestList(void) {
 // blkctl -d <dev> dump
 bool TestDump(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
     ScopedRamdisk ramdisk;
     ASSERT_TRUE(ramdisk.Init());
 
     // Missing device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl dump"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "dump"));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl dump %s foo", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "dump %s foo", ramdisk.path()));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl dump %s", ramdisk.path()));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "dump %s", ramdisk.path()));
 
     END_TEST;
 }

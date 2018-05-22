@@ -168,7 +168,6 @@ zx_status_t Add::Run() {
         (rc = cmdline->Confirm()) != ZX_OK || (rc = ReopenWritable(&fd)) != ZX_OK) {
         return rc;
     }
-
     GenerateGuid(request.guid, sizeof(request.guid));
     if ((res = ioctl_block_fvm_alloc_partition(fd, &request)) < 0) {
         rc = static_cast<zx_status_t>(res);

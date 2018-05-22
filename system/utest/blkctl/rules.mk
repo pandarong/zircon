@@ -17,9 +17,11 @@ MODULE_SRCS := \
     $(LOCAL_DIR)/utils.cpp \
 
 MODULE_SRCS += \
-    $(LOCAL_DIR)/command.cpp \
-    $(LOCAL_DIR)/ramdisk.cpp \
-    $(LOCAL_DIR)/fvm.cpp \
+    $(LOCAL_DIR)/zxcrypt.cpp \
+
+    # $(LOCAL_DIR)/command.cpp \
+    # $(LOCAL_DIR)/ramdisk.cpp \
+    # $(LOCAL_DIR)/fvm.cpp \
 
 MODULE_LIBS := \
     system/ulib/blkctl \
@@ -36,5 +38,6 @@ MODULE_STATIC_LIBS := \
     system/ulib/fs \
     system/ulib/gpt \
     system/ulib/zx \
+    system/ulib/zxcpp \
 
 include make/module.mk

@@ -5,8 +5,8 @@
 #include <limits.h>
 #include <stddef.h>
 
-#include <blkctl/command.h>
 #include <blkctl/blkctl.h>
+#include <blkctl/command.h>
 #include <fbl/unique_ptr.h>
 #include <unittest/unittest.h>
 #include <zircon/types.h>
@@ -19,56 +19,49 @@ namespace {
 
 bool TestBadCommand(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
 
     // Missing command
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk"));
 
     // Gibberish
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk booplesnoot"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk booplesnoot"));
 
     END_TEST;
 }
 
 bool TestInitDestroy(void) {
     BEGIN_TEST;
+    BlkCtlTest blkctl;
 
     // Missing block size and/or count
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init %zu", kBlockSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init %zu", kBlockSize));
 
     // Bad block size
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init foo %zu", kBlockSize));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init -1 %zu", kBlockSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init foo %zu", kBlockSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init -1 %zu", kBlockSize));
 
     // Bad block count
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init %zu foo", kBlockSize));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init %zu -1", kBlockSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init %zu foo", kBlockSize));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init %zu -1", kBlockSize));
 
     // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk init %zu %zu foo", kBlockSize,
-                            kBlockCount));
-
-    // Valid; do it "manually" to get ramdisk path
-    fbl::Vector<char*> args;
-    char buf[PATH_MAX];
-    ASSERT_TRUE(SplitArgs(&args, buf, sizeof(buf), "blkctl ramdisk init %zu %zu",
-                          kBlockSize, kBlockCount));
-    BlkCtl cmdline;
-    ASSERT_EQ(cmdline.Parse(static_cast<int>(args.size()), args.get()), ZX_OK);
-
-    Command *cmd = cmdline.cmd();
-    EXPECT_EQ(cmd->Run(), ZX_OK);
-    const char *path = cmd->devname();
-
-    // Missing/bad device
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk destroy"));
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk destroy booplesnoot"));
-
-    // Too many args
-    EXPECT_TRUE(ParseAndRun(ZX_ERR_INVALID_ARGS, "blkctl ramdisk destroy %s foo", path));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk init %zu %zu f", kBlockSize, kBlockCount));
 
     // Valid
-    EXPECT_TRUE(ParseAndRun(ZX_OK, "blkctl ramdisk destroy --force %s", path));
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "ramdisk init %zu %zu", kBlockSize, kBlockCount));
+    const char* path = blkctl.devname();
+
+    // Missing/bad device
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk destroy"));
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk destroy booplesnoot"));
+
+    // Too many args
+    EXPECT_TRUE(blkctl.Run(ZX_ERR_INVALID_ARGS, "ramdisk destroy %s foo", path));
+
+    // Valid
+    EXPECT_TRUE(blkctl.Run(ZX_OK, "ramdisk destroy %s", path));
 
     END_TEST;
 }

@@ -43,7 +43,7 @@ zx_status_t List::Run() {
 
     DIR* dptr = opendir(kDevClassBlock);
     ZX_DEBUG_ASSERT(dptr);
-    auto cleanup = fbl::MakeAutoCall([&]{closedir(dptr);});
+    auto cleanup = fbl::MakeAutoCall([&] { closedir(dptr); });
 
     struct dirent* dent;
     printf("%8s    %s\n", "ID", "Topological path");
