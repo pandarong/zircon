@@ -281,6 +281,9 @@ void IntelAudioDsp::DeviceShutdown() {
     ResetCore(ADSP_REG_ADSPCS_CORE0_MASK);
     PowerDownCore(ADSP_REG_ADSPCS_CORE0_MASK);
 
+    // Fail all pending IPCs
+    ipc_.Shutdown();
+
     state_ = State::SHUT_DOWN;
 }
 
