@@ -169,11 +169,14 @@ void IntelAudioDsp::DeviceShutdown() {
         thrd_join(init_thread_, NULL);
     }
 
-    PowerDownCore(ADSP_REG_ADSPCS_CORE0_MASK);
-
+    // Order is important below.
     // Disable Audio DSP and interrupt
     ihda_dsp_irq_disable(&ihda_dsp_);
     ihda_dsp_disable(&ihda_dsp_);
+
+    // Reset and power down the DSP.
+    ResetCore(ADSP_REG_ADSPCS_CORE0_MASK);
+    PowerDownCore(ADSP_REG_ADSPCS_CORE0_MASK);
 
     state_ = State::SHUT_DOWN;
 }
@@ -463,7 +466,7 @@ void IntelAudioDsp::EnableInterrupts() {
 
 void IntelAudioDsp::ProcessIrq() {
     if (state_ != State::OPERATING) {
-        zxlogf(ERROR, "Got IRQ when device is not operating (state %u)\n", to_underlying(state_));
+        LOG(ERROR, "Got IRQ when device is not operating (state %u)\n", to_underlying(state_));
         return;
     }
 
@@ -475,6 +478,12 @@ void IntelAudioDsp::ProcessIrq() {
 
         // Ack the IRQ after reading mailboxes.
         REG_SET_BITS(&regs()->hipct, ADSP_REG_HIPCT_BUSY);
+    }
+
+    // Ack the IPC target done IRQ
+    uint32_t val = REG_RD(&regs()->hipcie);
+    if (val & ADSP_REG_HIPCIE_DONE) {
+        REG_WR(&regs()->hipcie, val);
     }
 }
 
