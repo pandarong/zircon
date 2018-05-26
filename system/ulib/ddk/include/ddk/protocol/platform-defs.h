@@ -15,7 +15,7 @@ __BEGIN_CDECLS;
 #define PDEV_DID_USB_XHCI           2   // XHCI USB Controller
 #define PDEV_DID_KPCI               3   // Syscall based PCI driver
 #define PDEV_DID_ARM_MALI           4   // ARM MALI GPU
-#define PDEV_DID_USB_DWC2           5   // DWC2 USB Controller
+#define PDEV_DID_USB_DWC2           5   // DWC2 USB Controller (host mode)
 #define PDEV_DID_RTC_PL031          6   // ARM Primecell PL031 RTC
 #define PDEV_DID_DSI                7   // DSI
 #define PDEV_DID_GPIO_TEST          8   // Simple GPIO test driver
@@ -24,6 +24,7 @@ __BEGIN_CDECLS;
 #define PDEV_DID_LED2472G           11  // RPi Sense Hat LED2472G
 #define PDEV_DID_GPU_VSL_GC         12  // Verisilicon GC series GPU
 #define PDEV_DID_ARM_MALI_INIT      13  // ARM MALI GPU (Zircon)
+#define PDEV_DID_USB_DWC2_DEVICE    14  // DWC2 USB Controller (device mode)
 
 // QEMU emulator
 #define PDEV_VID_QEMU               1
