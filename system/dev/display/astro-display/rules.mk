@@ -10,6 +10,14 @@ MODULE_TYPE := driver
 
 MODULE_SRCS += \
     $(LOCAL_DIR)/astro-display.c \
+    $(LOCAL_DIR)/backlight.c \
+    $(LOCAL_DIR)/canvas.c \
+    $(LOCAL_DIR)/dsi.c \
+    $(LOCAL_DIR)/lcd.c \
+    $(LOCAL_DIR)/display_debug.c \
+    $(LOCAL_DIR)/display_config.c \
+    $(LOCAL_DIR)/display_clock.c \
+    $(LOCAL_DIR)/mipi_dsi.c \
 
 MODULE_STATIC_LIBS := system/ulib/ddk system/ulib/sync
 
