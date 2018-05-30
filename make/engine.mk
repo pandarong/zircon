@@ -494,7 +494,7 @@ find-clang-solib = $(filter lib/$1=%,$(CLANG_MANIFEST_LINES))
 # Every userland executable and shared library compiled with ASan
 # needs to link with $(ASAN_SOLIB).  module-user{app,lib}.mk adds it
 # to MODULE_EXTRA_OBJS so the linking target will depend on it.
-ASAN_SONAME := libclang_rt.asan-$(CLANG_ARCH).so
+ASAN_SONAME := libclang_rt.asan-${CLANG_ARCH}.so
 ASAN_SOLIB_MANIFEST := $(call find-clang-solib,$(ASAN_SONAME))
 ASAN_SOLIB := $(word 2,$(subst =, ,$(ASAN_SOLIB_MANIFEST)))
 USER_MANIFEST_LINES += {core}$(ASAN_SOLIB_MANIFEST)
@@ -518,21 +518,12 @@ else
 NO_SANCOV :=
 endif
 
-# To use LibFuzzer, we need to provide it and its dependency to the linker
-# since we're not using Clang and its '-fsanitize=fuzzer' flag as a driver to
-# lld.  Additionally, we need to make sure the shared objects are available on
-# the device.
+# To use LibFuzzer, we need to provide it to the linker since we're not using
+# Clang and its '-fsanitize=fuzzer' flag as a driver to lld.
 ifeq ($(call TOBOOL,$(USE_ASAN)),true)
-FUZZ_ANAME := libclang_rt.fuzzer-$(CLANG_ARCH).a
-FUZZ_ALIB := $(shell $(CLANG_TOOLCHAIN_PREFIX)clang \
+FUZZ_EXTRA_OBJS := $(shell $(CLANG_TOOLCHAIN_PREFIX)clang \
 				 $(GLOBAL_COMPILEFLAGS) $(ARCH_COMPILEFLAGS)\
-				 -print-file-name=$(FUZZ_ANAME))
-
-FUZZ_RUNTIME_SONAMES := libc++.so.2 libc++abi.so.1
-FUZZ_RUNTIME_SOLIBS := $(foreach soname,$(FUZZ_RUNTIME_SONAMES),\
-				 $(word 2,$(subst =, ,$(call find-clang-asan-solib,$(soname)))))
-
-FUZZ_EXTRA_OBJS := $(FUZZ_ALIB) $(FUZZ_RUNTIME_SOLIBS)
+				 -print-file-name=libclang_rt.fuzzer-${CLANG_ARCH}.a)
 else
 FUZZ_EXTRA_OBJS :=
 endif
