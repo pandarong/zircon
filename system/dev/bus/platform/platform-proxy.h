@@ -130,10 +130,12 @@ typedef struct {
         pdev_i2c_txn_ctx_t i2c_txn;
         size_t i2c_max_transfer;
         struct {
-            zx_off_t offset;
-            size_t length;
             zx_paddr_t paddr;
+            size_t length;
         } mmio;
+        struct {
+            uint32_t irq;
+        } irq;
         pdev_device_info_t info;
         pdev_mailbox_ctx_t mailbox;
         pdev_scpi_ctx_t scpi;
