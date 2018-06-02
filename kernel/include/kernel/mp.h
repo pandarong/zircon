@@ -18,7 +18,6 @@
 
 __BEGIN_CDECLS
 
-typedef void (*mp_ipi_task_func_t)(void* context);
 typedef void (*mp_sync_task_t)(void* context);
 
 // by default, mp_reschedule does not signal to cpus that are running realtime
@@ -72,14 +71,6 @@ void mp_mbx_reschedule_irq(void);
 void mp_mbx_generic_irq(void);
 // called from arch code during interrupt irq
 void mp_mbx_interrupt_irq(void);
-
-// represents a pending task for some number of CPUs to execute
-struct mp_ipi_task {
-    struct list_node node;
-
-    mp_ipi_task_func_t func;
-    void* context;
-};
 
 // global mp state to track what the cpus are up to
 struct mp_state {

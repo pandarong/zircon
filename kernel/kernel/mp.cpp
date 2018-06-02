@@ -14,6 +14,7 @@
 #include <err.h>
 #include <inttypes.h>
 #include <kernel/align.h>
+#include <kernel/auto_lock.h>
 #include <kernel/dpc.h>
 #include <kernel/event.h>
 #include <kernel/mp.h>
@@ -36,6 +37,15 @@ struct mp_state mp __CPU_ALIGN_EXCLUSIVE;
 // Helpers used for implementing mp_sync
 struct mp_sync_context;
 static void mp_sync_task(void* context);
+
+// represents a pending task for some number of CPUs to execute
+typedef void (*mp_ipi_task_func_t)(void* context);
+struct mp_ipi_task {
+    struct list_node node;
+
+    mp_ipi_task_func_t func;
+    void* context;
+};
 
 void mp_init(void) {
     mutex_init(&mp.hotplug_lock);
@@ -207,14 +217,15 @@ void mp_sync_exec(mp_ipi_target_t target, cpu_mask_t mask, mp_sync_task_t task, 
 
     // make sure the sync_tasks aren't in lists anymore, since they're
     // stack allocated
-    spin_lock_irqsave(&mp.ipi_task_lock, irqstate);
-    for (uint i = 0; i < num_cpus; ++i) {
-        // If a task is still around, it's because the CPU went offline.
-        if (list_in_list(&sync_tasks[i].node)) {
-            list_delete(&sync_tasks[i].node);
+    {
+        AutoSpinLock al(&mp.ipi_task_lock);
+        for (uint i = 0; i < num_cpus; ++i) {
+            // If a task is still around, it's because the CPU went offline.
+            if (list_in_list(&sync_tasks[i].node)) {
+                list_delete(&sync_tasks[i].node);
+            }
         }
     }
-    spin_unlock_irqrestore(&mp.ipi_task_lock, irqstate);
 }
 
 static void mp_unplug_trampoline(void) TA_REQ(thread_lock) __NO_RETURN;
