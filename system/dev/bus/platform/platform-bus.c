@@ -65,6 +65,9 @@ static zx_status_t platform_bus_set_protocol(void* ctx, uint32_t proto_id, void*
     case ZX_PROTOCOL_SCPI:
         memcpy(&bus->scpi, protocol, sizeof(bus->scpi));
         break;
+    case ZX_PROTOCOL_ASTRO_USB:
+        memcpy(&bus->astro_usb, protocol, sizeof(bus->astro_usb));
+        break;
     default:
         // TODO(voydanoff) consider having a registry of arbitrary protocols
         return ZX_ERR_NOT_SUPPORTED;

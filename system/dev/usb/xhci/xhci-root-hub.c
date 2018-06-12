@@ -401,6 +401,11 @@ static zx_status_t xhci_rh_control(xhci_t* xhci, xhci_root_hub_t* rh, usb_setup_
                 usb_request_complete(req, ZX_OK, 0);
                 return ZX_OK;
             } else if (value == USB_FEATURE_PORT_RESET) {
+                // hack for astro USB tuning
+                if (xhci->astro_usb.ops) {
+                    astro_usb_do_usb_tuning(&xhci->astro_usb, true);
+                }
+
                 xhci_reset_port(xhci, rh, rh_port_index);
                 usb_request_complete(req, ZX_OK, 0);
                 return ZX_OK;
@@ -422,6 +427,10 @@ static zx_status_t xhci_rh_control(xhci_t* xhci, xhci_root_hub_t* rh, usb_setup_
                     *change_bits &= ~USB_C_PORT_OVER_CURRENT;
                     break;
                 case USB_FEATURE_C_PORT_RESET:
+                    // hack for astro USB tuning
+                    if (xhci->astro_usb.ops) {
+                        astro_usb_do_usb_tuning(&xhci->astro_usb, false);
+                    }
                     *change_bits &= ~USB_C_PORT_RESET;
                     break;
             }
