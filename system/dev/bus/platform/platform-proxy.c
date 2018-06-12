@@ -16,6 +16,7 @@
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/clk.h>
 #include <ddk/protocol/usb-mode-switch.h>
+#include <ddk/protocol/astro-usb.h>
 
 #include "platform-proxy.h"
 
@@ -302,6 +303,22 @@ static scpi_protocol_ops_t scpi_ops = {
     .get_dvfs_info      = pdev_scpi_get_dvfs_info,
     .get_dvfs_idx       = pdev_scpi_get_dvfs_idx,
     .set_dvfs_idx       = pdev_scpi_set_dvfs_idx,
+};
+
+static zx_status_t pdev_astro_do_usb_tuning(void* ctx, bool set_default) {
+    platform_proxy_t* proxy = ctx;
+    pdev_req_t req = {
+        .op = PDEV_ASTRO_USB_TUNING,
+        .index = set_default,
+    };
+
+    pdev_resp_t resp;
+    return platform_dev_rpc(proxy, &req, sizeof(req), &resp, sizeof(resp),
+                                           NULL, 0, NULL, 0, NULL);
+}
+
+static astro_usb_protocol_ops_t astro_usb_ops = {
+    .do_usb_tuning = pdev_astro_do_usb_tuning,
 };
 
 static zx_status_t pdev_mailbox_send_cmd(void* ctx, mailbox_channel_t* channel,
@@ -616,6 +633,12 @@ static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void*
         scpi_protocol_t* proto = out;
         proto->ctx = ctx;
         proto->ops = &scpi_ops;
+        return ZX_OK;
+    }
+    case ZX_PROTOCOL_ASTRO_USB: {
+        astro_usb_protocol_t* proto = out;
+        proto->ctx = ctx;
+        proto->ops = &astro_usb_ops;
         return ZX_OK;
     }
     default:

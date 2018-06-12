@@ -437,6 +437,9 @@ static zx_status_t usb_xhci_bind_pdev(zx_device_t* parent, platform_device_proto
         goto error_return;
     }
 
+    // hack for astro USB tuning
+    device_get_protocol(parent, ZX_PROTOCOL_ASTRO_USB, &xhci->astro_usb);
+
     status = pdev_get_bti(pdev, 0, &xhci->bti_handle);
     if (status != ZX_OK) {
         goto error_return;

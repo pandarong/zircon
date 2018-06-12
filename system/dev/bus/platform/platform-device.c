@@ -343,6 +343,14 @@ static zx_status_t pdev_rpc_scpi_set_dvfs_idx(platform_dev_t* dev,
     return scpi_set_dvfs_idx(&bus->scpi, power_domain, idx);
 }
 
+static zx_status_t pdev_rpc_astro_do_usb_tuning(platform_dev_t* dev, bool set_default) {
+    platform_bus_t* bus = dev->bus;
+    if (!bus->astro_usb.ops) {
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+    return astro_usb_do_usb_tuning(&bus->astro_usb, set_default);
+}
+
 static zx_status_t pdev_rpc_i2c_transact(platform_dev_t* dev, pdev_req_t* req, uint8_t* data,
                                         zx_handle_t channel) {
     platform_bus_t* bus = dev->bus;
@@ -477,6 +485,10 @@ static zx_status_t platform_dev_rxrpc(void* ctx, zx_handle_t channel) {
     case PDEV_SCPI_SET_DVFS_IDX:
         resp.status = pdev_rpc_scpi_set_dvfs_idx(dev, req->scpi.power_domain,
                                                  req->scpi.idx);
+        break;
+
+    case PDEV_ASTRO_USB_TUNING:
+        resp.status = pdev_rpc_astro_do_usb_tuning(dev, req->index);
         break;
     case PDEV_I2C_GET_MAX_TRANSFER:
         resp.status = i2c_impl_get_max_transfer_size(&dev->bus->i2c, req->index,
