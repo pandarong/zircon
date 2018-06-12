@@ -275,7 +275,8 @@ zx_status_t RegionAllocator::SubtractRegion(const ralloc_region_t& to_subtract,
 
 zx_status_t RegionAllocator::GetRegion(uint64_t size,
                                        uint64_t alignment,
-                                       Region::UPtr& out_region) {
+                                       Region::UPtr& out_region,
+                                       uint64_t cookie) {
     fbl::AutoLock alloc_lock(&alloc_lock_);
 
     // Check our RegionPool
@@ -318,11 +319,11 @@ zx_status_t RegionAllocator::GetRegion(uint64_t size,
     if (!iter.IsValid())
         return ZX_ERR_NOT_FOUND;
 
-    return AllocFromAvailLocked(iter, out_region, aligned_base, size);
+    return AllocFromAvailLocked(iter, out_region, aligned_base, size, cookie);
 }
 
 zx_status_t RegionAllocator::GetRegion(const ralloc_region_t& requested_region,
-                                       Region::UPtr& out_region) {
+                                       Region::UPtr& out_region, uint64_t cookie) {
     fbl::AutoLock alloc_lock(&alloc_lock_);
 
     // Check our RegionPool
@@ -368,7 +369,7 @@ zx_status_t RegionAllocator::GetRegion(const ralloc_region_t& requested_region,
     // allocation request.  Get an iterator for the by-size index, then use the
     // common AllocFromAvailLocked method to handle the bookkeeping involved.
     auto by_size_iter = avail_regions_by_size_.make_iterator(*iter);
-    return AllocFromAvailLocked(by_size_iter, out_region, base, size);
+    return AllocFromAvailLocked(by_size_iter, out_region, base, size, cookie);
 }
 
 zx_status_t RegionAllocator::AddSubtractSanityCheckLocked(const ralloc_region_t& region) {
@@ -409,7 +410,8 @@ void RegionAllocator::ReleaseRegion(Region* region) {
 zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::iterator source,
                                                   Region::UPtr& out_region,
                                                   uint64_t base,
-                                                  uint64_t size) {
+                                                  uint64_t size,
+                                                  uint64_t cookie) {
     ZX_DEBUG_ASSERT(out_region == nullptr);
     ZX_DEBUG_ASSERT(source.IsValid());
     ZX_DEBUG_ASSERT(base >= source->base);
@@ -435,6 +437,8 @@ zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::it
         Region* region = avail_regions_by_size_.erase(source);
         avail_regions_by_base_.erase(*region);
         allocated_regions_by_base_.insert(region);
+
+        region->cookie_ = cookie;
         out_region.reset(region);
     } else if (!split_before) {
         // If we only have to split after, then this region is aligned with what
@@ -454,6 +458,7 @@ zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::it
         avail_regions_by_size_.insert(after_region);
         allocated_regions_by_base_.insert(before_region);
 
+        before_region->cookie_ = cookie;
         out_region.reset(before_region);
     } else if (!split_after) {
         // If we only have to split before, then this region is not aligned
@@ -473,6 +478,7 @@ zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::it
         avail_regions_by_size_.insert(before_region);
         allocated_regions_by_base_.insert(after_region);
 
+        after_region->cookie_ = cookie;
         out_region.reset(after_region);
     } else {
         // Looks like we need to break our region into 3 chunk and return the
@@ -492,6 +498,7 @@ zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::it
 
         region->base        = before_region->base + overhead;
         region->size        = size;
+        region->cookie_     = cookie;
         after_region->base  = region->base + region->size;
         after_region->size  = before_region->size - size - overhead;
         before_region->size = overhead;
@@ -501,6 +508,7 @@ zx_status_t RegionAllocator::AllocFromAvailLocked(Region::WAVLTreeSortBySize::it
         avail_regions_by_base_.insert(after_region);
         allocated_regions_by_base_.insert(region);
 
+        region->cookie_ = cookie;
         out_region.reset(region);
     }
     return ZX_OK;

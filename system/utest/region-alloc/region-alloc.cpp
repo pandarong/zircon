@@ -292,6 +292,40 @@ static bool ralloc_alloc_walk_test() {
     END_TEST;
 }
 
+static bool ralloc_region_cookie_test() {
+    BEGIN_TEST;
+    RegionAllocator alloc;
+    const uint64_t cookie = 0x636f6f6b6965; // 'cookie'
+
+    auto pool = RegionAllocator::RegionPool::Create(REGION_POOL_MAX_SIZE);
+    ASSERT_EQ(ZX_OK, alloc.SetRegionPool(pool));
+    ASSERT_EQ(ZX_OK, alloc.AddRegion({0u, 1024u}));
+
+    // Check that the default cookie value is 0u.
+    {
+        RegionAllocator::Region::UPtr tmp;
+        EXPECT_EQ(ZX_OK, alloc.GetRegion({ .base = 128, .size = 128}, tmp));
+        EXPECT_EQ(0u, tmp->GetCookie());
+    }
+
+    // Pull the region out with the cookie value set and verify.
+    {
+        RegionAllocator::Region::UPtr tmp;
+        EXPECT_EQ(ZX_OK, alloc.GetRegion({ .base = 128, .size = 128},  tmp, cookie));
+        EXPECT_EQ(cookie, tmp->GetCookie());
+    }
+
+    //  Check that with the cookie omitted again that the region
+    //  will again have a cookie of 0u
+    {
+        RegionAllocator::Region::UPtr tmp;
+        EXPECT_EQ(ZX_OK, alloc.GetRegion({ .base = 128, .size = 128}, tmp));
+        EXPECT_EQ(0u, tmp->GetCookie());
+    }
+    END_TEST;
+}
+
+
 } //namespace
 
 BEGIN_TEST_CASE(ralloc_tests)
@@ -301,4 +335,5 @@ RUN_NAMED_TEST("Alloc specific", ralloc_specific_test)
 RUN_NAMED_TEST("Add/Overlap",    ralloc_add_overlap_test)
 RUN_NAMED_TEST("Subtract",       ralloc_subtract_test)
 RUN_NAMED_TEST("Allocated Walk", ralloc_alloc_walk_test)
+RUN_NAMED_TEST("Cookie Test",    ralloc_region_cookie_test)
 END_TEST_CASE(ralloc_tests)

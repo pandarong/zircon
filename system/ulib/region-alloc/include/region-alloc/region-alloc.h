@@ -252,6 +252,7 @@ public:
                    public fbl::Recyclable<Region> {
     public:
         using UPtr = fbl::unique_ptr<const Region>;
+        uint64_t GetCookie() const { return cookie_; }
 
     private:
         using WAVLTreeNodeState   = fbl::WAVLTreeNodeState<Region*>;
@@ -318,6 +319,7 @@ public:
         RegionAllocator* owner_;
         WAVLTreeNodeState ns_tree_sort_by_base_;
         WAVLTreeNodeState ns_tree_sort_by_size_;
+        uint64_t cookie_;
     };
 
     class RegionPool : public fbl::RefCounted<RegionPool>,
@@ -428,7 +430,8 @@ public:
     // ++ ZX_ERR_INVALID_ARGS : size is zero, or alignment is not a power of two.
     // ++ ZX_ERR_NOT_FOUND : No suitable region could be found in the set of
     // currently available regions which can satisfy the request.
-    zx_status_t GetRegion(uint64_t size, uint64_t alignment, Region::UPtr& out_region)
+    zx_status_t GetRegion(uint64_t size, uint64_t alignment, Region::UPtr& out_region,
+                          uint64_t cookie = 0)
         __TA_EXCLUDES(alloc_lock_);
 
     // Get a region with a specific location and size out of the set of
@@ -441,31 +444,34 @@ public:
     // ++ ZX_ERR_INVALID_ARGS : The size of the requested region is zero.
     // ++ ZX_ERR_NOT_FOUND : No suitable region could be found in the set of
     // currently available regions which can satisfy the request.
-    zx_status_t GetRegion(const ralloc_region_t& requested_region, Region::UPtr& out_region)
-        __TA_EXCLUDES(alloc_lock_);;
+    zx_status_t GetRegion(const ralloc_region_t& requested_region, Region::UPtr& out_region,
+                          uint64_t cookie = 0) __TA_EXCLUDES(alloc_lock_);;
 
     // Helper which defaults the alignment of a size/alignment based allocation
     // to pointer-aligned.
-    zx_status_t GetRegion(uint64_t size, Region::UPtr& out_region) __TA_EXCLUDES(alloc_lock_) {
-        return GetRegion(size, sizeof(void*), out_region);
+    zx_status_t GetRegion(uint64_t size, Region::UPtr& out_region, uint64_t cookie = 0)
+        __TA_EXCLUDES(alloc_lock_) {
+        return GetRegion(size, sizeof(void*), out_region, cookie);
     }
 
     // Helper versions of the GetRegion methods for those who don't care
     // about the specific reason for failure (nullptr will be returned on
     // failure).
-    Region::UPtr GetRegion(uint64_t size, uint64_t alignment) __TA_EXCLUDES(alloc_lock_) {
+    Region::UPtr GetRegion(uint64_t size, uint64_t alignment, uint64_t cookie = 0)
+        __TA_EXCLUDES(alloc_lock_) {
         Region::UPtr ret;
-        GetRegion(size, alignment, ret);
+        GetRegion(size, alignment, ret, cookie);
         return ret;
     }
 
-    Region::UPtr GetRegion(uint64_t size) __TA_EXCLUDES(alloc_lock_) {
+    Region::UPtr GetRegion(uint64_t size, uint64_t cookie = 0) __TA_EXCLUDES(alloc_lock_) {
         Region::UPtr ret;
-        GetRegion(size, ret);
+        GetRegion(size, ret, cookie);
         return ret;
     }
 
-    Region::UPtr GetRegion(const ralloc_region_t& requested_region) __TA_EXCLUDES(alloc_lock_) {
+    Region::UPtr GetRegion(const ralloc_region_t& requested_region, uint64_t cookie = 0)
+        __TA_EXCLUDES(alloc_lock_) {
         Region::UPtr ret;
         GetRegion(requested_region, ret);
         return ret;
@@ -510,7 +516,8 @@ private:
     zx_status_t AllocFromAvailLocked(Region::WAVLTreeSortBySize::iterator source,
                                      Region::UPtr& out_region,
                                      uint64_t base,
-                                     uint64_t size) __TA_REQUIRES(alloc_lock_);
+                                     uint64_t size,
+                                     uint64_t cookie) __TA_REQUIRES(alloc_lock_);
 
     bool IntersectsLocked(const Region::WAVLTreeSortByBase& tree,
                                  const ralloc_region_t& region) __TA_REQUIRES(alloc_lock_);
