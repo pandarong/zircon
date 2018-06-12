@@ -53,6 +53,9 @@ enum {
     PDEV_SCPI_GET_DVFS_INFO,
     PDEV_SCPI_GET_DVFS_IDX,
     PDEV_SCPI_SET_DVFS_IDX,
+
+    // ZX_PROTOCOL_ASTRO_USB
+    PDEV_ASTRO_USB_TUNING,
 };
 
 // context for mailbox

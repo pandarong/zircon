@@ -30,6 +30,8 @@ typedef struct {
     serial_impl_protocol_t serial;
     zx_device_t* parent;
     iommu_protocol_t iommu;
+    io_buffer_t usb_tuning_buf;
+    int cur_usb_tuning;
 } aml_bus_t;
 
 // astro-gpio.c

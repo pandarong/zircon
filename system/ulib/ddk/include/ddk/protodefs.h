@@ -77,6 +77,8 @@ DDK_PROTOCOL_DEF(NAND,           'pNND', "nand", 0)
 DDK_PROTOCOL_DEF(RAW_NAND,       'pRND', "rawnand", 0)
 DDK_PROTOCOL_DEF(MAILBOX,        'pMHU', "mailbox", 0)
 DDK_PROTOCOL_DEF(SCPI,           'pSCP', "scpi", 0)
+DDK_PROTOCOL_DEF(ASTRO_USB,      'pAUX', "astro-usb", 0)
+
 // Protocol definition at garnet/magma/src/magma_util/platform/zircon/zircon_platform_ioctl.h
 DDK_PROTOCOL_DEF(GPU,            'pGPU', "gpu", 0)
 #undef DDK_PROTOCOL_DEF

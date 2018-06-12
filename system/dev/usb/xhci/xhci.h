@@ -14,6 +14,7 @@
 #include <threads.h>
 
 #include <ddk/device.h>
+#include <ddk/protocol/astro-usb.h>
 #include <ddk/protocol/pci.h>
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/usb-bus.h>
@@ -123,6 +124,9 @@ struct xhci {
 
     // platform device support
     platform_device_protocol_t* pdev;
+
+    // hack for astro USB tuning
+    astro_usb_protocol_t astro_usb;
 
     // MMIO data structures
     xhci_cap_regs_t* cap_regs;
