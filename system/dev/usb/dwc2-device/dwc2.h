@@ -35,6 +35,8 @@
 
 #include "usb_dwc_regs.h"
 
+#define ENABLE_MPI 1
+
 #define DWC_MAX_EPS    32
 
 typedef enum dwc_ep0_state {

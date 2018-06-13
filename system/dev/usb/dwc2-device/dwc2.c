@@ -44,6 +44,10 @@ printf("dwc_regs: %p\n", regs);
 static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
+printf("gsnpsid: %08x\n", regs->gsnpsid);
+printf("ghwcfg1: %08x\n", regs->ghwcfg1);
+printf("ghwcfg2: %08x\n", regs->ghwcfg2);
+
     regs->gusbcfg.force_dev_mode = 1;
 	regs->gahbcfg.dmaenable = 0;
 
@@ -65,6 +69,9 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
 	/* Clear all pending Device Interrupts */
 	regs->diepmsk.val = 0;
 	regs->doepmsk.val = 0;
+
+	regs->deachint = 0xffffffff;
+	regs->deachintmsk = 0;
 	regs->daint = 0xffffffff;
 	regs->daintmsk = 0;
 
@@ -80,8 +87,12 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
     gintmsk.rxstsqlvl = 1;
     gintmsk.usbreset = 1;
     gintmsk.enumdone = 1;
+
+//#ifndef ENABLE_MPI
     gintmsk.inepintr = 1;
     gintmsk.outepintr = 1;
+//#endif
+
 //    gintmsk.sof_intr = 1;
     gintmsk.usbsuspend = 1;
 
@@ -195,10 +206,10 @@ printf("\n");
 
     // clear interrupt
     uint32_t gotgint = regs->gotgint;
-//    regs->gotgint = gotgint;
-printf("gotgint: %08x\n", gotgint);
+    regs->gotgint = gotgint;
 
 // acknowledge interrupts
+printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
     interrupts.val &= mask.val;
     regs->gintsts = interrupts;
 
@@ -214,15 +225,23 @@ printf("gotgint: %08x\n", gotgint);
     if (interrupts.enumdone) {
         dwc_handle_enumdone_irq(dwc);
     }
+//#ifndef ENABLE_MPI
     if (interrupts.inepintr) {
         dwc_handle_inepintr_irq(dwc);
     }
     if (interrupts.outepintr) {
         dwc_handle_outepintr_irq(dwc);
     }
+//#endif
     if (interrupts.nptxfempty) {
         dwc_handle_nptxfempty_irq(dwc);
     }
+
+#if 0 // ENABLE_MPI
+    sleep(1);
+    dwc_handle_outepintr_irq(dwc);
+    dwc_handle_inepintr_irq(dwc);
+#endif
 }
 
 // Thread to handle interrupts.
@@ -232,11 +251,13 @@ static int dwc_irq_thread(void* arg) {
 //sleep(2);
 
     while (1) {
-        zx_status_t wait_res;
-        wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
-        if (wait_res != ZX_OK)
+        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
+        if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
+        }
 
+        dwc_handle_irq(dwc);
+        usleep(2000); // this is terrible
         dwc_handle_irq(dwc);
     }
 
