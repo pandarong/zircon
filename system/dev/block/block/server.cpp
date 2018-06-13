@@ -7,8 +7,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+// DDK Includes
 #include <ddk/device.h>
 #include <ddk/protocol/block.h>
+#include <ddk/debug.h>
+
 #include <fbl/algorithm.h>
 #include <fbl/alloc_checker.h>
 #include <fbl/auto_call.h>
@@ -20,6 +23,13 @@
 #include <zircon/device/block.h>
 #include <zircon/syscalls.h>
 #include <lib/zx/fifo.h>
+
+// Tracing Includes
+#include <lib/async-loop/cpp/loop.h>
+#include <lib/async/cpp/task.h>
+#include <lib/async/cpp/time.h>
+#include <trace-provider/provider.h>
+#include <trace/event.h>
 
 #include "server.h"
 
@@ -91,6 +101,52 @@ void InQueueAdd(zx_handle_t vmo, uint64_t length, uint64_t vmo_offset,
 
 }  // namespace
 
+
+async::Loop loop;
+trace::TraceProvider provider(loop.async());
+
+/*
+zx_status_t status;
+async_loop_t* loop;
+trace_provider_t* trace_provider;
+trace_async_id_t async_id;
+
+
+void register_trace(void) {
+    // Create a message loop.
+    status = async_loop_create(NULL, &loop);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "Failed to create a message loop.\n");
+        zxlogf(ERROR, "----------Failed to register the tracing interface.----------\n");
+        return;
+    }
+
+    // Start a thread for the loop to run on.
+    // We could instead use async_loop_run() to run on the current thread.
+    status = async_loop_start_thread(loop, "loop", NULL);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "Failed to start a thread.\n");
+        zxlogf(ERROR, "----------Failed to register the tracing interface.----------\n");
+        return;
+    } 
+
+    // Create the trace provider.
+    async_t* async = async_loop_get_dispatcher(loop);
+    trace_provider = trace_provider_create(async);
+    if (!trace_provider) {
+        zxlogf(ERROR, "Failed to create a trace provider.\n");
+        zxlogf(ERROR, "----------Failed to register the tracing interface.----------\n");
+    }
+
+    zxlogf(TRACE, "----------Tracing interface is registered successfully!-------\n");
+}
+
+void close_trace(void) {
+    trace_provider_destroy(trace_provider);
+    async_loop_shutdown(loop);
+    zxlogf(TRACE, "----------Tracing interface is closed successfully!----------\n");
+}
+*/
 TransactionGroup::TransactionGroup(zx_handle_t fifo, txnid_t txnid) :
     fifo_(fifo), flags_(0), ctr_(0) {
     memset(&response_, 0, sizeof(response_));
@@ -100,6 +156,7 @@ TransactionGroup::TransactionGroup(zx_handle_t fifo, txnid_t txnid) :
 TransactionGroup::~TransactionGroup() {}
 
 zx_status_t TransactionGroup::Enqueue(bool do_respond) {
+    
     fbl::AutoLock lock(&lock_);
     if (flags_ & kTxnFlagRespond) {
         // Can't get more than one response for a txn
