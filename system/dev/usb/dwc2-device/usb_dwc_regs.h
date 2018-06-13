@@ -448,8 +448,20 @@ typedef volatile struct {
     dwc_fifosiz_t gnptxfsiz;
 	// Non Periodic Transmit FIFO/Queue Status Register
     dwc_gnptxsts_t gnptxsts;
+	// PHY Vendor Control Register
+	uint32_t gpvndctl;
+	// General Purpose Input/Output Register
+	uint32_t ggpio;
+	// User ID Register
+	uint32_t guid;
+	// Synopsys ID Register (Read Only)
+	uint32_t gsnpsid;
+	// User HW Config1 Register (Read Only)
+	uint32_t ghwcfg1;
+	// User HW Config2 Register (Read Only)
+	uint32_t ghwcfg2;
 
-    uint32_t reserved_030[(0x800 - 0x030) / sizeof(uint32_t)];
+    uint32_t reserved_030[(0x800 - 0x048) / sizeof(uint32_t)];
 
     // Device Configuration Register
     dwc_dcfg_t dcfg;
