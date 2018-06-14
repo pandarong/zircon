@@ -65,16 +65,11 @@ printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
 			deptsiz.xfersize = ep->txn_length - ep->txn_offset;
 		}
 	}
-printf("deptsiz.xfersize = %u deptsiz.pktcnt = %u\n", deptsiz.xfersize, deptsiz.pktcnt);
 
     *deptsiz_reg = deptsiz;
 
 	/* IN endpoint */
 	if (is_in) {
-//    	dwc_interrupts_t gintsts = {0};
-//    	gintsts.nptxfempty = 1;
-//		regs->gintsts = gintsts;
-printf("enable nptxfempty\n");
 		regs->gintmsk.nptxfempty = 1;
 	}
 
@@ -86,6 +81,7 @@ printf("enable nptxfempty\n");
 }
 
 static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
+printf("do_setup_status_phase is_in: %d\n", is_in);
      dwc_endpoint_t* ep = &dwc->eps[0];
 
 	dwc->ep0_state = EP0_STATE_STATUS;
@@ -103,10 +99,18 @@ static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
     printf("dwc_ep0_complete_request\n");
      dwc_endpoint_t* ep = &dwc->eps[0];
 
-    if (dwc->ep0_state == EP0_STATE_DATA_IN) {
+    if (dwc->ep0_state == EP0_STATE_STATUS) {
+       ep->txn_offset = 0;
+       ep->txn_length = 0;
+    } else if ( ep->txn_length == 0) {
+printf("dwc_otg_ep_start_transfer ???\n");
+//		dwc_otg_ep_start_transfer(ep);
+    } else if (dwc->ep0_state == EP0_STATE_DATA_IN) {
  	   if (ep->txn_offset >= ep->txn_length) {
 	        do_setup_status_phase(dwc, false);
        }
+    } else {
+	    do_setup_status_phase(dwc, true);
     }
 
 #if 0
@@ -437,7 +441,7 @@ static void dwc_flush_fifo(dwc_usb_t* dwc, const int num) {
 void dwc_handle_reset_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
-	zxlogf(INFO, "dwc_handle_reset_irq\n");
+	printf("\nUSB RESET\n");
 
     dwc->ep0_state = EP0_STATE_DISCONNECTED;
 
@@ -521,7 +525,7 @@ printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum
 	 
 	 
 	if (grxstsp.epnum != 0)
-		grxstsp.epnum = 2;
+		grxstsp.epnum = 2; // ??????
 	/* Get pointer to EP structure */
 //	ep = &pcd->dwc_eps[status.b.epnum].dwc_ep;
 
@@ -600,7 +604,7 @@ printf("diepint: %08x\n", diepint.val);
 			if (diepint.xfercompl) {
 printf("diepint.xfercompl\n");
 				/* Disable the NP Tx FIFO Empty Interrrupt  */
-		        regs->gintmsk.nptxfempty = 1;
+		        regs->gintmsk.nptxfempty = 0;
 				/* Clear the bit in DIEPINTn for this interrupt */
 				regs->depin[epnum].diepint.xfercompl = 1;
 				/* Complete the transfer */

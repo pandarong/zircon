@@ -170,6 +170,7 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     dwc_interrupts_t interrupts = regs->gintsts;
     dwc_interrupts_t mask = regs->gintmsk;
 
+/*
 printf("dwc_handle_irq:");
 if (interrupts.modemismatch) printf(" modemismatch");
 if (interrupts.otgintr) printf(" otgintr");
@@ -203,13 +204,13 @@ if (interrupts.disconnect) printf(" disconnect");
 if (interrupts.sessreqintr) printf(" sessreqintr");
 if (interrupts.wkupintr) printf(" wkupintr");
 printf("\n");
-
+*/
     // clear interrupt
     uint32_t gotgint = regs->gotgint;
     regs->gotgint = gotgint;
 
 // acknowledge interrupts
-printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
+//printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
     interrupts.val &= mask.val;
     regs->gintsts = interrupts;
 
@@ -225,32 +226,26 @@ printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, inte
     if (interrupts.enumdone) {
         dwc_handle_enumdone_irq(dwc);
     }
-//#ifndef ENABLE_MPI
     if (interrupts.inepintr) {
         dwc_handle_inepintr_irq(dwc);
     }
     if (interrupts.outepintr) {
         dwc_handle_outepintr_irq(dwc);
     }
-//#endif
     if (interrupts.nptxfempty) {
         dwc_handle_nptxfempty_irq(dwc);
     }
-
-#if 0 // ENABLE_MPI
-    sleep(1);
-    dwc_handle_outepintr_irq(dwc);
-    dwc_handle_inepintr_irq(dwc);
-#endif
 }
+
+
+//#define POLL 1
 
 // Thread to handle interrupts.
 static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
 
-//sleep(2);
-
     while (1) {
+#ifndef POLL
         zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
         if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
@@ -258,6 +253,7 @@ static int dwc_irq_thread(void* arg) {
 
         dwc_handle_irq(dwc);
         usleep(2000); // this is terrible
+#endif
         dwc_handle_irq(dwc);
     }
 
