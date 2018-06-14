@@ -62,7 +62,6 @@ typedef struct {
 
     uint16_t max_packet_size;
     uint8_t ep_num;
-    bool is_in;
     bool enabled;
     uint8_t type;           // control, bulk, interrupt or isochronous
     uint8_t interval;

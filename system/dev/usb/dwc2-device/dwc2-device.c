@@ -25,14 +25,14 @@ static void dwc2_ep0_out_start(dwc_usb_t* dwc)
 	doeptsize0.xfersize = 8 * 3;
     regs->depout[0].doeptsiz.val = doeptsize0.val;
 
-// set ep0state to idle?
+//??    dwc->ep0_state = EP0_STATE_IDLE;
 
 	doepctl.epena = 1;
     regs->depout[0].doepctl = doepctl;
 }
 
-static void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num) {
-printf("dwc_ep_start_transfer epnum %u\n", ep_num);
+static void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in) {
+printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
     dwc_regs_t* regs = dwc->regs;
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
@@ -41,8 +41,7 @@ printf("dwc_ep_start_transfer epnum %u\n", ep_num);
 	uint32_t ep_mps = ep->max_packet_size;
 //    _ep->total_len = _ep->xfer_len;
 
-	if (ep->is_in) {
-printf("is-in\n");
+	if (is_in) {
 		depctl_reg = &regs->depin[ep_num].diepctl;
 		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
 	} else {
@@ -55,11 +54,11 @@ printf("is-in\n");
 
 	/* Zero Length Packet? */
 	if (ep->txn_length == 0) {
-		deptsiz.xfersize = ep->is_in ? 0 : ep_mps;
+		deptsiz.xfersize = is_in ? 0 : ep_mps;
 		deptsiz.pktcnt = 1;
 	} else {
 		deptsiz.pktcnt = (ep->txn_length + (ep_mps - 1)) / ep_mps;
-		if (ep->is_in && ep->txn_length < ep_mps) {
+		if (is_in && ep->txn_length < ep_mps) {
 			deptsiz.xfersize = ep->txn_length;
 		}
 		else {
@@ -71,7 +70,7 @@ printf("deptsiz.xfersize = %u deptsiz.pktcnt = %u\n", deptsiz.xfersize, deptsiz.
     *deptsiz_reg = deptsiz;
 
 	/* IN endpoint */
-	if (ep->is_in) {
+	if (is_in) {
 //    	dwc_interrupts_t gintsts = {0};
 //    	gintsts.nptxfempty = 1;
 //		regs->gintsts = gintsts;
@@ -93,9 +92,8 @@ static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
 
     ep->txn_offset = 0;
     ep->txn_length = 0;
-   	ep->is_in = is_in;
 
-	dwc_ep_start_transfer(dwc, 0);
+	dwc_ep_start_transfer(dwc, 0, is_in);
 
 	/* Prepare for more SETUP Packets */
 	dwc2_ep0_out_start(dwc);
@@ -200,7 +198,7 @@ static void pcd_setup(dwc_usb_t* dwc) {
 	struct usb_gadget_driver *driver = gadget_wrapper.driver;
 	struct usb_gadget *gadget = &gadget_wrapper.gadget;
 */
-	dwc_endpoint_t	*ep0 = &dwc->eps[0];
+//	dwc_endpoint_t* ep0 = &dwc->eps[0];
     usb_setup_t* setup = &dwc->cur_setup;
 
 	if (!dwc->got_setup) {
@@ -212,18 +210,16 @@ printf("no setup\n");
 
 
 	if (setup->bmRequestType & USB_DIR_IN) {
-		ep0->is_in = true;
 		dwc->ep0_state = EP0_STATE_DATA_IN;
 	} else {
-		ep0->is_in = false;
 		dwc->ep0_state = EP0_STATE_DATA_OUT;
 	}
 
-    if (setup->wLength > 0 && !ep0->is_in) {
+    if (setup->wLength > 0 && dwc->ep0_state == EP0_STATE_DATA_OUT) {
 printf("queue read\n");
         // queue a read for the data phase
-        dwc_ep_start_transfer(dwc, 0);
         dwc->ep0_state = EP0_STATE_DATA_OUT;
+        dwc_ep_start_transfer(dwc, 0, false);
     } else {
         size_t actual;
         zx_status_t status = dwc_handle_setup(dwc, setup, io_buffer_virt(&dwc->ep0_buffer),
@@ -238,8 +234,8 @@ printf("queue read\n");
         if (setup->wLength > 0) {
             // queue a write for the data phase
             io_buffer_cache_flush(&dwc->ep0_buffer, 0, actual);
-            dwc_ep_start_transfer(dwc, 0);
             dwc->ep0_state = EP0_STATE_DATA_IN;
+            dwc_ep_start_transfer(dwc, 0, true);
         } else {
 //                dwc->ep0_state = EP0_STATE_WAIT_NRDY_IN;
         }
@@ -569,10 +565,12 @@ void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 	uint32_t epnum = 0;
 
 
-	uint32_t ep_intr = regs->daint & 0x0000FFFF;
-	regs->daint = 0x0000FFFF;
+	uint32_t ep_intr = regs->daint & DWC_EP_IN_MASK;
+	regs->daint = DWC_EP_IN_MASK;
 
 printf("dwc_handle_inepintr_irq daint %08x\n", ep_intr);
+
+//???	gintsts.inepintr = 1;
 
 //	diepint_data_t diepint = {0};
 //	gintmsk_data_t intr_mask = {0};
@@ -685,14 +683,14 @@ void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
 	uint32_t epnum = 0;
 
 	/* Read in the device interrupt bits */
-	uint32_t ep_intr = regs->daint & 0xFFFF0000;
+	uint32_t ep_intr = regs->daint & DWC_EP_OUT_MASK;
 	ep_intr >>= DWC_EP_OUT_SHIFT;
 
 	/* Clear the interrupt */
 	dwc_interrupts_t gintsts = {0};
 	gintsts.outepintr = 1;
 	regs->gintsts = gintsts;
-	regs->daint = 0xFFFF0000;
+	regs->daint = DWC_EP_OUT_MASK;
 
 	while (ep_intr) {
 		if (ep_intr & 1) {
@@ -761,7 +759,7 @@ printf("dwc_handle_nptxfempty_irq\n");
 		ep = &dwc->eps[epnum];
 
 		/* IN endpoint ? */
-		if (epnum && !ep->is_in) {
+		if (epnum > 0 && DWC_EP_IS_OUT(epnum)) {
 printf("not IN\n");
 			continue;
 		}
