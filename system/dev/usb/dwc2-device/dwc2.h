@@ -42,7 +42,6 @@
 typedef enum dwc_ep0_state {
     EP0_STATE_DISCONNECTED,
     EP0_STATE_IDLE,
-//    EP0_STATE_SETUP,
     EP0_STATE_DATA_OUT,
     EP0_STATE_DATA_IN,
     EP0_STATE_STATUS,
