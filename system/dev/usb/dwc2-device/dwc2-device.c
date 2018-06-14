@@ -25,12 +25,92 @@ static void dwc2_ep0_out_start(dwc_usb_t* dwc)
 	doeptsize0.xfersize = 8 * 3;
     regs->depout[0].doeptsiz.val = doeptsize0.val;
 
+// set ep0state to idle?
+
 	doepctl.epena = 1;
     regs->depout[0].doepctl = doepctl;
 }
 
+static void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num) {
+printf("dwc_ep_start_transfer epnum %u\n", ep_num);
+    dwc_regs_t* regs = dwc->regs;
+    dwc_endpoint_t* ep = &dwc->eps[ep_num];
+
+	volatile dwc_depctl_t* depctl_reg;
+	volatile dwc_deptsiz_t* deptsiz_reg;
+	uint32_t ep_mps = ep->max_packet_size;
+//    _ep->total_len = _ep->xfer_len;
+
+	if (ep->is_in) {
+printf("is-in\n");
+		depctl_reg = &regs->depin[ep_num].diepctl;
+		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
+	} else {
+		depctl_reg = &regs->depout[ep_num].doepctl;
+		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
+	}
+
+    dwc_depctl_t depctl = *depctl_reg;
+	dwc_deptsiz_t deptsiz = *deptsiz_reg;
+
+	/* Zero Length Packet? */
+	if (ep->txn_length == 0) {
+		deptsiz.xfersize = ep->is_in ? 0 : ep_mps;
+		deptsiz.pktcnt = 1;
+	} else {
+		deptsiz.pktcnt = (ep->txn_length + (ep_mps - 1)) / ep_mps;
+		if (ep->is_in && ep->txn_length < ep_mps) {
+			deptsiz.xfersize = ep->txn_length;
+		}
+		else {
+			deptsiz.xfersize = ep->txn_length - ep->txn_offset;
+		}
+	}
+printf("deptsiz.xfersize = %u deptsiz.pktcnt = %u\n", deptsiz.xfersize, deptsiz.pktcnt);
+
+    *deptsiz_reg = deptsiz;
+
+	/* IN endpoint */
+	if (ep->is_in) {
+//    	dwc_interrupts_t gintsts = {0};
+//    	gintsts.nptxfempty = 1;
+//		regs->gintsts = gintsts;
+printf("enable nptxfempty\n");
+		regs->gintmsk.nptxfempty = 1;
+	}
+
+	/* EP enable */
+	depctl.cnak = 1;
+	depctl.epena = 1;
+
+    *depctl_reg = depctl;
+}
+
+static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
+     dwc_endpoint_t* ep = &dwc->eps[0];
+
+	dwc->ep0_state = EP0_STATE_STATUS;
+
+    ep->txn_offset = 0;
+    ep->txn_length = 0;
+   	ep->is_in = is_in;
+
+	dwc_ep_start_transfer(dwc, 0);
+
+	/* Prepare for more SETUP Packets */
+	dwc2_ep0_out_start(dwc);
+}
+
 static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
     printf("dwc_ep0_complete_request\n");
+     dwc_endpoint_t* ep = &dwc->eps[0];
+
+    if (dwc->ep0_state == EP0_STATE_DATA_IN) {
+ 	   if (ep->txn_offset >= ep->txn_length) {
+	        do_setup_status_phase(dwc, false);
+       }
+    }
+
 #if 0
 	deptsiz0_data_t deptsiz;
 	dwc_ep_t* ep = &pcd->dwc_eps[0].dwc_ep;
@@ -110,61 +190,6 @@ printf("dwc_handle_setup\n");
         ep->txn_length = *out_actual;
     }
     return status;
-}
-
-static void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num) {
-printf("dwc_ep_start_transfer epnum %u\n", ep_num);
-    dwc_regs_t* regs = dwc->regs;
-    dwc_endpoint_t* ep = &dwc->eps[ep_num];
-
-	volatile dwc_depctl_t* depctl_reg;
-	volatile dwc_deptsiz_t* deptsiz_reg;
-	uint32_t ep_mps = ep->max_packet_size;
-//    _ep->total_len = _ep->xfer_len;
-
-	if (ep->is_in) {
-printf("is-in\n");
-		depctl_reg = &regs->depin[ep_num].diepctl;
-		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
-	} else {
-		depctl_reg = &regs->depout[ep_num].doepctl;
-		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
-	}
-
-    dwc_depctl_t depctl = *depctl_reg;
-	dwc_deptsiz_t deptsiz = *deptsiz_reg;
-
-	/* Zero Length Packet? */
-	if (ep->txn_length == 0) {
-		deptsiz.xfersize = ep->is_in ? 0 : ep_mps;
-		deptsiz.pktcnt = 1;
-	} else {
-		deptsiz.pktcnt = (ep->txn_length + (ep_mps - 1)) / ep_mps;
-		if (ep->is_in && ep->txn_length < ep_mps) {
-			deptsiz.xfersize = ep->txn_length;
-		}
-		else {
-			deptsiz.xfersize = ep->txn_length - ep->txn_offset;
-		}
-	}
-printf("deptsiz.xfersize = %u deptsiz.pktcnt = %u\n", deptsiz.xfersize, deptsiz.pktcnt);
-
-    *deptsiz_reg = deptsiz;
-
-	/* IN endpoint */
-	if (ep->is_in) {
-//    	dwc_interrupts_t gintsts = {0};
-//    	gintsts.nptxfempty = 1;
-//		regs->gintsts = gintsts;
-printf("enable nptxfempty\n");
-		regs->gintmsk.nptxfempty = 1;
-	}
-
-	/* EP enable */
-	depctl.cnak = 1;
-	depctl.epena = 1;
-
-    *depctl_reg = depctl;
 }
 
 static void pcd_setup(dwc_usb_t* dwc) {
