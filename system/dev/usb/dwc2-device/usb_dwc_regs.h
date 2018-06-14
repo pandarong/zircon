@@ -4,6 +4,16 @@
 
 #define MAX_EPS_CHANNELS 16
 
+#define DWC_EP_IN_SHIFT  0
+#define DWC_EP_OUT_SHIFT 16
+
+#define DWC_EP_IN_MASK   0x0000ffff
+#define DWC_EP_OUT_MASK  0xffff0000
+
+#define DWC_EP_IS_IN(ep)    ((ep) < 16)
+#define DWC_EP_IS_OUT(ep)   ((ep) >= 16)
+
+
 typedef union {
     uint32_t val;
     struct {
@@ -478,8 +488,6 @@ typedef volatile struct {
     uint32_t daint;
     //Device All Endpoints Interrupt Mask Register
     uint32_t daintmsk;
-#define DWC_EP_IN_SHIFT  0
-#define DWC_EP_OUT_SHIFT 16
     // Device IN Token Queue Read Register-1
     uint32_t dtknqr1;
     // Device IN Token Queue Read Register-2
