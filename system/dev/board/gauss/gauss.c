@@ -75,7 +75,7 @@ static const pbus_dev_t led_dev = {
 };
 
 static zx_status_t gauss_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
-    *out_mode = USB_MODE_HOST;
+    *out_mode = USB_MODE_DEVICE;
     return ZX_OK;
 }
 

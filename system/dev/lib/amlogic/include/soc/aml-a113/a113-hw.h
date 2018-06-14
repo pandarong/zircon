@@ -12,6 +12,11 @@
 #define DWC3_IRQ            62
 #define USB_PHY_IRQ         48
 
+#define DWC2_MMIO_BASE      0xff400000
+#define DWC2_MMIO_LENGTH    0x100000
+#define DWC2_IRQ            63
+
+
 // PCIe Resources
 #define DW_PCIE_IRQ0        177
 #define DW_PCIE_IRQ1        179

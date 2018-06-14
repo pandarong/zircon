@@ -28,6 +28,7 @@ enum {
     BTI_AUDIO_IN,
     BTI_AUDIO_OUT,
     BTI_USB_XHCI,
+    BTI_USB_DWC2,
     BTI_AML_RAW_NAND,
 };
 
