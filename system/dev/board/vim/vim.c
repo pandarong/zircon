@@ -42,6 +42,7 @@ static int vim_start_thread(void* arg) {
     vim_bus_t* bus = arg;
     zx_status_t status;
 
+/*
     if ((status = vim_gpio_init(bus)) != ZX_OK) {
         zxlogf(ERROR, "vim_gpio_init failed: %d\n", status);
         goto fail;
@@ -54,11 +55,12 @@ static int vim_start_thread(void* arg) {
         zxlogf(ERROR, "vim_uart_init failed: %d\n", status);
         goto fail;
     }
+*/
     if ((status = vim_usb_init(bus)) != ZX_OK) {
         zxlogf(ERROR, "vim_usb_init failed: %d\n", status);
         goto fail;
     }
-
+/*
     if ((status = vim_mali_init(bus, BTI_MALI)) != ZX_OK) {
         zxlogf(ERROR, "vim_mali_init failed: %d\n", status);
         goto fail;
@@ -68,13 +70,13 @@ static int vim_start_thread(void* arg) {
         zxlogf(ERROR, "vim_sd_emmc_init failed: %d\n", status);
         goto fail;
     }
-
+*/
     //TODO(ravoorir): Enable when wifi-sdio works completely
     /*if ((status = vim_sdio_init(bus)) != ZX_OK) {
         zxlogf(ERROR, "vim_sdio_init failed: %d\n", status);
         goto fail;
     }*/
-
+/*
     if ((status = vim2_mailbox_init(bus)) != ZX_OK) {
         zxlogf(ERROR, "vim2_mailbox_init failed: %d\n", status);
         goto fail;
@@ -104,6 +106,7 @@ static int vim_start_thread(void* arg) {
         zxlogf(ERROR, "vim_eth_init failed: %d\n", status);
         goto fail;
     }
+*/
 
     return ZX_OK;
 fail:
