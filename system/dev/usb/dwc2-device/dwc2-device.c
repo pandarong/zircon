@@ -98,20 +98,22 @@ printf("do_setup_status_phase is_in: %d\n", is_in);
 }
 
 static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
-    printf("dwc_ep0_complete_request\n");
      dwc_endpoint_t* ep = &dwc->eps[0];
 
     if (dwc->ep0_state == EP0_STATE_STATUS) {
-       ep->txn_offset = 0;
+printf("dwc_ep0_complete_request EP0_STATE_STATUS\n");
+      ep->txn_offset = 0;
        ep->txn_length = 0;
     } else if ( ep->txn_length == 0) {
-printf("dwc_otg_ep_start_transfer ???\n");
+printf("dwc_ep0_complete_request ep->txn_length == 0\n");
 //		dwc_otg_ep_start_transfer(ep);
     } else if (dwc->ep0_state == EP0_STATE_DATA_IN) {
+printf("dwc_ep0_complete_request EP0_STATE_DATA_IN\n");
  	   if (ep->txn_offset >= ep->txn_length) {
 	        do_setup_status_phase(dwc, false);
        }
     } else {
+printf("dwc_ep0_complete_request ep0-OUT\n");
 	    do_setup_status_phase(dwc, true);
     }
 
