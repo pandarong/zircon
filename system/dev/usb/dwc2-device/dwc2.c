@@ -163,16 +163,15 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     dwc_interrupts_t interrupts = regs->gintsts;
     dwc_interrupts_t mask = regs->gintmsk;
 
-    // clear interrupt
+    interrupts.val &= mask.val;
+
+    if (!interrupts.val) {
+        return;
+    }
+
+    // clear OTG interrupt
     uint32_t gotgint = regs->gotgint;
     regs->gotgint = gotgint;
-
-// acknowledge interrupts
-//printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
-    interrupts.val &= mask.val;
-//    regs->gintsts = interrupts;
-
-if (!interrupts.val) return;
 
 printf("dwc_handle_irq:");
 if (interrupts.modemismatch) printf(" modemismatch");
@@ -230,7 +229,6 @@ printf("\n");
     if (interrupts.nptxfempty) {
         dwc_handle_nptxfempty_irq(dwc);
     }
-
 
     regs->gintsts = interrupts;
 }

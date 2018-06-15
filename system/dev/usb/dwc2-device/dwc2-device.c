@@ -70,6 +70,8 @@ printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
 
 	/* IN endpoint */
 	if (is_in) {
+		/* First clear it from GINTSTS */
+//?????		regs->gintsts.nptxfempty = 0;
 		regs->gintmsk.nptxfempty = 1;
 	}
 
@@ -493,6 +495,10 @@ void dwc_handle_reset_irq(dwc_usb_t* dwc) {
 
 	/* setup EP0 to receive SETUP packets */
 	dwc2_ep0_out_start(dwc);
+
+    dwc_interrupts_t gintsts = {0};
+    gintsts.usbreset = 1;
+	regs->gintsts = gintsts;
 }
 
 void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
@@ -511,18 +517,20 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
 
 	/* high speed */
 	regs->gusbcfg.usbtrdtim = 5;
+
+    dwc_interrupts_t gintsts = {0};
+    gintsts.enumdone = 1;
+	regs->gintsts = gintsts;
 }
 
 void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
-	regs->gintmsk.rxstsqlvl = 0;
+//why?	regs->gintmsk.rxstsqlvl = 0;
 
 	/* Get the Status from the top of the FIFO */
 	 dwc_grxstsp_t grxstsp = regs->grxstsp;
-
 printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum, grxstsp.bcnt, grxstsp.pktsts);
-	 
 	 
 	if (grxstsp.epnum != 0)
 		grxstsp.epnum = 2; // ??????
@@ -541,8 +549,8 @@ printf("DWC_STS_DATA_UPDT grxstsp.bcnt: %u\n", grxstsp.bcnt);
 */
 		break;
 
-	case DWC_DSTS_SETUP_UPDT:
-printf("DWC_DSTS_SETUP_UPDT\n"); {
+	case DWC_DSTS_SETUP_UPDT: {
+printf("DWC_DSTS_SETUP_UPDT\n"); 
     volatile uint32_t* fifo = (uint32_t *)((uint8_t *)regs + 0x1000);
     uint32_t* dest = (uint32_t*)&dwc->cur_setup;
     dest[0] = *fifo;
@@ -555,13 +563,21 @@ printf("SETUP bmRequestType: 0x%02x bRequest: %u wValue: %u wIndex: %u wLength: 
 	}
 
 	case DWC_DSTS_GOUT_NAK:
+printf("DWC_DSTS_GOUT_NAK\n");
+break;
 	case DWC_STS_XFER_COMP:
+printf("DWC_STS_XFER_COMP\n");
+break;
 	case DWC_DSTS_SETUP_COMP:
+printf("DWC_DSTS_SETUP_COMP\n");
+break;
 	default:
 		break;
 	}
 
-	regs->gintmsk.rxstsqlvl = 1;
+    dwc_interrupts_t gintsts = {0};
+    gintsts.rxstsqlvl = 1;
+	regs->gintsts = gintsts;
 }
 
 void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
@@ -649,6 +665,10 @@ printf("diepint.xfercompl\n");
 		epnum++;
 		ep_intr >>= 1;
 	}
+
+    dwc_interrupts_t gintsts = {0};
+    gintsts.inepintr = 1;
+	regs->gintsts = gintsts;
 }
 
 static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
@@ -804,10 +824,19 @@ printf("not enabled\n");
 			dwc_ep_write_packet(dwc, epnum, len, dwords);
 		}
 	}
+
+    dwc_interrupts_t gintsts = {0};
+    gintsts.nptxfempty = 1;
+	regs->gintsts = gintsts;
 }
 
 void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
     printf("dwc_handle_usbsuspend_irq\n");
+
+    dwc_regs_t* regs = dwc->regs;
+    dwc_interrupts_t gintsts = {0};
+    gintsts.usbsuspend = 1;
+	regs->gintsts = gintsts;
 }
 
 static void dwc_request_queue(void* ctx, usb_request_t* req) {
