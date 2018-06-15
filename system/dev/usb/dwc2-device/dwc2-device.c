@@ -406,7 +406,7 @@ static void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in) {
 }
 
 
-static void dwc_flush_fifo(dwc_usb_t* dwc, const int num) {
+void dwc_flush_fifo(dwc_usb_t* dwc, const int num) {
     dwc_regs_t* regs = dwc->regs;
 
     dwc_grstctl_t grstctl = {0};

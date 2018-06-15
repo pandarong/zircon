@@ -34,6 +34,7 @@ printf("dwc_regs: %p\n", regs);
 
     for (int i = 0; i < 1000; i++) {
         if (regs->grstctl.csftrst == 0) {
+            usleep(10 * 1000);
             return ZX_OK;
         }
         usleep(1000);
@@ -43,10 +44,6 @@ printf("dwc_regs: %p\n", regs);
 
 static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
-
-printf("gsnpsid: %08x\n", regs->gsnpsid);
-printf("ghwcfg1: %08x\n", regs->ghwcfg1);
-printf("ghwcfg2: %08x\n", regs->ghwcfg2);
 
     regs->gusbcfg.force_dev_mode = 1;
 	regs->gahbcfg.dmaenable = 0;
@@ -62,7 +59,7 @@ printf("ghwcfg2: %08x\n", regs->ghwcfg2);
 	regs->gnptxfsiz.depth = 512;
 	regs->gnptxfsiz.startaddr = 256;
 
-//??	dwc_otg_flush_fifo(0x10);
+	dwc_flush_fifo(dwc, 0x10);
 
 	regs->grstctl.intknqflsh = 1;
 
