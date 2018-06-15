@@ -62,7 +62,7 @@ static const pbus_mmio_t dwc2_mmios[] = {
 static const pbus_irq_t dwc2_irqs[] = {
     {
         .irq = S912_USBD_IRQ,
-        .mode = ZX_INTERRUPT_MODE_EDGE_HIGH,
+        .mode = ZX_INTERRUPT_MODE_LEVEL_HIGH,
     },
 };
 

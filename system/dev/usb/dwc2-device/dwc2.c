@@ -69,9 +69,6 @@ printf("ghwcfg2: %08x\n", regs->ghwcfg2);
 	/* Clear all pending Device Interrupts */
 	regs->diepmsk.val = 0;
 	regs->doepmsk.val = 0;
-
-	regs->deachint = 0xffffffff;
-	regs->deachintmsk = 0;
 	regs->daint = 0xffffffff;
 	regs->daintmsk = 0;
 
@@ -87,12 +84,8 @@ printf("ghwcfg2: %08x\n", regs->ghwcfg2);
     gintmsk.rxstsqlvl = 1;
     gintmsk.usbreset = 1;
     gintmsk.enumdone = 1;
-
-//#ifndef ENABLE_MPI
     gintmsk.inepintr = 1;
     gintmsk.outepintr = 1;
-//#endif
-
 //    gintmsk.sof_intr = 1;
     gintmsk.usbsuspend = 1;
 
@@ -170,7 +163,17 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     dwc_interrupts_t interrupts = regs->gintsts;
     dwc_interrupts_t mask = regs->gintmsk;
 
-/*
+    // clear interrupt
+    uint32_t gotgint = regs->gotgint;
+    regs->gotgint = gotgint;
+
+// acknowledge interrupts
+//printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
+    interrupts.val &= mask.val;
+//    regs->gintsts = interrupts;
+
+if (!interrupts.val) return;
+
 printf("dwc_handle_irq:");
 if (interrupts.modemismatch) printf(" modemismatch");
 if (interrupts.otgintr) printf(" otgintr");
@@ -204,15 +207,7 @@ if (interrupts.disconnect) printf(" disconnect");
 if (interrupts.sessreqintr) printf(" sessreqintr");
 if (interrupts.wkupintr) printf(" wkupintr");
 printf("\n");
-*/
-    // clear interrupt
-    uint32_t gotgint = regs->gotgint;
-    regs->gotgint = gotgint;
 
-// acknowledge interrupts
-//printf("interrupts: %08x mask: %08x ack: %08x\n", interrupts.val, mask.val, interrupts.val & mask.val);
-    interrupts.val &= mask.val;
-    regs->gintsts = interrupts;
 
     if (interrupts.rxstsqlvl) {
         dwc_handle_rxstsqlvl_irq(dwc);
@@ -235,26 +230,45 @@ printf("\n");
     if (interrupts.nptxfempty) {
         dwc_handle_nptxfempty_irq(dwc);
     }
+
+
+    regs->gintsts = interrupts;
 }
 
 
-//#define POLL 1
 
 // Thread to handle interrupts.
 static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
 
     while (1) {
-#ifndef POLL
         zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
         if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
         }
+        dwc_handle_irq(dwc);
 
-        dwc_handle_irq(dwc);
-        usleep(2000); // this is terrible
-#endif
-        dwc_handle_irq(dwc);
+/*
+dwc_regs_t* regs = dwc->regs;
+printf("gotgctl: %08x\n", regs->gotgctl);
+printf("gotgint: %08x\n", regs->gotgint);
+printf("gahbcfg: %08x\n", regs->gahbcfg.val);
+printf("gusbcfg: %08x\n", regs->gusbcfg.val);
+printf("grstctl: %08x\n", regs->grstctl.val);
+printf("gintsts: %08x\n", regs->gintsts.val);
+printf("gintmsk: %08x\n", regs->gintmsk.val);
+printf("grxstsr: %08x\n", regs->grxstsr);
+
+//printf("grxstsp: %08x\n", regs->grxstsp.val);
+
+
+printf("grxfsiz: %08x\n", regs->grxfsiz);
+printf("gnptxfsiz: %08x\n", regs->gnptxfsiz.val);
+printf("gnptxsts: %08x\n", regs->gnptxsts.val);
+printf("gpvndctl: %08x\n", regs->gpvndctl);
+printf("gpvndctl: %08x\n", regs->gpvndctl);
+printf("ggpio: %08x\n", regs->ggpio);
+*/
     }
 
     zxlogf(INFO, "dwc_usb: irq thread finished\n");
