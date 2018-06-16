@@ -76,11 +76,7 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti, bool host) {
         volatile void* addr = usbctrl_regs + (i * PHY_REGISTER_SIZE) + U2P_R0_OFFSET;
         temp = readl(addr);
         temp |= U2P_R0_POR;
-        if (host) {
-            temp |= U2P_R0_HOST_DEVICE;
-        } else {
-            temp &= ~U2P_R0_HOST_DEVICE;
-        }
+        temp |= U2P_R0_HOST_DEVICE;
         if (i == 1) {
             temp |= U2P_R0_IDPULLUP0;
             temp |= U2P_R0_DRVVBUS0;
@@ -118,6 +114,7 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti, bool host) {
     }
 
     // phy-aml-new-usb3-v2.c set_mode()
+    volatile void* u2p_r0 = usbctrl_regs + (1 * PHY_REGISTER_SIZE) + U2P_R0_OFFSET;
     volatile void* usb_r0 = usbctrl_regs + USB_R0_OFFSET;
     volatile void* usb_r4 = usbctrl_regs + USB_R4_OFFSET;
 
@@ -137,6 +134,15 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti, bool host) {
         temp |= USB_R4_P21_SLEEPM0;
     }
     writel(temp, usb_r4);
+
+    temp = readl(u2p_r0);
+    if (host) {
+        temp |= U2P_R0_HOST_DEVICE;
+    } else {
+        temp &= ~U2P_R0_HOST_DEVICE;
+    }
+    temp &= ~U2P_R0_POR;
+    writel(temp, u2p_r0);
 
     io_buffer_release(&reset_buf);
     io_buffer_release(&usbctrl_buf);

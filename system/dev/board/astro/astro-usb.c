@@ -138,7 +138,7 @@ zx_status_t aml_usb_init(aml_bus_t* bus) {
         return status;
     }
 
-    status = astro_usb_tuning(bti, host, false);
+    status = astro_usb_tuning(bti, host, true);
     zx_handle_close(bti);
     if (status != ZX_OK) {
         return status;

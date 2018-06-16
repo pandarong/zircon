@@ -226,7 +226,7 @@ printf("\n");
         dwc_handle_nptxfempty_irq(dwc);
     }
 
-//    regs->gintsts = interrupts;
+    regs->gintsts = interrupts;
 }
 
 
@@ -236,11 +236,11 @@ static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
 
     while (1) {
-        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
+/*        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
         if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
         }
-
+*/
         dwc_handle_irq(dwc);
     }
 
