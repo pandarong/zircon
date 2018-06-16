@@ -9,7 +9,7 @@
 #define DWC_REG_DATA_FIFO_START 0x1000
 #define DWC_REG_DATA_FIFO(regs, ep)	((volatile uint32_t*)((uint8_t*)regs + (ep + 1) * 0x1000))
 
-void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc);
+//void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc);
 
 static void dwc2_ep0_out_start(dwc_usb_t* dwc)
 {
@@ -302,40 +302,6 @@ printf("dwc_handle_ep0 EP0_STATE_IDLE\n");
 //		req_flag->request_config = 0;
 		pcd_setup(dwc);
         break;
-/*
-    	if (!dwc->got_setup)
-    		return;
-    	dwc->got_setup = false;
-
-	    usb_setup_t* setup = &dwc->cur_setup;
-
-        bool is_out = ((setup->bmRequestType & USB_DIR_MASK) == USB_DIR_OUT);
-        if (setup->wLength > 0 && is_out) {
-printf("queue read\n");
-            // queue a read for the data phase
-            dwc_ep_start_transfer(dwc, 0, false, io_buffer_phys(&dwc->ep0_buffer), setup->wLength, false);
-            dwc->ep0_state = EP0_STATE_DATA_OUT;
-        } else {
-            size_t actual;
-            zx_status_t status = dwc_handle_setup(dwc, setup, io_buffer_virt(&dwc->ep0_buffer),
-                                                  dwc->ep0_buffer.size, &actual);
-            zxlogf(INFO, "dwc_handle_setup returned %d actual %zu\n", status, actual);
-//            if (status != ZX_OK) {
-//                dwc3_cmd_ep_set_stall(dwc, EP0_OUT);
-//                dwc3_queue_setup_locked(dwc);
-//                break;
-//            }
-
-            if (setup->wLength > 0) {
-                // queue a write for the data phase
-                io_buffer_cache_flush(&dwc->ep0_buffer, 0, actual);
-                dwc_ep_start_transfer(dwc, 0, true, io_buffer_phys(&dwc->ep0_buffer), actual, false);
-                dwc->ep0_state = EP0_STATE_DATA_IN;
-            } else {
-//                dwc->ep0_state = EP0_STATE_WAIT_NRDY_IN;
-            }
-        }	
-	    break;*/
     }
 	case EP0_STATE_DATA_IN:
     printf("dwc_handle_ep0 EP0_STATE_DATA_IN\n");
@@ -472,11 +438,7 @@ void dwc_handle_reset_irq(dwc_usb_t* dwc) {
 	regs->grstctl.intknqflsh = 1;
 
     // EPO IN and OUT
-#if ENABLE_MPI
-	regs->deachintmsk = (1 < DWC_EP_IN_SHIFT) | (1 < DWC_EP_OUT_SHIFT);
-#else
 	regs->daintmsk = (1 < DWC_EP_IN_SHIFT) | (1 < DWC_EP_OUT_SHIFT);
-#endif
 
     dwc_doepint_t doepmsk = {0};
 	doepmsk.setup = 1;
@@ -588,45 +550,39 @@ break;
 	regs->gintsts = gintsts;
 }
 
+#define CLEAR_IN_EP_INTR(__epnum, __intr) \
+do { \
+        dwc_diepint_t diepint = {0}; \
+	diepint.__intr = 1; \
+	regs->depin[__epnum].diepint = diepint; \
+} while (0)
+
+
 void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
+	uint32_t ep_intr;
 	uint32_t epnum = 0;
 
-
-	uint32_t ep_intr = regs->daint & DWC_EP_IN_MASK;
-	regs->daint = DWC_EP_IN_MASK;
-
-printf("dwc_handle_inepintr_irq daint %08x\n", ep_intr);
-
-//???	gintsts.inepintr = 1;
-
-//	diepint_data_t diepint = {0};
-//	gintmsk_data_t intr_mask = {0};
-//	gintsts_data_t gintsts = {0};
-//	uint32_t ep_intr;
+	dwc_interrupts_t gintsts = {0};
 
 	/* Read in the device interrupt bits */
-//	ep_intr = dwc_read_reg32(DWC_REG_DAINT);
-
-//	ep_intr = (dwc_read_reg32(DWC_REG_DAINT) &
-//		dwc_read_reg32(DWC_REG_DAINTMSK));
-//	ep_intr =(ep_intr & 0xffff);
+	ep_intr = regs->daint;
+	ep_intr = (regs->daint & regs->daintmsk);
+	ep_intr = (ep_intr & 0xffff);
 
 	/* Clear the INEPINT in GINTSTS */
 	/* Clear all the interrupt bits for all IN endpoints in DAINT */
-//	gintsts.b.inepint = 1;
-//	dwc_write_reg32(DWC_REG_GINTSTS, gintsts.d32);
-//	dwc_write_reg32(DWC_REG_DAINT, 0xFFFF);
+    gintsts.inepintr = 1;
+    regs->gintsts = gintsts;
+    regs->daint = 0xFFFF;
 
 	/* Service the Device IN interrupts for each endpoint */
 	while (ep_intr) {
 		if (ep_intr & 0x1) {
 		    dwc_diepint_t diepint = regs->depin[epnum].diepint;
-printf("diepint: %08x\n", diepint.val);
 
 			/* Transfer complete */
 			if (diepint.xfercompl) {
-printf("diepint.xfercompl\n");
 				/* Disable the NP Tx FIFO Empty Interrrupt  */
 		        regs->gintmsk.nptxfempty = 0;
 				/* Clear the bit in DIEPINTn for this interrupt */
@@ -635,48 +591,48 @@ printf("diepint.xfercompl\n");
 				if (0 == epnum) {
 					dwc_handle_ep0(dwc);
 				} else {
-//					dwc_complete_ep(dwc, epnum, 1);
-//					if (diepint.b.nak)
-//						CLEAR_IN_EP_INTR(epnum, nak);
+					dwc_complete_ep(dwc, epnum, 1);
+					if (diepint.nak)
+						CLEAR_IN_EP_INTR(epnum, nak);
 				}
 			}
-#if 0
 			/* Endpoint disable  */
-			if (diepint.b.epdisabled) {
+			if (diepint.epdisabled) {
 				/* Clear the bit in DIEPINTn for this interrupt */
 				CLEAR_IN_EP_INTR(epnum, epdisabled);
 			}
 			/* AHB Error */
-			if (diepint.b.ahberr) {
+			if (diepint.ahberr) {
 				/* Clear the bit in DIEPINTn for this interrupt */
 				CLEAR_IN_EP_INTR(epnum, ahberr);
 			}
 			/* TimeOUT Handshake (non-ISOC IN EPs) */
-			if (diepint.b.timeout) {
-				handle_in_ep_timeout_intr(epnum);
+			if (diepint.timeout) {
+//				handle_in_ep_timeout_intr(epnum);
+printf("TODO handle_in_ep_timeout_intr\n");
 				CLEAR_IN_EP_INTR(epnum, timeout);
 			}
 			/** IN Token received with TxF Empty */
-			if (diepint.b.intktxfemp) {
+			if (diepint.intktxfemp) {
 				CLEAR_IN_EP_INTR(epnum, intktxfemp);
 			}
 			/** IN Token Received with EP mismatch */
-			if (diepint.b.intknepmis) {
+			if (diepint.intknepmis) {
 				CLEAR_IN_EP_INTR(epnum, intknepmis);
 			}
 			/** IN Endpoint NAK Effective */
-			if (diepint.b.inepnakeff) {
+			if (diepint.inepnakeff) {
 				CLEAR_IN_EP_INTR(epnum, inepnakeff);
 			}
-#endif
 		}
 		epnum++;
 		ep_intr >>= 1;
 	}
 
-    dwc_interrupts_t gintsts = {0};
-    gintsts.inepintr = 1;
-	regs->gintsts = gintsts;
+// above instead for some reason
+//    dwc_interrupts_t gintsts = {0};
+//    gintsts.inepintr = 1;
+//	regs->gintsts = gintsts;
 }
 
 static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
@@ -707,6 +663,14 @@ printf("write %08x\n", temp_data);
 	ep->txn_offset += byte_count;
 }
 
+#define CLEAR_OUT_EP_INTR(__epnum, __intr) \
+do { \
+        dwc_doepint_t doepint = {0}; \
+	doepint.__intr = 1; \
+	regs->depout[__epnum].doepint = doepint; \
+} while (0)
+
+
 void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
@@ -734,14 +698,10 @@ printf("dwc_handle_outepintr_irq doepint.val %08x\n", doepint.val);
 			if (doepint.xfercompl) {
 printf("dwc_handle_outepintr_irq xfercompl\n");
 				/* Clear the bit in DOEPINTn for this interrupt */
-			    dwc_doepint_t clear = {0};
-			    clear.xfercompl = 1;
-			    regs->depout[epnum].doepint = clear;
+				CLEAR_OUT_EP_INTR(epnum, xfercompl);
 
 				if (epnum == 0) {
-				    clear.val = 0;
-				    clear.setup = 1;
-    			    regs->depout[epnum].doepint = clear;
+					CLEAR_OUT_EP_INTR(epnum, setup);
 					dwc_handle_ep0(dwc);
 				} else {
 					dwc_complete_ep(dwc, epnum, 0);
@@ -751,22 +711,16 @@ printf("dwc_handle_outepintr_irq xfercompl\n");
 			if (doepint.epdisabled) {
 printf("dwc_handle_outepintr_irq epdisabled\n");
 				/* Clear the bit in DOEPINTn for this interrupt */
-			    dwc_doepint_t clear = {0};
-                clear.epdisabled = 1;
-			    regs->depout[epnum].doepint = clear;
+				CLEAR_OUT_EP_INTR(epnum, epdisabled);
 			}
 			/* AHB Error */
 			if (doepint.ahberr) {
 printf("dwc_handle_outepintr_irq ahberr\n");
-			    dwc_doepint_t clear = {0};
-                clear.ahberr = 1;
-			    regs->depout[epnum].doepint = clear;
+				CLEAR_OUT_EP_INTR(epnum, ahberr);
 			}
 			/* Setup Phase Done (contr0l EPs) */
 			if (doepint.setup) {
-			    dwc_doepint_t clear = {0};
-                clear.setup = 1;
-			    regs->depout[epnum].doepint = clear;
+				CLEAR_OUT_EP_INTR(epnum, setup);
 			}
 		}
 		epnum++;

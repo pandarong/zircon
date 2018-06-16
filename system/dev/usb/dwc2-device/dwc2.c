@@ -170,6 +170,7 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     uint32_t gotgint = regs->gotgint;
     regs->gotgint = gotgint;
 
+/*
 printf("dwc_handle_irq:");
 if (interrupts.modemismatch) printf(" modemismatch");
 if (interrupts.otgintr) printf(" otgintr");
@@ -203,11 +204,8 @@ if (interrupts.disconnect) printf(" disconnect");
 if (interrupts.sessreqintr) printf(" sessreqintr");
 if (interrupts.wkupintr) printf(" wkupintr");
 printf("\n");
+*/
 
-
-    if (interrupts.rxstsqlvl) {
-        dwc_handle_rxstsqlvl_irq(dwc);
-    }
     if (interrupts.usbreset) {
         dwc_handle_reset_irq(dwc);
     }
@@ -216,6 +214,9 @@ printf("\n");
     }
     if (interrupts.enumdone) {
         dwc_handle_enumdone_irq(dwc);
+    }
+    if (interrupts.rxstsqlvl) {
+        dwc_handle_rxstsqlvl_irq(dwc);
     }
     if (interrupts.inepintr) {
         dwc_handle_inepintr_irq(dwc);
@@ -227,7 +228,7 @@ printf("\n");
         dwc_handle_nptxfempty_irq(dwc);
     }
 
-//    regs->gintsts = interrupts;
+    regs->gintsts = interrupts;
 }
 
 
