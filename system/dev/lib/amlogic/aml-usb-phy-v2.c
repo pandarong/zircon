@@ -35,10 +35,11 @@ static zx_status_t set_usb_pll(zx_paddr_t reg_base, zx_handle_t bti) {
     return ZX_OK;
 }
 
-zx_status_t aml_usb_phy_v2_init(zx_handle_t bti) {
+zx_status_t aml_usb_phy_v2_init(zx_handle_t bti, bool host) {
     zx_status_t status;
     io_buffer_t reset_buf;
     io_buffer_t usbctrl_buf;
+    uint32_t temp;
 
     status = io_buffer_init_physical(&reset_buf, bti, S905D2_RESET_BASE, S905D2_RESET_LENGTH,
                                      get_root_resource(),
@@ -73,9 +74,13 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti) {
     // amlogic_new_usb2_init()
     for (int i = 0; i < 2; i++) {
         volatile void* addr = usbctrl_regs + (i * PHY_REGISTER_SIZE) + U2P_R0_OFFSET;
-        uint32_t temp = readl(addr);
+        temp = readl(addr);
         temp |= U2P_R0_POR;
-        temp |= U2P_R0_HOST_DEVICE;
+        if (host) {
+            temp |= U2P_R0_HOST_DEVICE;
+        } else {
+            temp &= ~U2P_R0_HOST_DEVICE;
+        }
         if (i == 1) {
             temp |= U2P_R0_IDPULLUP0;
             temp |= U2P_R0_DRVVBUS0;
@@ -111,6 +116,27 @@ zx_status_t aml_usb_phy_v2_init(zx_handle_t bti) {
         (status = set_usb_pll(S905D2_USBPHY21_BASE, bti)) != ZX_OK) {
         zxlogf(ERROR, "aml_usb_init: set_usb_pll failed: %d\n", status);
     }
+
+    // phy-aml-new-usb3-v2.c set_mode()
+    volatile void* usb_r0 = usbctrl_regs + USB_R0_OFFSET;
+    volatile void* usb_r4 = usbctrl_regs + USB_R4_OFFSET;
+
+    temp = readl(usb_r0);
+    if (host) {
+        temp &= ~USB_R0_U2D_ACT;
+    } else {
+        temp |= USB_R0_U2D_ACT;
+        temp &= ~USB_R0_U2D_SS_SCALEDOWN_MODE;
+    }
+    writel(temp, usb_r0);
+
+    temp = readl(usb_r4);
+    if (host) {
+        temp &= ~USB_R4_P21_SLEEPM0;
+    } else {
+        temp |= USB_R4_P21_SLEEPM0;
+    }
+    writel(temp, usb_r4);
 
     io_buffer_release(&reset_buf);
     io_buffer_release(&usbctrl_buf);

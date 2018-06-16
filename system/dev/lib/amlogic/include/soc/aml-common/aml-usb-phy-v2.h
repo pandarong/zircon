@@ -4,4 +4,4 @@
 
 #pragma once
 
-zx_status_t aml_usb_phy_v2_init(zx_handle_t bti);
+zx_status_t aml_usb_phy_v2_init(zx_handle_t bti, bool host);

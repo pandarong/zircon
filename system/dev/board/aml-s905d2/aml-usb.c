@@ -59,7 +59,7 @@ zx_status_t aml_usb_init(aml_bus_t* bus) {
         return status;
     }
 
-    status = aml_usb_phy_v2_init(bti);
+    status = aml_usb_phy_v2_init(bti, true);
     zx_handle_close(bti);
     if (status != ZX_OK) {
         return status;

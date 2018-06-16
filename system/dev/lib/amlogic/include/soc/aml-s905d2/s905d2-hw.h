@@ -14,6 +14,9 @@
 #define S905D2_USB0_BASE                0xff500000
 #define S905D2_USB0_LENGTH              0x100000
 
+#define S905D2_USB1_BASE                0xff400000
+#define S905D2_USB1_LENGTH              0x40000
+
 #define S905D2_DOS_BASE                 0xff620000
 #define S905D2_DOS_LENGTH               0x10000
 
@@ -91,6 +94,7 @@
 #define S905D2_VIU1_VSYNC_IRQ           35
 #define S905D2_DEMUX_IRQ                55
 #define S905D2_USB0_IRQ                 62
+#define S905D2_USB1_IRQ                 63
 #define S905D2_PARSER_IRQ               64
 #define S905D2_RAW_NAND_IRQ             66
 #define S905D2_DOS_MBOX_0_IRQ           75
