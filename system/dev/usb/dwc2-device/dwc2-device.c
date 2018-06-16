@@ -508,6 +508,12 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
 
 	zxlogf(INFO, "dwc_handle_enumdone_irq\n");
 
+
+printf("dsts.suspsts: %d\n", regs->dsts.suspsts);
+printf("dsts.enumspd: %d\n", regs->dsts.enumspd);
+printf("dsts.errticerr: %d\n", regs->dsts.errticerr);
+printf("dsts.soffn: %d\n", regs->dsts.soffn);
+
     dwc->ep0_state = EP0_STATE_IDLE;
 
     dwc->eps[0].max_packet_size = 64;

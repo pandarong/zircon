@@ -120,7 +120,7 @@ static void print_regs(volatile uint32_t* regs) {
 }
 
 #if 0
-static void vim_usb_phy_init(volatile void* regs) {
+static void vim_usb_phy_init(zx_handle_t bti, volatile void* regs) {
     volatile void* addr;
     uint32_t temp;
 
@@ -273,7 +273,7 @@ typedef union usb_r4 {
 	} b;
 } usb_r4_t;
 
-static void vim_usb_phy_init(volatile void* regs) {
+static void vim_usb_phy_init(zx_handle_t bti, volatile void* regs) {
 	u2p_aml_regs_t * u2p_aml_regs = (u2p_aml_regs_t * )(regs + 0x20);
 	usb_aml_regs_t * usb_aml_regs = (usb_aml_regs_t * )(regs + 0x80);
 
@@ -281,12 +281,60 @@ static void vim_usb_phy_init(volatile void* regs) {
 	usb_r0_t usb_r0;
 	usb_r4_t usb_r4;
 
+
+
+
+{
 /*
 	*P_RESET1_REGISTER = (1<<2);
 
 	*P_AO_RTC_ALT_CLK_CNTL0 |= (1<<31)|(1<<30);
 	*P_AO_RTI_PWR_CNTL_REG0 |= (4<<10);
 */
+
+    io_buffer_t preset_buf;
+    io_buffer_init_physical(&preset_buf, bti, S912_PRESET_BASE, S912_PRESET_LENGTH,
+                                     get_root_resource(),
+                                     ZX_CACHE_POLICY_UNCACHED_DEVICE);
+    io_buffer_t aobus_buf;
+    io_buffer_init_physical(&aobus_buf, bti, S912_AOBUS_BASE, S912_AOBUS_LENGTH,
+                                     get_root_resource(),
+                                     ZX_CACHE_POLICY_UNCACHED_DEVICE);
+    io_buffer_t hhi_buf;
+    io_buffer_init_physical(&hhi_buf, bti, HHI_REG_BASE, PAGE_SIZE,
+                                     get_root_resource(),
+                                     ZX_CACHE_POLICY_UNCACHED_DEVICE);
+    
+    volatile void* preset = io_buffer_virt(&preset_buf);
+    volatile void* aobus = io_buffer_virt(&aobus_buf);
+    volatile void* hhi = io_buffer_virt(&hhi_buf);
+
+volatile uint32_t* ptr;
+
+printf("write P_RESET1_REGISTER\n");
+    *((volatile unsigned long *)(preset + 0x408)) = (1 << 2);    
+printf("write P_AO_RTC_ALT_CLK_CNTL0\n");
+    ptr = (volatile uint32_t *)(aobus + (0x25 << 2));
+    *ptr |= ((1 << 31) | (1 << 30));
+printf("write P_AO_RTI_PWR_CNTL_REG0\n");
+    ptr = (volatile uint32_t *)(aobus + (0x04 << 2));
+    *ptr |= (4 << 10);
+ 
+
+    volatile uint32_t* mpeg1 = (volatile uint32_t*)(hhi + (0x51 << 2));
+    volatile uint32_t* mpeg2 = (volatile uint32_t*)(hhi + (0x52 << 2));
+    volatile uint32_t* usb = (volatile uint32_t*)(hhi + (0x88 << 2));
+
+printf("mpeg1: %08x, mpeg2: %08x usb: %08x\n", *mpeg1, *mpeg2, *usb);
+
+
+
+    io_buffer_release(&preset_buf);
+    io_buffer_release(&aobus_buf);
+    io_buffer_release(&hhi_buf);
+}
+
+
 
 	u2p_r0.d32 = u2p_aml_regs->u2p_r0;
 	u2p_r0.b.fsel = 2;
@@ -339,7 +387,7 @@ zx_status_t vim_usb_init(vim_bus_t* bus) {
     }
 
     volatile void* regs = io_buffer_virt(&usb_phy);
-    vim_usb_phy_init(regs);
+    vim_usb_phy_init(bti, regs);
 
 
 

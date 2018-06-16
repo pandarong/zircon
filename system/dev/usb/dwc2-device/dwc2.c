@@ -227,7 +227,7 @@ printf("\n");
         dwc_handle_nptxfempty_irq(dwc);
     }
 
-    regs->gintsts = interrupts;
+//    regs->gintsts = interrupts;
 }
 
 
@@ -237,33 +237,13 @@ static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
 
     while (1) {
+/*
         zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
         if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
         }
-        dwc_handle_irq(dwc);
-
-/*
-dwc_regs_t* regs = dwc->regs;
-printf("gotgctl: %08x\n", regs->gotgctl);
-printf("gotgint: %08x\n", regs->gotgint);
-printf("gahbcfg: %08x\n", regs->gahbcfg.val);
-printf("gusbcfg: %08x\n", regs->gusbcfg.val);
-printf("grstctl: %08x\n", regs->grstctl.val);
-printf("gintsts: %08x\n", regs->gintsts.val);
-printf("gintmsk: %08x\n", regs->gintmsk.val);
-printf("grxstsr: %08x\n", regs->grxstsr);
-
-//printf("grxstsp: %08x\n", regs->grxstsp.val);
-
-
-printf("grxfsiz: %08x\n", regs->grxfsiz);
-printf("gnptxfsiz: %08x\n", regs->gnptxfsiz.val);
-printf("gnptxsts: %08x\n", regs->gnptxsts.val);
-printf("gpvndctl: %08x\n", regs->gpvndctl);
-printf("gpvndctl: %08x\n", regs->gpvndctl);
-printf("ggpio: %08x\n", regs->ggpio);
 */
+        dwc_handle_irq(dwc);
     }
 
     zxlogf(INFO, "dwc_usb: irq thread finished\n");
