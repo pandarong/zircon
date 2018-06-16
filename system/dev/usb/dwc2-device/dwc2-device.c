@@ -459,10 +459,6 @@ void dwc_handle_reset_irq(dwc_usb_t* dwc) {
 
 	/* setup EP0 to receive SETUP packets */
 	dwc2_ep0_out_start(dwc);
-
-    dwc_interrupts_t gintsts = {0};
-    gintsts.usbreset = 1;
-	regs->gintsts = gintsts;
 }
 
 void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
@@ -487,10 +483,6 @@ printf("dsts.soffn: %d\n", regs->dsts.soffn);
 
 	/* high speed */
 	regs->gusbcfg.usbtrdtim = 5;
-
-    dwc_interrupts_t gintsts = {0};
-    gintsts.enumdone = 1;
-	regs->gintsts = gintsts;
 }
 
 void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
@@ -544,10 +536,6 @@ break;
 	default:
 		break;
 	}
-
-    dwc_interrupts_t gintsts = {0};
-    gintsts.rxstsqlvl = 1;
-	regs->gintsts = gintsts;
 }
 
 #define CLEAR_IN_EP_INTR(__epnum, __intr) \
@@ -563,17 +551,12 @@ void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 	uint32_t ep_intr;
 	uint32_t epnum = 0;
 
-	dwc_interrupts_t gintsts = {0};
-
 	/* Read in the device interrupt bits */
 	ep_intr = regs->daint;
 	ep_intr = (regs->daint & regs->daintmsk);
 	ep_intr = (ep_intr & 0xffff);
 
-	/* Clear the INEPINT in GINTSTS */
 	/* Clear all the interrupt bits for all IN endpoints in DAINT */
-    gintsts.inepintr = 1;
-    regs->gintsts = gintsts;
     regs->daint = 0xFFFF;
 
 	/* Service the Device IN interrupts for each endpoint */
@@ -628,11 +611,6 @@ printf("TODO handle_in_ep_timeout_intr\n");
 		epnum++;
 		ep_intr >>= 1;
 	}
-
-// above instead for some reason
-//    dwc_interrupts_t gintsts = {0};
-//    gintsts.inepintr = 1;
-//	regs->gintsts = gintsts;
 }
 
 static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
@@ -683,9 +661,6 @@ void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
 	ep_intr >>= DWC_EP_OUT_SHIFT;
 
 	/* Clear the interrupt */
-	dwc_interrupts_t gintsts = {0};
-	gintsts.outepintr = 1;
-	regs->gintsts = gintsts;
 	regs->daint = DWC_EP_OUT_MASK;
 
 	while (ep_intr) {
@@ -786,19 +761,10 @@ printf("not enabled\n");
 			dwc_ep_write_packet(dwc, epnum, len, dwords);
 		}
 	}
-
-    dwc_interrupts_t gintsts = {0};
-    gintsts.nptxfempty = 1;
-	regs->gintsts = gintsts;
 }
 
 void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
     printf("dwc_handle_usbsuspend_irq\n");
-
-    dwc_regs_t* regs = dwc->regs;
-    dwc_interrupts_t gintsts = {0};
-    gintsts.usbsuspend = 1;
-	regs->gintsts = gintsts;
 }
 
 static void dwc_request_queue(void* ctx, usb_request_t* req) {

@@ -7,18 +7,6 @@
 #define MMIO_INDEX  0
 #define IRQ_INDEX   0
 
-/*
-static zx_status_t wait_bits(volatile uint32_t* ptr, uint32_t bits, uint32_t expected) {
-    for (int i = 0; i < 1000; i++) {
-        if ((*ptr & bits) == expected) {
-            return ZX_OK;
-        }
-        usleep(1000);
-    }
-    return ZX_ERR_TIMED_OUT;
-}
-*/
-
 static zx_status_t usb_dwc_softreset_core(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 printf("dwc_regs: %p\n", regs);
