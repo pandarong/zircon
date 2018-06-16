@@ -299,11 +299,14 @@ static scpi_protocol_ops_t scpi_ops = {
     .set_dvfs_idx       = pdev_scpi_set_dvfs_idx,
 };
 
-static zx_status_t pdev_astro_do_usb_tuning(void* ctx, bool set_default) {
+static zx_status_t pdev_astro_do_usb_tuning(void* ctx, bool host, bool set_default) {
     platform_proxy_t* proxy = ctx;
     pdev_req_t req = {
         .op = PDEV_ASTRO_USB_TUNING,
-        .index = set_default,
+        .astro_usb = {
+            .host = host,
+            .set_default = set_default,
+        },
     };
 
     pdev_resp_t resp;

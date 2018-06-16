@@ -10,7 +10,7 @@
 __BEGIN_CDECLS;
 
 typedef struct {
-    zx_status_t (*do_usb_tuning)(void* ctx, bool set_default);
+    zx_status_t (*do_usb_tuning)(void* ctx, bool host, bool set_default);
 } astro_usb_protocol_ops_t;
 
 typedef struct {
@@ -18,8 +18,9 @@ typedef struct {
     void* ctx;
 } astro_usb_protocol_t;
 
-static inline zx_status_t astro_usb_do_usb_tuning(astro_usb_protocol_t* usb, bool set_default) {
-    return usb->ops->do_usb_tuning(usb->ctx, set_default);
+static inline zx_status_t astro_usb_do_usb_tuning(astro_usb_protocol_t* usb, bool host,
+                                                  bool set_default) {
+    return usb->ops->do_usb_tuning(usb->ctx, host, set_default);
 }
 
 __END_CDECLS;

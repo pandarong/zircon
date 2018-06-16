@@ -90,16 +90,15 @@ static const pbus_dev_t xhci_dev = {
 #define PLL_SETTING_6   0xe0004
 #define PLL_SETTING_7   0xe000c
 
-static zx_status_t astro_do_usb_tuning(void* ctx, bool set_default) {
+static zx_status_t astro_do_usb_tuning(void* ctx, bool host, bool set_default) {
     aml_bus_t* bus = ctx;
     volatile void* base = io_buffer_virt(&bus->usb_tuning_buf);
-    const bool host = true;
-
-    zxlogf(INFO, "astro_do_usb_tuning set_default: %s\n", (set_default ? "true" : "false"));
 
     if (bus->cur_usb_tuning == !!set_default) {
         return ZX_OK;
     }
+
+    zxlogf(INFO, "astro_do_usb_tuning host: %s set_default: %s\n", (host ? "true" : "false"), (set_default ? "true" : "false"));
 
     if (set_default) {
         writel(0, base + 0x38);

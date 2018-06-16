@@ -80,6 +80,12 @@ typedef struct {
     };
 } pdev_scpi_ctx_t;
 
+// context for astro-usb
+typedef struct {
+    bool host;
+    bool set_default;
+} pdev_astro_usb_ctx_t;
+
 // context for i2c_transact
 typedef struct {
     size_t write_length;
@@ -108,6 +114,7 @@ typedef struct pdev_req {
         uint32_t flags;
         pdev_mailbox_ctx_t mailbox;
         pdev_scpi_ctx_t scpi;
+        pdev_astro_usb_ctx_t astro_usb;
     };
 } pdev_req_t;
 
