@@ -253,6 +253,9 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
         return ZX_ERR_NO_MEMORY;
     }
 
+    // hack for astro USB tuning
+    device_get_protocol(dev, ZX_PROTOCOL_ASTRO_USB, &dwc->astro_usb);
+
     for (unsigned i = 0; i < countof(dwc->eps); i++) {
         dwc_endpoint_t* ep = &dwc->eps[i];
         ep->ep_num = i;
@@ -284,6 +287,10 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
     }
 
     dwc->parent = dev;
+
+    if (dwc->astro_usb.ops) {
+        astro_usb_do_usb_tuning(&dwc->astro_usb, false, true);
+    }
 
     if ((status = usb_dwc_softreset_core(dwc)) != ZX_OK) {
         zxlogf(ERROR, "usb_dwc: failed to reset core.\n");

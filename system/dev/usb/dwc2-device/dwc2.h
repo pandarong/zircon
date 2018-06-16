@@ -17,6 +17,7 @@
 #include <ddk/debug.h>
 #include <ddk/device.h>
 #include <ddk/io-buffer.h>
+#include <ddk/protocol/astro-usb.h>
 #include <ddk/protocol/platform-defs.h>
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/usb-bus.h>
@@ -77,6 +78,8 @@ typedef struct {
     zx_handle_t bti_handle;
     thrd_t irq_thread;
     zx_device_t* parent;
+
+    astro_usb_protocol_t astro_usb;
 
     dwc_regs_t* regs;
 
