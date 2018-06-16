@@ -478,10 +478,36 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
     regs->depin[0].diepctl.mps = DWC_DEP0CTL_MPS_64;
     regs->depout[0].doepctl.epena = 1;
 
+#if 0 // astro future use
+	depctl.d32 = dwc_read_reg32(DWC_REG_IN_EP_REG(1));
+	if (!depctl.b.usbactep) {
+		depctl.b.mps = BULK_EP_MPS;
+		depctl.b.eptype = 2;//BULK_STYLE
+		depctl.b.setd0pid = 1;
+		depctl.b.txfnum = 0;   //Non-Periodic TxFIFO
+		depctl.b.usbactep = 1;
+		dwc_write_reg32(DWC_REG_IN_EP_REG(1), depctl.d32);
+	}
+
+	depctl.d32 = dwc_read_reg32(DWC_REG_OUT_EP_REG(2));
+	if (!depctl.b.usbactep) {
+		depctl.b.mps = BULK_EP_MPS;
+		depctl.b.eptype = 2;//BULK_STYLE
+		depctl.b.setd0pid = 1;
+		depctl.b.txfnum = 0;   //Non-Periodic TxFIFO
+		depctl.b.usbactep = 1;
+		dwc_write_reg32(DWC_REG_OUT_EP_REG(2), depctl.d32);
+	}
+#endif
+
     regs->dctl.cgnpinnak = 1;
 
 	/* high speed */
+#if 1 // astro
+	regs->gusbcfg.usbtrdtim = 9;
+#else
 	regs->gusbcfg.usbtrdtim = 5;
+#endif
 }
 
 void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
@@ -675,7 +701,9 @@ printf("dwc_handle_outepintr_irq xfercompl\n");
 				CLEAR_OUT_EP_INTR(epnum, xfercompl);
 
 				if (epnum == 0) {
-					CLEAR_OUT_EP_INTR(epnum, setup);
+				    if (doepint.setup) { // astro
+    					CLEAR_OUT_EP_INTR(epnum, setup);
+    			    }
 					dwc_handle_ep0(dwc);
 				} else {
 					dwc_complete_ep(dwc, epnum, 0);
@@ -694,6 +722,9 @@ printf("dwc_handle_outepintr_irq ahberr\n");
 			}
 			/* Setup Phase Done (contr0l EPs) */
 			if (doepint.setup) {
+			    if (1) { // astro
+					dwc_handle_ep0(dwc);
+				}
 				CLEAR_OUT_EP_INTR(epnum, setup);
 			}
 		}

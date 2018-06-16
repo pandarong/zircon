@@ -36,6 +36,12 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
     regs->gusbcfg.force_dev_mode = 1;
 	regs->gahbcfg.dmaenable = 0;
 
+#if 1 // astro
+	regs->gusbcfg.usbtrdtim = 9;
+#else
+	regs->gusbcfg.usbtrdtim = 5;
+#endif
+
     regs->dctl.sftdiscon = 1;
     regs->dctl.sftdiscon = 0;
 
