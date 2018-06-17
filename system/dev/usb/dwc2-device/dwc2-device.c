@@ -9,10 +9,28 @@
 #define DWC_REG_DATA_FIFO_START 0x1000
 #define DWC_REG_DATA_FIFO(regs, ep)	((volatile uint32_t*)((uint8_t*)regs + (ep + 1) * 0x1000))
 
-//void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc);
+#define CLEAR_IN_EP_INTR(__epnum, __intr) \
+do { \
+        dwc_diepint_t diepint = {0}; \
+	diepint.__intr = 1; \
+	regs->depin[__epnum].diepint = diepint; \
+} while (0)
 
-static void dwc2_ep0_out_start(dwc_usb_t* dwc)
-{
+#define CLEAR_OUT_EP_INTR(__epnum, __intr) \
+do { \
+        dwc_doepint_t doepint = {0}; \
+	doepint.__intr = 1; \
+	regs->depout[__epnum].doepint = doepint; \
+} while (0)
+
+
+static void dwc_set_address(dwc_usb_t* dwc, uint8_t address) {
+    dwc_regs_t* regs = dwc->regs;
+printf("dwc_set_address %u\n", address);
+    regs->dcfg.devaddr = address;
+}
+
+static void dwc2_ep0_out_start(dwc_usb_t* dwc)  {
     printf("dwc2_ep0_out_start\n");
 
     dwc_regs_t* regs = dwc->regs;
@@ -104,8 +122,9 @@ static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
 printf("dwc_ep0_complete_request EP0_STATE_STATUS\n");
       ep->txn_offset = 0;
        ep->txn_length = 0;
-    } else if ( ep->txn_length == 0) {
-printf("dwc_ep0_complete_request ep->txn_length == 0\n");
+// this interferes with zero length OUT
+//    } else if ( ep->txn_length == 0) {
+//printf("dwc_ep0_complete_request ep->txn_length == 0\n");
 //		dwc_otg_ep_start_transfer(ep);
     } else if (dwc->ep0_state == EP0_STATE_DATA_IN) {
 printf("dwc_ep0_complete_request EP0_STATE_DATA_IN\n");
@@ -159,12 +178,12 @@ printf("dwc_handle_setup\n");
         // handle some special setup requests in this driver
         switch (setup->bRequest) {
         case USB_REQ_SET_ADDRESS:
-            zxlogf(TRACE, "SET_ADDRESS %d\n", setup->wValue);
-//            dwc_set_address(dwc, setup->wValue);
+            zxlogf(INFO, "SET_ADDRESS %d\n", setup->wValue);
+            dwc_set_address(dwc, setup->wValue);
             *out_actual = 0;
             return ZX_OK;
         case USB_REQ_SET_CONFIGURATION:
-            zxlogf(TRACE, "SET_CONFIGURATION %d\n", setup->wValue);
+            zxlogf(INFO, "SET_CONFIGURATION %d\n", setup->wValue);
 //            dwc3_reset_configuration(dwc);
             dwc->configured = false;
             status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
@@ -218,8 +237,10 @@ printf("no setup\n");
 
 
 	if (setup->bmRequestType & USB_DIR_IN) {
+printf("pcd_setup set EP0_STATE_DATA_IN\n");
 		dwc->ep0_state = EP0_STATE_DATA_IN;
 	} else {
+printf("pcd_setup set EP0_STATE_DATA_OUT\n");
 		dwc->ep0_state = EP0_STATE_DATA_OUT;
 	}
 
@@ -239,13 +260,13 @@ printf("queue read\n");
 //                break;
 //            }
 
-        if (setup->wLength > 0) {
-            // queue a write for the data phase
+        if (dwc->ep0_state == EP0_STATE_DATA_IN && setup->wLength > 0) {
+            printf("queue a write for the data phase\n");
             io_buffer_cache_flush(&dwc->ep0_buffer, 0, actual);
             dwc->ep0_state = EP0_STATE_DATA_IN;
             dwc_ep_start_transfer(dwc, 0, true);
         } else {
-//                dwc->ep0_state = EP0_STATE_WAIT_NRDY_IN;
+			dwc_ep0_complete_request(dwc);
         }
     }
 
@@ -563,13 +584,6 @@ break;
 	}
 }
 
-#define CLEAR_IN_EP_INTR(__epnum, __intr) \
-do { \
-        dwc_diepint_t diepint = {0}; \
-	diepint.__intr = 1; \
-	regs->depin[__epnum].diepint = diepint; \
-} while (0)
-
 
 void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
@@ -600,8 +614,9 @@ void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 					dwc_handle_ep0(dwc);
 				} else {
 					dwc_complete_ep(dwc, epnum, 1);
-					if (diepint.nak)
+					if (diepint.nak) {
 						CLEAR_IN_EP_INTR(epnum, nak);
+				    }
 				}
 			}
 			/* Endpoint disable  */
@@ -665,14 +680,6 @@ printf("write %08x\n", temp_data);
 
 	ep->txn_offset += byte_count;
 }
-
-#define CLEAR_OUT_EP_INTR(__epnum, __intr) \
-do { \
-        dwc_doepint_t doepint = {0}; \
-	doepint.__intr = 1; \
-	regs->depout[__epnum].doepint = doepint; \
-} while (0)
-
 
 void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
