@@ -171,7 +171,7 @@ static zx_status_t cdc_generate_mac_address(usb_cdc_t* cdc) {
 }
 
 static zx_status_t cdc_ethmac_query(void* ctx, uint32_t options, ethmac_info_t* info) {
-    zxlogf(TRACE, "%s:\n", __FUNCTION__);
+    zxlogf(INFO, "%s:\n", __FUNCTION__);
     usb_cdc_t* cdc = ctx;
 
     // No options are supported
@@ -189,7 +189,7 @@ static zx_status_t cdc_ethmac_query(void* ctx, uint32_t options, ethmac_info_t* 
 }
 
 static void cdc_ethmac_stop(void* cookie) {
-    zxlogf(TRACE, "%s:\n", __FUNCTION__);
+    zxlogf(INFO, "%s:\n", __FUNCTION__);
     usb_cdc_t* cdc = cookie;
     mtx_lock(&cdc->ethmac_mutex);
     cdc->ethmac_ifc = NULL;
@@ -197,7 +197,7 @@ static void cdc_ethmac_stop(void* cookie) {
 }
 
 static zx_status_t cdc_ethmac_start(void* ctx_cookie, ethmac_ifc_t* ifc, void* ethmac_cookie) {
-    zxlogf(TRACE, "%s:\n", __FUNCTION__);
+    zxlogf(INFO, "%s:\n", __FUNCTION__);
     usb_cdc_t* cdc = ctx_cookie;
     zx_status_t status = ZX_OK;
 
@@ -278,7 +278,7 @@ static ethmac_protocol_ops_t ethmac_ops = {
 };
 
 static void cdc_intr_complete(usb_request_t* req, void* cookie) {
-    zxlogf(TRACE, "%s %d %ld\n", __FUNCTION__, req->response.status, req->response.actual);
+    zxlogf(INFO, "%s %d %ld\n", __FUNCTION__, req->response.status, req->response.actual);
     usb_request_release(req);
 }
 
@@ -404,12 +404,12 @@ static zx_status_t cdc_control(void* ctx, const usb_setup_t* setup, void* buffer
                                size_t length, size_t* out_actual) {
     *out_actual = 0;
 
-    zxlogf(TRACE, "%s\n", __FUNCTION__);
+    zxlogf(INFO, "%s\n", __FUNCTION__);
 
     // USB_CDC_SET_ETHERNET_PACKET_FILTER is the only control request required by the spec
     if (setup->bmRequestType == (USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE) &&
         setup->bRequest == USB_CDC_SET_ETHERNET_PACKET_FILTER) {
-        zxlogf(TRACE, "%s: USB_CDC_SET_ETHERNET_PACKET_FILTER\n", __FUNCTION__);
+        zxlogf(INFO, "%s: USB_CDC_SET_ETHERNET_PACKET_FILTER\n", __FUNCTION__);
         // TODO(voydanoff) implement the requested packet filtering
         return ZX_OK;
     }
@@ -418,7 +418,7 @@ static zx_status_t cdc_control(void* ctx, const usb_setup_t* setup, void* buffer
 }
 
 static zx_status_t cdc_set_configured(void* ctx, bool configured, usb_speed_t speed) {
-    zxlogf(TRACE, "%s: %d %d\n", __FUNCTION__, configured, speed);
+    zxlogf(INFO, "%s: %d %d\n", __FUNCTION__, configured, speed);
     usb_cdc_t* cdc = ctx;
     zx_status_t status;
 
@@ -444,7 +444,7 @@ static zx_status_t cdc_set_configured(void* ctx, bool configured, usb_speed_t sp
 }
 
 static zx_status_t cdc_set_interface(void* ctx, unsigned interface, unsigned alt_setting) {
-    zxlogf(TRACE, "%s: %d %d\n", __FUNCTION__, interface, alt_setting);
+    zxlogf(INFO, "%s: %d %d\n", __FUNCTION__, interface, alt_setting);
     usb_cdc_t* cdc = ctx;
     zx_status_t status;
 
@@ -501,7 +501,7 @@ usb_function_interface_ops_t device_ops = {
 };
 
 static void usb_cdc_unbind(void* ctx) {
-    zxlogf(TRACE, "%s\n", __FUNCTION__);
+    zxlogf(INFO, "%s\n", __FUNCTION__);
     usb_cdc_t* cdc = ctx;
 
     mtx_lock(&cdc->tx_mutex);
@@ -519,7 +519,7 @@ static void usb_cdc_unbind(void* ctx) {
 }
 
 static void usb_cdc_release(void* ctx) {
-    zxlogf(TRACE, "%s\n", __FUNCTION__);
+    zxlogf(INFO, "%s\n", __FUNCTION__);
     usb_cdc_t* cdc = ctx;
     usb_request_t* req;
 

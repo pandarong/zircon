@@ -223,7 +223,7 @@ static zx_status_t usb_device_function_registered(usb_device_t* dev) {
     }
     dev->config_desc = config_desc;
 
-    zxlogf(TRACE, "usb_device_function_registered functions_registered = true\n");
+    zxlogf(INFO, "usb_device_function_registered functions_registered = true\n");
     dev->functions_registered = true;
 
     zx_status_t status = usb_dev_state_changed_locked(dev);
@@ -377,7 +377,7 @@ static zx_status_t usb_func_config_ep(void* ctx, usb_endpoint_descriptor_t* ep_d
 }
 
 static zx_status_t usb_func_disable_ep(void* ctx, uint8_t ep_addr) {
-    zxlogf(TRACE, "usb_func_disable_ep\n");
+    zxlogf(INFO, "usb_func_disable_ep\n");
     usb_function_t* function = ctx;
     return usb_dci_disable_ep(&function->dev->usb_dci, ep_addr);
 }
@@ -530,7 +530,7 @@ static zx_status_t usb_dev_control(void* ctx, const usb_setup_t* setup, void* bu
     uint16_t length = le16toh(setup->wLength);
     if (length > buffer_length) length = buffer_length;
 
-    zxlogf(TRACE, "usb_dev_control type: 0x%02X req: %d value: %d index: %d length: %d\n",
+    zxlogf(INFO, "usb_dev_control type: 0x%02X req: %d value: %d index: %d length: %d\n",
             request_type, request, value, index, length);
 
     switch (request_type & USB_RECIP_MASK) {
@@ -672,7 +672,7 @@ static zx_status_t usb_dev_add_function(usb_device_t* dev, const void* in_buf, s
 }
 
 static void usb_dev_remove_function_devices_locked(usb_device_t* dev) {
-    zxlogf(TRACE, "usb_dev_remove_function_devices_locked\n");
+    zxlogf(INFO, "usb_dev_remove_function_devices_locked\n");
 
     usb_function_t* function;
     list_for_every_entry(&dev->functions, function, usb_function_t, node) {
@@ -691,7 +691,7 @@ static void usb_dev_remove_function_devices_locked(usb_device_t* dev) {
 }
 
 static zx_status_t usb_dev_add_function_devices_locked(usb_device_t* dev) {
-    zxlogf(TRACE, "usb_dev_add_function_devices_locked\n");
+    zxlogf(INFO, "usb_dev_add_function_devices_locked\n");
     if (dev->function_devs_added) {
         return ZX_OK;
     }
@@ -739,7 +739,7 @@ static zx_status_t usb_dev_add_function_devices_locked(usb_device_t* dev) {
 }
 
 static zx_status_t usb_dev_state_changed_locked(usb_device_t* dev) {
-    zxlogf(TRACE, "usb_dev_state_changed_locked usb_mode: %d dci_usb_mode: %d\n", dev->usb_mode,
+    zxlogf(INFO, "usb_dev_state_changed_locked usb_mode: %d dci_usb_mode: %d\n", dev->usb_mode,
             dev->dci_usb_mode);
 
     usb_mode_t new_dci_usb_mode = dev->dci_usb_mode;
@@ -768,7 +768,7 @@ static zx_status_t usb_dev_state_changed_locked(usb_device_t* dev) {
     }
 
     if (dev->dci_usb_mode != new_dci_usb_mode) {
-        zxlogf(TRACE, "usb_dev_state_changed_locked set DCI mode %d\n", new_dci_usb_mode);
+        zxlogf(INFO, "usb_dev_state_changed_locked set DCI mode %d\n", new_dci_usb_mode);
         status = usb_mode_switch_set_mode(&dev->usb_mode_switch, new_dci_usb_mode);
         if (status != ZX_OK) {
             usb_mode_switch_set_mode(&dev->usb_mode_switch, USB_MODE_NONE);
@@ -805,7 +805,7 @@ static zx_status_t usb_dev_bind_functions(usb_device_t* dev) {
         return ZX_ERR_BAD_STATE;
     }
 
-    zxlogf(TRACE, "usb_dev_bind_functions functions_bound = true\n");
+    zxlogf(INFO, "usb_dev_bind_functions functions_bound = true\n");
     dev->functions_bound = true;
     zx_status_t status = usb_dev_state_changed_locked(dev);
     mtx_unlock(&dev->lock);
@@ -813,7 +813,7 @@ static zx_status_t usb_dev_bind_functions(usb_device_t* dev) {
 }
 
 static zx_status_t usb_dev_clear_functions(usb_device_t* dev) {
-    zxlogf(TRACE, "usb_dev_clear_functions\n");
+    zxlogf(INFO, "usb_dev_clear_functions\n");
     mtx_lock(&dev->lock);
 
     usb_function_t* function;
@@ -867,7 +867,7 @@ static zx_status_t usb_dev_set_mode(usb_device_t* dev, const void* in_buf, size_
 
 static zx_status_t usb_dev_ioctl(void* ctx, uint32_t op, const void* in_buf, size_t in_len,
                                  void* out_buf, size_t out_len, size_t* out_actual) {
-    zxlogf(TRACE, "usb_dev_ioctl %x\n", op);
+    zxlogf(INFO, "usb_dev_ioctl %x\n", op);
     usb_device_t* dev = ctx;
 
     switch (op) {
@@ -891,14 +891,14 @@ static zx_status_t usb_dev_ioctl(void* ctx, uint32_t op, const void* in_buf, siz
 }
 
 static void usb_dev_unbind(void* ctx) {
-    zxlogf(TRACE, "usb_dev_unbind\n");
+    zxlogf(INFO, "usb_dev_unbind\n");
     usb_device_t* dev = ctx;
     usb_dev_clear_functions(dev);
     device_remove(dev->zxdev);
 }
 
 static void usb_dev_release(void* ctx) {
-    zxlogf(TRACE, "usb_dev_release\n");
+    zxlogf(INFO, "usb_dev_release\n");
     usb_device_t* dev = ctx;
     free(dev->config_desc);
     for (unsigned i = 0; i < countof(dev->strings); i++) {
