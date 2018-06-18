@@ -18,7 +18,7 @@
 #include <vm/vm.h>
 #include <zircon/types.h>
 
-#define DLOG_SIZE (128u * 1024u)
+#define DLOG_SIZE (1024u * 1024u * 8u)
 #define DLOG_MASK (DLOG_SIZE - 1u)
 
 static_assert((DLOG_SIZE & DLOG_MASK) == 0u, "must be power of two");
