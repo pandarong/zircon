@@ -5,7 +5,7 @@
 #include "dwc2.h"
 
 void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in) {
-printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
+if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
     dwc_regs_t* regs = dwc->regs;
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
@@ -53,6 +53,55 @@ printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
 	depctl.epena = 1;
 
     *depctl_reg = depctl;
+}
+
+void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in) {
+//    dwc_regs_t* regs = dwc->regs;
+
+    printf("XXXXX dwc_complete_ep\n");
+
+
+/*
+	u32 epnum = ep_num;
+	if (ep_num) {
+		if (!is_in)
+			epnum = ep_num + 1;
+	}
+*/
+
+	dwc_endpoint_t* ep = &dwc->eps[ep_num];
+
+/*
+	if (is_in) {
+		pcd->dwc_eps[epnum].req->actual = ep->xfer_len;
+		deptsiz.d32 = dwc_read_reg32(DWC_REG_IN_EP_TSIZE(ep_num));
+		if (deptsiz.b.xfersize == 0 && deptsiz.b.pktcnt == 0 &&
+                    ep->xfer_count == ep->xfer_len) {
+			ep->start_xfer_buff = 0;
+			ep->xfer_buff = 0;
+			ep->xfer_len = 0;
+		}
+		pcd->dwc_eps[epnum].req->status = 0;
+	} else {
+		deptsiz.d32 = dwc_read_reg32(DWC_REG_OUT_EP_TSIZE(ep_num));
+		pcd->dwc_eps[epnum].req->actual = ep->xfer_count;
+		ep->start_xfer_buff = 0;
+		ep->xfer_buff = 0;
+		ep->xfer_len = 0;
+		pcd->dwc_eps[epnum].req->status = 0;
+	}
+*/
+
+    if (ep_num != 0) {
+        usb_request_t* req = ep->current_req;
+        if (req) {
+            ep->current_req = NULL;
+            
+//	if (pcd->dwc_eps[epnum].req->complete) {
+//		pcd->dwc_eps[epnum].req->complete((struct usb_ep *)(pcd->dwc_eps[epnum].priv), pcd->dwc_eps[epnum].req);
+
+        }
+	}
 }
 
 static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {
@@ -191,8 +240,8 @@ zx_status_t dwc_ep_config(dwc_usb_t* dwc, usb_endpoint_descriptor_t* ep_desc,
     // convert address to index in range 0 - 31
     // low bit is IN/OUT
     unsigned ep_num = DWC_ADDR_TO_INDEX(ep_desc->bEndpointAddress);
-    if (ep_num < 2) {
-        // index 0 and 1 are for endpoint zero
+printf("dwc_ep_config address %08x ep_num %d\n", ep_desc->bEndpointAddress, ep_num);
+    if (ep_num == 0) {
         return ZX_ERR_INVALID_ARGS;
     }
 

@@ -6,7 +6,6 @@
 
 static zx_status_t usb_dwc_softreset_core(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
-printf("dwc_regs: %p\n", regs);
 
 /* do we need this? */
     while (regs->grstctl.ahbidle == 0) {    
@@ -101,9 +100,9 @@ printf("enabling interrupts %08x\n", gintmsk.val);
 static void dwc_request_queue(void* ctx, usb_request_t* req) {
     dwc_usb_t* dwc = ctx;
 
-    zxlogf(LTRACE, "dwc_request_queue ep: %u\n", req->header.ep_address);
+    zxlogf(INFO, "XXXXXXX dwc_request_queue ep: %u\n", req->header.ep_address);
     unsigned ep_num = DWC_ADDR_TO_INDEX(req->header.ep_address);
-    if (ep_num < 2 || ep_num >= countof(dwc->eps)) {
+    if (ep_num == 0 || ep_num >= countof(dwc->eps)) {
         zxlogf(ERROR, "dwc_request_queue: bad ep address 0x%02X\n", req->header.ep_address);
         usb_request_complete(req, ZX_ERR_INVALID_ARGS, 0);
         return;
