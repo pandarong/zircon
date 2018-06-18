@@ -100,7 +100,7 @@ printf("enabling interrupts %08x\n", gintmsk.val);
 static void dwc_request_queue(void* ctx, usb_request_t* req) {
     dwc_usb_t* dwc = ctx;
 
-    zxlogf(INFO, "XXXXXXX dwc_request_queue ep: %u\n", req->header.ep_address);
+    zxlogf(INFO, "XXXXXXX dwc_request_queue ep: 0x%02x\n", req->header.ep_address);
     unsigned ep_num = DWC_ADDR_TO_INDEX(req->header.ep_address);
     if (ep_num == 0 || ep_num >= countof(dwc->eps)) {
         zxlogf(ERROR, "dwc_request_queue: bad ep address 0x%02X\n", req->header.ep_address);

@@ -240,7 +240,7 @@ zx_status_t dwc_ep_config(dwc_usb_t* dwc, usb_endpoint_descriptor_t* ep_desc,
     // convert address to index in range 0 - 31
     // low bit is IN/OUT
     unsigned ep_num = DWC_ADDR_TO_INDEX(ep_desc->bEndpointAddress);
-printf("dwc_ep_config address %08x ep_num %d\n", ep_desc->bEndpointAddress, ep_num);
+printf("dwc_ep_config address %02x ep_num %d\n", ep_desc->bEndpointAddress, ep_num);
     if (ep_num == 0) {
         return ZX_ERR_INVALID_ARGS;
     }

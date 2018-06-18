@@ -18,7 +18,9 @@
 #define DWC_MAX_EPS    32
 
 // converts a USB endpoint address to 0 - 31 index
-#define DWC_ADDR_TO_INDEX(addr) (((addr) & 0xF) << !((addr) & USB_DIR_IN))
+// in endpoints -> 0 - 15
+// out endpoints -> 17 - 31 (16 is unused)
+#define DWC_ADDR_TO_INDEX(addr) (((addr) & 0xF) + (16 * !((addr) & USB_DIR_IN)))
 
 typedef union {
     uint32_t val;
