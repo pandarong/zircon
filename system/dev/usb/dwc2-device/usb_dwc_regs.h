@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <zircon/hw/usb.h>
+
 #define MAX_EPS_CHANNELS 16
 
 #define DWC_EP_IN_SHIFT  0
@@ -13,6 +15,10 @@
 #define DWC_EP_IS_IN(ep)    ((ep) < 16)
 #define DWC_EP_IS_OUT(ep)   ((ep) >= 16)
 
+#define DWC_MAX_EPS    32
+
+// converts a USB endpoint address to 0 - 31 index
+#define DWC_ADDR_TO_INDEX(addr) (((addr) & 0xF) << !((addr) & USB_DIR_IN))
 
 typedef union {
     uint32_t val;

@@ -99,10 +99,10 @@ printf("enabling interrupts %08x\n", gintmsk.val);
 }
 
 static void dwc_request_queue(void* ctx, usb_request_t* req) {
-/*    dwc_t* dwc = ctx;
+    dwc_usb_t* dwc = ctx;
 
     zxlogf(LTRACE, "dwc_request_queue ep: %u\n", req->header.ep_address);
-    unsigned ep_num = dwc_ep_num(req->header.ep_address);
+    unsigned ep_num = DWC_ADDR_TO_INDEX(req->header.ep_address);
     if (ep_num < 2 || ep_num >= countof(dwc->eps)) {
         zxlogf(ERROR, "dwc_request_queue: bad ep address 0x%02X\n", req->header.ep_address);
         usb_request_complete(req, ZX_ERR_INVALID_ARGS, 0);
@@ -110,7 +110,6 @@ static void dwc_request_queue(void* ctx, usb_request_t* req) {
     }
 
     dwc_ep_queue(dwc, ep_num, req);
-*/
 }
 
 static zx_status_t dwc_set_interface(void* ctx, usb_dci_interface_t* dci_intf) {
@@ -121,27 +120,23 @@ static zx_status_t dwc_set_interface(void* ctx, usb_dci_interface_t* dci_intf) {
 
 static zx_status_t dwc_config_ep(void* ctx, usb_endpoint_descriptor_t* ep_desc,
                                   usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
-//    dwc_usb_t* dwc = ctx;
-//    return dwc_ep_config(dwc, ep_desc, ss_comp_desc);
-return -1;
+    dwc_usb_t* dwc = ctx;
+    return dwc_ep_config(dwc, ep_desc, ss_comp_desc);
 }
 
 static zx_status_t dwc_disable_ep(void* ctx, uint8_t ep_addr) {
-//    dwc_usb_t* dwc = ctx;
-//    return dwc_ep_disable(dwc, ep_addr);
-return -1;
+    dwc_usb_t* dwc = ctx;
+    return dwc_ep_disable(dwc, ep_addr);
 }
 
 static zx_status_t dwc_set_stall(void* ctx, uint8_t ep_address) {
-//    dwc_usb_t* dwc = ctx;
-//    return dwc_ep_set_stall(dwc, dwc_ep_num(ep_address), true);
-return -1;
+    dwc_usb_t* dwc = ctx;
+    return dwc_ep_set_stall(dwc, DWC_ADDR_TO_INDEX(ep_address), true);
 }
 
 static zx_status_t dwc_clear_stall(void* ctx, uint8_t ep_address) {
-//    dwc_usb_t* dwc = ctx;
-//    return dwc_ep_set_stall(dwc, dwc_ep_num(ep_address), false);
-return -1;
+    dwc_usb_t* dwc = ctx;
+    return dwc_ep_set_stall(dwc, DWC_ADDR_TO_INDEX(ep_address), false);
 }
 
 static zx_status_t dwc_get_bti(void* ctx, zx_handle_t* out_handle) {

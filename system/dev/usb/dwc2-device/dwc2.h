@@ -27,17 +27,12 @@
 #include <ddk/protocol/usb.h>
 
 // Zircon USB includes
-#include <zircon/hw/usb-hub.h>
 #include <zircon/hw/usb.h>
 
 #include <zircon/listnode.h>
 #include <zircon/process.h>
 
 #include "usb_dwc_regs.h"
-
-#define ENABLE_MPI 1
-
-#define DWC_MAX_EPS    32
 
 #define MMIO_INDEX  0
 #define IRQ_INDEX   0
@@ -59,7 +54,7 @@ typedef struct {
 
     // Used for synchronizing endpoint state
     // and ep specific hardware registers
-    // This should be acquired before dwc3_t.lock
+    // This should be acquired before dwc_usb_t.lock
     // if acquiring both locks.
     mtx_t lock;
 
@@ -101,6 +96,14 @@ typedef struct {
     bool got_setup;
 } dwc_usb_t;
 
+// dwc-ep.c
+void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req);
+zx_status_t dwc_ep_config(dwc_usb_t* dwc, usb_endpoint_descriptor_t* ep_desc,
+                          usb_ss_ep_comp_descriptor_t* ss_comp_desc);
+zx_status_t dwc_ep_disable(dwc_usb_t* dwc, uint8_t ep_addr);
+zx_status_t dwc_ep_set_stall(dwc_usb_t* dwc, unsigned ep_num, bool stall);
+
+// dwc-irq.c
 zx_status_t dwc_irq_start(dwc_usb_t* dwc);
 void dwc_irq_stop(dwc_usb_t* dwc);
 void dwc_flush_fifo(dwc_usb_t* dwc, const int num);
