@@ -251,13 +251,13 @@ static zx_protocol_device_t dwc_device_proto = {
 };
 
 // Bind is the entry point for this driver.
-static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
-    zxlogf(TRACE, "usb_dwc: bind dev = %p\n", dev);
+static zx_status_t dwc_bind(void* ctx, zx_device_t* dev) {
+    zxlogf(TRACE, "dwc_bind: dev = %p\n", dev);
 
     // Allocate a new device object for the bus.
     dwc_usb_t* dwc = calloc(1, sizeof(*dwc));
     if (!dwc) {
-        zxlogf(ERROR, "usb_dwc_bind: bind failed to allocate usb_dwc struct\n");
+        zxlogf(ERROR, "dwc_bind: bind failed to allocate usb_dwc struct\n");
         return ZX_ERR_NO_MEMORY;
     }
 
@@ -356,7 +356,7 @@ error_return:
 
 static zx_driver_ops_t usb_dwc_driver_ops = {
     .version = DRIVER_OPS_VERSION,
-    .bind = usb_dwc_bind,
+    .bind = dwc_bind,
 };
 
 // The formatter does not play nice with these macros.

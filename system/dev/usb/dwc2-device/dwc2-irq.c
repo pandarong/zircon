@@ -184,12 +184,12 @@ printf("dwc_handle_setup\n");
             return ZX_OK;
         case USB_REQ_SET_CONFIGURATION:
             zxlogf(INFO, "SET_CONFIGURATION %d\n", setup->wValue);
-//            dwc3_reset_configuration(dwc);
+            dwc_reset_configuration(dwc);
             dwc->configured = false;
             status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
             if (status == ZX_OK && setup->wValue) {
                 dwc->configured = true;
-//                dwc3_start_eps(dwc);
+                dwc_start_eps(dwc);
             }
             return status;
         default:
@@ -199,12 +199,12 @@ printf("dwc_handle_setup\n");
     } else if (setup->bmRequestType == (USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_INTERFACE) &&
                setup->bRequest == USB_REQ_SET_INTERFACE) {
         zxlogf(TRACE, "SET_INTERFACE %d\n", setup->wValue);
-//        dwc3_reset_configuration(dwc);
+        dwc_reset_configuration(dwc);
         dwc->configured = false;
         status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
         if (status == ZX_OK) {
             dwc->configured = true;
-//            dwc3_start_eps(dwc);
+            dwc_start_eps(dwc);
         }
         return status;
     }

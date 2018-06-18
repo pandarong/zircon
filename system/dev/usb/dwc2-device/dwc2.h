@@ -88,6 +88,13 @@ typedef struct {
     dwc_endpoint_t eps[DWC_MAX_EPS];
 
     usb_dci_interface_t dci_intf;
+
+    // Used for synchronizing global state
+    // and non ep specific hardware registers.
+    // dwc_endpoint_t.lock should be acquired first
+    // if acquiring both locks.
+    mtx_t lock;
+
     bool configured;
 
     usb_setup_t cur_setup;    
@@ -97,6 +104,8 @@ typedef struct {
 } dwc_usb_t;
 
 // dwc-ep.c
+void dwc_reset_configuration(dwc_usb_t* dwc);
+void dwc_start_eps(dwc_usb_t* dwc);
 void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req);
 zx_status_t dwc_ep_config(dwc_usb_t* dwc, usb_endpoint_descriptor_t* ep_desc,
                           usb_ss_ep_comp_descriptor_t* ss_comp_desc);
