@@ -102,7 +102,7 @@ static int hikey960_start_thread(void* arg) {
     // button is active low
     hikey->initial_usb_mode = (state ? USB_MODE_HOST : USB_MODE_DEVICE);
 #else
-    hikey->initial_usb_mode = USB_MODE_HOST;
+    hikey->initial_usb_mode = USB_MODE_DEVICE;
 #endif
 
     status = pbus_set_protocol(&hikey->pbus, ZX_PROTOCOL_USB_MODE_SWITCH, &hikey->usb_mode_switch);
