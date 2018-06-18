@@ -316,13 +316,6 @@ static zx_status_t dwc_bind(void* ctx, zx_device_t* dev) {
         goto error_return;
     }
 
-    status = io_buffer_init(&dwc->ep0_buffer,  dwc->bti_handle, 65536,
-                            IO_BUFFER_RW | IO_BUFFER_CONTIG);
-    if (status != ZX_OK) {
-        zxlogf(ERROR, "dwc3_bind: io_buffer_init failed\n");
-        goto error_return;
-    }
-
    device_add_args_t args = {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "dwc2",

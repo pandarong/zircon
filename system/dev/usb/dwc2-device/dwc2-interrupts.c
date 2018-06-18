@@ -251,8 +251,8 @@ printf("queue read\n");
         dwc_ep_start_transfer(dwc, 0, false);
     } else {
         size_t actual;
-        zx_status_t status = dwc_handle_setup(dwc, setup, io_buffer_virt(&dwc->ep0_buffer),
-                                              dwc->ep0_buffer.size, &actual);
+        zx_status_t status = dwc_handle_setup(dwc, setup, dwc->ep0_buffer,
+                                              sizeof(dwc->ep0_buffer), &actual);
         zxlogf(INFO, "dwc_handle_setup returned %d actual %zu\n", status, actual);
 //            if (status != ZX_OK) {
 //                dwc3_cmd_ep_set_stall(dwc, EP0_OUT);
@@ -262,7 +262,6 @@ printf("queue read\n");
 
         if (dwc->ep0_state == EP0_STATE_DATA_IN && setup->wLength > 0) {
             printf("queue a write for the data phase\n");
-            io_buffer_cache_flush(&dwc->ep0_buffer, 0, actual);
             dwc->ep0_state = EP0_STATE_DATA_IN;
             dwc_ep_start_transfer(dwc, 0, true);
         } else {
@@ -619,7 +618,7 @@ static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, 
 	uint32_t i;
 	volatile uint32_t* fifo;
 	uint32_t temp_data;
-    uint8_t *data_buff = io_buffer_virt(&dwc->ep0_buffer) + ep->txn_offset;
+    uint8_t *data_buff = &dwc->ep0_buffer[ep->txn_offset];
 
 	if (ep->txn_offset >= ep->txn_length) {
 		printf("dwc_ep_write_packet: No data for EP%d!!!\n", epnum);
@@ -627,7 +626,6 @@ static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, 
 	}
 
 	fifo = DWC_REG_DATA_FIFO(regs, epnum);
-printf("fifo: %p\n", fifo);
 
 	for (i = 0; i < dword_count; i++) {
 		temp_data = *((uint32_t*)data_buff);

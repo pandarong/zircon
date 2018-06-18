@@ -16,7 +16,6 @@
 #include <ddk/binding.h>
 #include <ddk/debug.h>
 #include <ddk/device.h>
-#include <ddk/io-buffer.h>
 #include <ddk/protocol/astro-usb.h>
 #include <ddk/protocol/platform-defs.h>
 #include <ddk/protocol/platform-device.h>
@@ -99,7 +98,9 @@ typedef struct {
 
     usb_setup_t cur_setup;    
     dwc_ep0_state_t ep0_state;
-    io_buffer_t ep0_buffer;
+
+    uint8_t ep0_buffer[UINT16_MAX];
+
     bool got_setup;
 } dwc_usb_t;
 
