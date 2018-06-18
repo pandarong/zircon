@@ -269,54 +269,12 @@ printf("queue read\n");
 			dwc_ep0_complete_request(dwc);
         }
     }
-
-
-#if 0
-	if ((ctrl.bRequestType & USB_TYPE_MASK) != USB_TYPE_STANDARD) {
-		// handle non-standard (class/vendor) requests in the gadget driver
-		printf("Vendor requset\n");
-		f_dwc_otg_ep_req_start(_pcd, 0, 1, req);
-		return;
-	}
-
-	/** @todo NGS: Handle bad setup packet? */
-	switch (ctrl.bRequest) {
-	case USB_REQ_GET_STATUS:
-		_pcd->status = 0;
-		req->buf = (char *)&_pcd->status;
-		req->length = 2;
-		f_dwc_otg_ep_req_start(_pcd, 0, 1, req);
-		break;
-	case USB_REQ_SET_ADDRESS:
-		if (USB_RECIP_DEVICE == ctrl.bRequestType) {
-			dcfg_data_t dcfg = {0};
-			dcfg.b.devaddr = ctrl.wValue;
-			dwc_modify_reg32(DWC_REG_DCFG, 0, dcfg.d32);
-			do_setup_status_phase(_pcd, 1);
-		}
-		break;
-	case USB_REQ_SET_INTERFACE:
-	case USB_REQ_SET_CONFIGURATION:
-		/* Configuration changed */
-		req_flag->request_config = 1;
-	default:
-		DBG("Call the Gadget Driver's setup functions\n");
-		/* Call the Gadget Driver's setup functions */
-		driver->setup(gadget, &ctrl);
-		break;
-	}
-#endif
 }
 
 
 static void dwc_handle_ep0(dwc_usb_t* dwc) {
     printf("dwc_handle_ep0\n");
 
-/*    
-  	pcd_struct_t * _pcd = &gadget_wrapper.pcd;
-	dwc_ep_t * ep0 = &_pcd->dwc_eps[0].dwc_ep;
-	struct usb_req_flag *req_flag = &gadget_wrapper.req_flag;
-*/
 	switch (dwc->ep0_state) {
 	case EP0_STATE_IDLE: {
 printf("dwc_handle_ep0 EP0_STATE_IDLE\n");

@@ -11,7 +11,7 @@ MODULE_TYPE := driver
 MODULE_SRCS += \
     $(LOCAL_DIR)/dwc2.c \
     $(LOCAL_DIR)/dwc2-endpoints.c \
-    $(LOCAL_DIR)/dwc2-irq.c \
+    $(LOCAL_DIR)/dwc2-interrupts.c \
 
 MODULE_STATIC_LIBS := system/ulib/ddk \
 
