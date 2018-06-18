@@ -429,7 +429,7 @@ void dwc_flush_fifo(dwc_usb_t* dwc, const int num) {
     zx_nanosleep(zx_deadline_after(ZX_USEC(1)));
 }
 
-void dwc_handle_reset_irq(dwc_usb_t* dwc) {
+static void dwc_handle_reset_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
 	printf("\nUSB RESET\n");
@@ -482,7 +482,7 @@ void dwc_handle_reset_irq(dwc_usb_t* dwc) {
 	dwc2_ep0_out_start(dwc);
 }
 
-void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
+static void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
 	zxlogf(INFO, "dwc_handle_enumdone_irq\n");
@@ -531,7 +531,7 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
 #endif
 }
 
-void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
+static void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
 //why?	regs->gintmsk.rxstsqlvl = 0;
@@ -585,7 +585,7 @@ break;
 }
 
 
-void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
+static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 	uint32_t ep_intr;
 	uint32_t epnum = 0;
@@ -681,7 +681,7 @@ printf("write %08x\n", temp_data);
 	ep->txn_offset += byte_count;
 }
 
-void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
+static void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
 //printf("dwc_handle_outepintr_irq\n");
@@ -740,7 +740,7 @@ printf("dwc_handle_outepintr_irq ahberr\n");
 	}
 }
 
-void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
+static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
 printf("dwc_handle_nptxfempty_irq\n");
@@ -800,6 +800,115 @@ printf("not enabled\n");
 	}
 }
 
-void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
+static void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
     printf("dwc_handle_usbsuspend_irq\n");
 }
+
+
+static void dwc_handle_irq(dwc_usb_t* dwc) {
+    dwc_regs_t* regs = dwc->regs;
+    dwc_interrupts_t interrupts = regs->gintsts;
+    dwc_interrupts_t mask = regs->gintmsk;
+
+    interrupts.val &= mask.val;
+
+    if (!interrupts.val) {
+        return;
+    }
+
+    // clear OTG interrupt
+    uint32_t gotgint = regs->gotgint;
+    regs->gotgint = gotgint;
+
+printf("dwc_handle_irq:");
+if (interrupts.modemismatch) printf(" modemismatch");
+if (interrupts.otgintr) printf(" otgintr");
+if (interrupts.sof_intr) printf(" sof_intr");
+if (interrupts.rxstsqlvl) printf(" rxstsqlvl");
+if (interrupts.nptxfempty) printf(" nptxfempty");
+if (interrupts.ginnakeff) printf(" ginnakeff");
+if (interrupts.goutnakeff) printf(" goutnakeff");
+if (interrupts.ulpickint) printf(" ulpickint");
+if (interrupts.i2cintr) printf(" i2cintr");
+if (interrupts.erlysuspend) printf(" erlysuspend");
+if (interrupts.usbsuspend) printf(" usbsuspend");
+if (interrupts.usbreset) printf(" usbreset");
+if (interrupts.enumdone) printf(" enumdone");
+if (interrupts.isooutdrop) printf(" isooutdrop");
+if (interrupts.eopframe) printf(" eopframe");
+if (interrupts.restoredone) printf(" restoredone");
+if (interrupts.epmismatch) printf(" epmismatch");
+if (interrupts.inepintr) printf(" inepintr");
+if (interrupts.outepintr) printf(" outepintr");
+if (interrupts.incomplisoin) printf(" incomplisoin");
+if (interrupts.incomplisoout) printf(" incomplisoout");
+if (interrupts.fetsusp) printf(" fetsusp");
+if (interrupts.resetdet) printf(" resetdet");
+if (interrupts.port_intr) printf(" port_intr");
+if (interrupts.host_channel_intr) printf(" host_channel_intr");
+if (interrupts.ptxfempty) printf(" ptxfempty");
+if (interrupts.lpmtranrcvd) printf(" lpmtranrcvd");
+if (interrupts.conidstschng) printf(" conidstschng");
+if (interrupts.disconnect) printf(" disconnect");
+if (interrupts.sessreqintr) printf(" sessreqintr");
+if (interrupts.wkupintr) printf(" wkupintr");
+printf("\n");
+
+    if (interrupts.usbreset) {
+        dwc_handle_reset_irq(dwc);
+    }
+    if (interrupts.usbsuspend) {
+        dwc_handle_usbsuspend_irq(dwc);
+    }
+    if (interrupts.enumdone) {
+        dwc_handle_enumdone_irq(dwc);
+    }
+    if (interrupts.rxstsqlvl) {
+        dwc_handle_rxstsqlvl_irq(dwc);
+    }
+    if (interrupts.inepintr) {
+        dwc_handle_inepintr_irq(dwc);
+    }
+    if (interrupts.outepintr) {
+        dwc_handle_outepintr_irq(dwc);
+    }
+    if (interrupts.nptxfempty) {
+        dwc_handle_nptxfempty_irq(dwc);
+    }
+
+    regs->gintsts = interrupts;
+}
+
+// Thread to handle interrupts.
+static int dwc_irq_thread(void* arg) {
+    dwc_usb_t* dwc = (dwc_usb_t*)arg;
+
+    while (1) {
+/*        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
+        if (wait_res != ZX_OK) {
+            zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
+        }
+*/
+        dwc_handle_irq(dwc);
+    }
+
+    zxlogf(INFO, "dwc_usb: irq thread finished\n");
+    return 0;
+}
+
+zx_status_t dwc_irq_start(dwc_usb_t* dwc) {
+    zx_status_t status = pdev_map_interrupt(&dwc->pdev, IRQ_INDEX, &dwc->irq_handle);
+    if (status != ZX_OK) {
+        return status;
+    }
+    thrd_create_with_name(&dwc->irq_thread, dwc_irq_thread, dwc, "dwc_irq_thread");
+    return ZX_OK;
+}
+
+void dwc_irq_stop(dwc_usb_t* dwc) {
+    zx_interrupt_destroy(dwc->irq_handle);
+    thrd_join(dwc->irq_thread, NULL);
+    zx_handle_close(dwc->irq_handle);
+    dwc->irq_handle = ZX_HANDLE_INVALID;
+}
+

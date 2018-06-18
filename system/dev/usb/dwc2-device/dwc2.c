@@ -4,11 +4,6 @@
 
 #include "dwc2.h"
 
-#define MMIO_INDEX  0
-#define IRQ_INDEX   0
-
-static int dwc_irq_thread(void* arg);
-
 static zx_status_t usb_dwc_softreset_core(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 printf("dwc_regs: %p\n", regs);
@@ -190,10 +185,7 @@ static zx_status_t dwc_set_mode(void* ctx, usb_mode_t mode) {
 
     // Shutdown if we are in device mode
     if (dwc->usb_mode == USB_MODE_DEVICE) {
-        zx_interrupt_destroy(dwc->irq_handle);
-        thrd_join(dwc->irq_thread, NULL);
-        zx_handle_close(dwc->irq_handle);
-        dwc->irq_handle = ZX_HANDLE_INVALID;
+        dwc_irq_stop(dwc);
     }
 
 /* may be unsupported
@@ -204,13 +196,11 @@ static zx_status_t dwc_set_mode(void* ctx, usb_mode_t mode) {
 */
 
     if (mode == USB_MODE_DEVICE) {
-        status = pdev_map_interrupt(&dwc->pdev, IRQ_INDEX, &dwc->irq_handle);
+        status = dwc_irq_start(dwc);
         if (status != ZX_OK) {
             zxlogf(ERROR, "dwc3_set_mode: pdev_map_interrupt failed\n");
             goto fail;
         }
-
-        thrd_create_with_name(&dwc->irq_thread, dwc_irq_thread, dwc, "dwc_irq_thread");
     }
 
     dwc->usb_mode = mode;
@@ -264,97 +254,6 @@ static zx_protocol_device_t dwc_device_proto = {
     .unbind = dwc_unbind,
     .release = dwc_release,
 };
-
-static void dwc_handle_irq(dwc_usb_t* dwc) {
-    dwc_regs_t* regs = dwc->regs;
-    dwc_interrupts_t interrupts = regs->gintsts;
-    dwc_interrupts_t mask = regs->gintmsk;
-
-    interrupts.val &= mask.val;
-
-    if (!interrupts.val) {
-        return;
-    }
-
-    // clear OTG interrupt
-    uint32_t gotgint = regs->gotgint;
-    regs->gotgint = gotgint;
-
-printf("dwc_handle_irq:");
-if (interrupts.modemismatch) printf(" modemismatch");
-if (interrupts.otgintr) printf(" otgintr");
-if (interrupts.sof_intr) printf(" sof_intr");
-if (interrupts.rxstsqlvl) printf(" rxstsqlvl");
-if (interrupts.nptxfempty) printf(" nptxfempty");
-if (interrupts.ginnakeff) printf(" ginnakeff");
-if (interrupts.goutnakeff) printf(" goutnakeff");
-if (interrupts.ulpickint) printf(" ulpickint");
-if (interrupts.i2cintr) printf(" i2cintr");
-if (interrupts.erlysuspend) printf(" erlysuspend");
-if (interrupts.usbsuspend) printf(" usbsuspend");
-if (interrupts.usbreset) printf(" usbreset");
-if (interrupts.enumdone) printf(" enumdone");
-if (interrupts.isooutdrop) printf(" isooutdrop");
-if (interrupts.eopframe) printf(" eopframe");
-if (interrupts.restoredone) printf(" restoredone");
-if (interrupts.epmismatch) printf(" epmismatch");
-if (interrupts.inepintr) printf(" inepintr");
-if (interrupts.outepintr) printf(" outepintr");
-if (interrupts.incomplisoin) printf(" incomplisoin");
-if (interrupts.incomplisoout) printf(" incomplisoout");
-if (interrupts.fetsusp) printf(" fetsusp");
-if (interrupts.resetdet) printf(" resetdet");
-if (interrupts.port_intr) printf(" port_intr");
-if (interrupts.host_channel_intr) printf(" host_channel_intr");
-if (interrupts.ptxfempty) printf(" ptxfempty");
-if (interrupts.lpmtranrcvd) printf(" lpmtranrcvd");
-if (interrupts.conidstschng) printf(" conidstschng");
-if (interrupts.disconnect) printf(" disconnect");
-if (interrupts.sessreqintr) printf(" sessreqintr");
-if (interrupts.wkupintr) printf(" wkupintr");
-printf("\n");
-
-    if (interrupts.usbreset) {
-        dwc_handle_reset_irq(dwc);
-    }
-    if (interrupts.usbsuspend) {
-        dwc_handle_usbsuspend_irq(dwc);
-    }
-    if (interrupts.enumdone) {
-        dwc_handle_enumdone_irq(dwc);
-    }
-    if (interrupts.rxstsqlvl) {
-        dwc_handle_rxstsqlvl_irq(dwc);
-    }
-    if (interrupts.inepintr) {
-        dwc_handle_inepintr_irq(dwc);
-    }
-    if (interrupts.outepintr) {
-        dwc_handle_outepintr_irq(dwc);
-    }
-    if (interrupts.nptxfempty) {
-        dwc_handle_nptxfempty_irq(dwc);
-    }
-
-    regs->gintsts = interrupts;
-}
-
-// Thread to handle interrupts.
-static int dwc_irq_thread(void* arg) {
-    dwc_usb_t* dwc = (dwc_usb_t*)arg;
-
-    while (1) {
-/*        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
-        if (wait_res != ZX_OK) {
-            zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
-        }
-*/
-        dwc_handle_irq(dwc);
-    }
-
-    zxlogf(INFO, "dwc_usb: irq thread finished\n");
-    return 0;
-}
 
 // Bind is the entry point for this driver.
 static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {

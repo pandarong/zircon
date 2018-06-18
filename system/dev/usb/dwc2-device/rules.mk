@@ -10,11 +10,9 @@ MODULE_TYPE := driver
 
 MODULE_SRCS += \
     $(LOCAL_DIR)/dwc2.c \
-    $(LOCAL_DIR)/dwc2-device.c \
+    $(LOCAL_DIR)/dwc2-irq.c \
 
 MODULE_STATIC_LIBS := system/ulib/ddk \
-                      system/ulib/pretty \
-                      system/ulib/sync \
 
 MODULE_LIBS := system/ulib/driver \
                system/ulib/c \

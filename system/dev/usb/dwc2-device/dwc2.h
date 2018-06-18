@@ -29,7 +29,6 @@
 // Zircon USB includes
 #include <zircon/hw/usb-hub.h>
 #include <zircon/hw/usb.h>
-#include <sync/completion.h>
 
 #include <zircon/listnode.h>
 #include <zircon/process.h>
@@ -39,6 +38,9 @@
 #define ENABLE_MPI 1
 
 #define DWC_MAX_EPS    32
+
+#define MMIO_INDEX  0
+#define IRQ_INDEX   0
 
 typedef enum dwc_ep0_state {
     EP0_STATE_DISCONNECTED,
@@ -99,11 +101,6 @@ typedef struct {
     bool got_setup;
 } dwc_usb_t;
 
-void dwc_handle_reset_irq(dwc_usb_t* dwc);
-void dwc_handle_enumdone_irq(dwc_usb_t* dwc);
-void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc);
-void dwc_handle_inepintr_irq(dwc_usb_t* dwc);
-void dwc_handle_outepintr_irq(dwc_usb_t* dwc);
-void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc);
-void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc);
+zx_status_t dwc_irq_start(dwc_usb_t* dwc);
+void dwc_irq_stop(dwc_usb_t* dwc);
 void dwc_flush_fifo(dwc_usb_t* dwc, const int num);
