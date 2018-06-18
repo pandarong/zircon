@@ -7,6 +7,8 @@
 #define MMIO_INDEX  0
 #define IRQ_INDEX   0
 
+static int dwc_irq_thread(void* arg);
+
 static zx_status_t usb_dwc_softreset_core(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 printf("dwc_regs: %p\n", regs);
@@ -101,19 +103,131 @@ printf("enabling interrupts %08x\n", gintmsk.val);
     return ZX_OK;
 }
 
-static zx_status_t dwc_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
-    *out_mode = USB_MODE_DEVICE;
+static void dwc_request_queue(void* ctx, usb_request_t* req) {
+/*    dwc_t* dwc = ctx;
+
+    zxlogf(LTRACE, "dwc_request_queue ep: %u\n", req->header.ep_address);
+    unsigned ep_num = dwc_ep_num(req->header.ep_address);
+    if (ep_num < 2 || ep_num >= countof(dwc->eps)) {
+        zxlogf(ERROR, "dwc_request_queue: bad ep address 0x%02X\n", req->header.ep_address);
+        usb_request_complete(req, ZX_ERR_INVALID_ARGS, 0);
+        return;
+    }
+
+    dwc_ep_queue(dwc, ep_num, req);
+*/
+}
+
+static zx_status_t dwc_set_interface(void* ctx, usb_dci_interface_t* dci_intf) {
+    dwc_usb_t* dwc = ctx;
+    memcpy(&dwc->dci_intf, dci_intf, sizeof(dwc->dci_intf));
     return ZX_OK;
 }
 
-static zx_status_t dwc_set_mode(void* ctx, usb_mode_t mode) {
+static zx_status_t dwc_config_ep(void* ctx, usb_endpoint_descriptor_t* ep_desc,
+                                  usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
+//    dwc_usb_t* dwc = ctx;
+//    return dwc_ep_config(dwc, ep_desc, ss_comp_desc);
+return -1;
+}
+
+static zx_status_t dwc_disable_ep(void* ctx, uint8_t ep_addr) {
+//    dwc_usb_t* dwc = ctx;
+//    return dwc_ep_disable(dwc, ep_addr);
+return -1;
+}
+
+static zx_status_t dwc_set_stall(void* ctx, uint8_t ep_address) {
+//    dwc_usb_t* dwc = ctx;
+//    return dwc_ep_set_stall(dwc, dwc_ep_num(ep_address), true);
+return -1;
+}
+
+static zx_status_t dwc_clear_stall(void* ctx, uint8_t ep_address) {
+//    dwc_usb_t* dwc = ctx;
+//    return dwc_ep_set_stall(dwc, dwc_ep_num(ep_address), false);
+return -1;
+}
+
+static zx_status_t dwc_get_bti(void* ctx, zx_handle_t* out_handle) {
+    dwc_usb_t* dwc = ctx;
+    *out_handle = dwc->bti_handle;
     return ZX_OK;
+}
+
+static usb_dci_protocol_ops_t dwc_dci_protocol = {
+    .request_queue = dwc_request_queue,
+    .set_interface = dwc_set_interface,
+    .config_ep = dwc_config_ep,
+    .disable_ep = dwc_disable_ep,
+    .ep_set_stall = dwc_set_stall,
+    .ep_clear_stall = dwc_clear_stall,
+    .get_bti = dwc_get_bti,
+};
+
+
+static zx_status_t dwc_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
+    dwc_usb_t* dwc = ctx;
+
+    zx_status_t status = usb_mode_switch_get_initial_mode(&dwc->ums, out_mode);
+    if (status == ZX_ERR_NOT_SUPPORTED) {
+        *out_mode = USB_MODE_DEVICE;
+        status = ZX_OK;
+    }
+    return status;
+}
+
+static zx_status_t dwc_set_mode(void* ctx, usb_mode_t mode) {
+    dwc_usb_t* dwc = ctx;
+    zx_status_t status = ZX_OK;
+
+    if (mode != USB_MODE_DEVICE && mode != USB_MODE_NONE) {
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+    if (dwc->usb_mode == mode) {
+        return ZX_OK;
+    }
+
+    // Shutdown if we are in device mode
+    if (dwc->usb_mode == USB_MODE_DEVICE) {
+        zx_interrupt_destroy(dwc->irq_handle);
+        thrd_join(dwc->irq_thread, NULL);
+        zx_handle_close(dwc->irq_handle);
+        dwc->irq_handle = ZX_HANDLE_INVALID;
+    }
+
+/* may be unsupported
+    status = usb_mode_switch_set_mode(&dwc->ums, mode);
+    if (status != ZX_OK) {
+        goto fail;
+    }
+*/
+
+    if (mode == USB_MODE_DEVICE) {
+        status = pdev_map_interrupt(&dwc->pdev, IRQ_INDEX, &dwc->irq_handle);
+        if (status != ZX_OK) {
+            zxlogf(ERROR, "dwc3_set_mode: pdev_map_interrupt failed\n");
+            goto fail;
+        }
+
+        thrd_create_with_name(&dwc->irq_thread, dwc_irq_thread, dwc, "dwc_irq_thread");
+    }
+
+    dwc->usb_mode = mode;
+    return ZX_OK;
+
+fail:
+    usb_mode_switch_set_mode(&dwc->ums, USB_MODE_NONE);
+    dwc->usb_mode = USB_MODE_NONE;
+
+    return status;
 }
 
 usb_mode_switch_protocol_ops_t dwc_ums_protocol = {
     .get_initial_mode = dwc_get_initial_mode,
     .set_mode = dwc_set_mode,
 };
+
 
 static zx_status_t dwc_get_protocol(void* ctx, uint32_t proto_id, void* out) {
     switch (proto_id) {
@@ -133,6 +247,8 @@ static zx_status_t dwc_get_protocol(void* ctx, uint32_t proto_id, void* out) {
         return ZX_ERR_NOT_SUPPORTED;
     }
 }
+
+
 
 static void dwc_unbind(void* ctx) {
     zxlogf(ERROR, "dwc_usb: dwc_unbind not implemented\n");
@@ -223,8 +339,6 @@ printf("\n");
     regs->gintsts = interrupts;
 }
 
-
-
 // Thread to handle interrupts.
 static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
@@ -246,12 +360,6 @@ static int dwc_irq_thread(void* arg) {
 static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
     zxlogf(TRACE, "usb_dwc: bind dev = %p\n", dev);
 
-    platform_device_protocol_t proto;
-    zx_status_t status = device_get_protocol(dev, ZX_PROTOCOL_PLATFORM_DEV, &proto);
-    if (status != ZX_OK) {
-        return status;
-    }
-
     // Allocate a new device object for the bus.
     dwc_usb_t* dwc = calloc(1, sizeof(*dwc));
     if (!dwc) {
@@ -259,7 +367,19 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
         return ZX_ERR_NO_MEMORY;
     }
 
-    // hack for astro USB tuning
+    zx_status_t status = device_get_protocol(dev, ZX_PROTOCOL_PLATFORM_DEV, &dwc->pdev);
+    if (status != ZX_OK) {
+        free(dwc);
+        return status;
+    }
+
+    status = device_get_protocol(dev, ZX_PROTOCOL_USB_MODE_SWITCH, &dwc->ums);
+    if (status != ZX_OK) {
+        free(dwc);
+        return status;
+    }
+
+    // hack for astro USB tuning (also optional)
     device_get_protocol(dev, ZX_PROTOCOL_ASTRO_USB, &dwc->astro_usb);
 
     for (unsigned i = 0; i < countof(dwc->eps); i++) {
@@ -272,27 +392,21 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
     // Carve out some address space for this device.
     size_t mmio_size;
     zx_handle_t mmio_handle = ZX_HANDLE_INVALID;
-    status = pdev_map_mmio(&proto, MMIO_INDEX, ZX_CACHE_POLICY_UNCACHED_DEVICE, (void **)&dwc->regs,
+    status = pdev_map_mmio(&dwc->pdev, MMIO_INDEX, ZX_CACHE_POLICY_UNCACHED_DEVICE, (void **)&dwc->regs,
                        &mmio_size, &mmio_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "usb_dwc: bind failed to pdev_map_mmio.\n");
         goto error_return;
     }
 
-    // Create an IRQ Handle for this device.
-    status = pdev_map_interrupt(&proto, IRQ_INDEX, &dwc->irq_handle);
-    if (status != ZX_OK) {
-        zxlogf(ERROR, "usb_dwc: bind failed to map usb irq.\n");
-        goto error_return;
-    }
-
-    status = pdev_get_bti(&proto, 0, &dwc->bti_handle);
+    status = pdev_get_bti(&dwc->pdev, 0, &dwc->bti_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "usb_dwc: bind failed to get bti handle.\n");
         goto error_return;
     }
 
     dwc->parent = dev;
+    dwc->usb_mode = USB_MODE_NONE;
 
     if (dwc->astro_usb.ops) {
         astro_usb_do_usb_tuning(&dwc->astro_usb, false, true);
@@ -328,10 +442,6 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
         free(dwc);
         return status;
     }
-
-    thrd_t irq_thread;
-    thrd_create_with_name(&irq_thread, dwc_irq_thread, dwc, "dwc_irq_thread");
-    thrd_detach(irq_thread);
 
     zxlogf(TRACE, "usb_dwc: bind success!\n");
     return ZX_OK;

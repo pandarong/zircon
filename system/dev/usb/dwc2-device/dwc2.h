@@ -79,7 +79,11 @@ typedef struct {
     thrd_t irq_thread;
     zx_device_t* parent;
 
+    platform_device_protocol_t pdev;
+    usb_mode_switch_protocol_t ums;
     astro_usb_protocol_t astro_usb;
+
+    usb_mode_t usb_mode;
 
     dwc_regs_t* regs;
 
@@ -94,9 +98,6 @@ typedef struct {
     io_buffer_t ep0_buffer;
     bool got_setup;
 } dwc_usb_t;
-
-// dwc2-device.c
-extern usb_dci_protocol_ops_t dwc_dci_protocol;
 
 void dwc_handle_reset_irq(dwc_usb_t* dwc);
 void dwc_handle_enumdone_irq(dwc_usb_t* dwc);
