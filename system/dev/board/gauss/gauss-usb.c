@@ -219,7 +219,3 @@ const bool host = false;
 
     return ZX_OK;
 }
-
-zx_status_t gauss_usb_set_mode(gauss_bus_t* bus, usb_mode_t mode) {
-    return ZX_OK;
-}
