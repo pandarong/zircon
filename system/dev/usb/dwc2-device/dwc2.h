@@ -48,8 +48,9 @@ typedef enum dwc_ep0_state {
 typedef struct {
     list_node_t queued_reqs;    // requests waiting to be processed
     usb_request_t* current_req; // request currently being processed
-    uint32_t txn_offset;
-    uint32_t txn_length;    
+    uint8_t* req_buffer;
+    uint32_t req_offset;
+    uint32_t req_length;    
 
     // Used for synchronizing endpoint state
     // and ep specific hardware registers
@@ -62,8 +63,7 @@ typedef struct {
     bool enabled;
     uint8_t type;           // control, bulk, interrupt or isochronous
     uint8_t interval;
-
-    bool got_not_ready;
+    bool send_zlp;
     bool stalled;
 } dwc_endpoint_t;
 
@@ -105,6 +105,7 @@ typedef struct {
 } dwc_usb_t;
 
 // dwc-ep.c
+void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in);
 void dwc_reset_configuration(dwc_usb_t* dwc);
 void dwc_start_eps(dwc_usb_t* dwc);
 void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req);

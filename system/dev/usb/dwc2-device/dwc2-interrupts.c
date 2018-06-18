@@ -49,65 +49,14 @@ static void dwc2_ep0_out_start(dwc_usb_t* dwc)  {
     regs->depout[0].doepctl = doepctl;
 }
 
-static void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in) {
-printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
-    dwc_regs_t* regs = dwc->regs;
-    dwc_endpoint_t* ep = &dwc->eps[ep_num];
-
-	volatile dwc_depctl_t* depctl_reg;
-	volatile dwc_deptsiz_t* deptsiz_reg;
-	uint32_t ep_mps = ep->max_packet_size;
-//    _ep->total_len = _ep->xfer_len;
-
-	if (is_in) {
-		depctl_reg = &regs->depin[ep_num].diepctl;
-		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
-	} else {
-		depctl_reg = &regs->depout[ep_num].doepctl;
-		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
-	}
-
-    dwc_depctl_t depctl = *depctl_reg;
-	dwc_deptsiz_t deptsiz = *deptsiz_reg;
-
-	/* Zero Length Packet? */
-	if (ep->txn_length == 0) {
-		deptsiz.xfersize = is_in ? 0 : ep_mps;
-		deptsiz.pktcnt = 1;
-	} else {
-		deptsiz.pktcnt = (ep->txn_length + (ep_mps - 1)) / ep_mps;
-		if (is_in && ep->txn_length < ep_mps) {
-			deptsiz.xfersize = ep->txn_length;
-		}
-		else {
-			deptsiz.xfersize = ep->txn_length - ep->txn_offset;
-		}
-	}
-
-    *deptsiz_reg = deptsiz;
-
-	/* IN endpoint */
-	if (is_in) {
-		/* First clear it from GINTSTS */
-//?????		regs->gintsts.nptxfempty = 0;
-		regs->gintmsk.nptxfempty = 1;
-	}
-
-	/* EP enable */
-	depctl.cnak = 1;
-	depctl.epena = 1;
-
-    *depctl_reg = depctl;
-}
-
 static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
 printf("do_setup_status_phase is_in: %d\n", is_in);
      dwc_endpoint_t* ep = &dwc->eps[0];
 
 	dwc->ep0_state = EP0_STATE_STATUS;
 
-    ep->txn_offset = 0;
-    ep->txn_length = 0;
+    ep->req_offset = 0;
+    ep->req_length = 0;
 
 	dwc_ep_start_transfer(dwc, 0, is_in);
 
@@ -120,15 +69,15 @@ static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
 
     if (dwc->ep0_state == EP0_STATE_STATUS) {
 printf("dwc_ep0_complete_request EP0_STATE_STATUS\n");
-      ep->txn_offset = 0;
-       ep->txn_length = 0;
+        ep->req_offset = 0;
+        ep->req_length = 0;
 // this interferes with zero length OUT
-//    } else if ( ep->txn_length == 0) {
-//printf("dwc_ep0_complete_request ep->txn_length == 0\n");
+//    } else if ( ep->req_length == 0) {
+//printf("dwc_ep0_complete_request ep->req_length == 0\n");
 //		dwc_otg_ep_start_transfer(ep);
     } else if (dwc->ep0_state == EP0_STATE_DATA_IN) {
 printf("dwc_ep0_complete_request EP0_STATE_DATA_IN\n");
- 	   if (ep->txn_offset >= ep->txn_length) {
+ 	   if (ep->req_offset >= ep->req_length) {
 	        do_setup_status_phase(dwc, false);
        }
     } else {
@@ -211,8 +160,8 @@ printf("dwc_handle_setup\n");
 
     status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
     if (status == ZX_OK) {
-        ep->txn_offset = 0;
-        ep->txn_length = *out_actual;
+        ep->req_offset = 0;
+        ep->req_length = *out_actual;
     }
     return status;
 }
@@ -618,9 +567,9 @@ static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, 
 	uint32_t i;
 	volatile uint32_t* fifo;
 	uint32_t temp_data;
-    uint8_t *data_buff = &dwc->ep0_buffer[ep->txn_offset];
+    uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
 
-	if (ep->txn_offset >= ep->txn_length) {
+	if (ep->req_offset >= ep->req_length) {
 		printf("dwc_ep_write_packet: No data for EP%d!!!\n", epnum);
 		return;
 	}
@@ -628,13 +577,13 @@ static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, 
 	fifo = DWC_REG_DATA_FIFO(regs, epnum);
 
 	for (i = 0; i < dword_count; i++) {
-		temp_data = *((uint32_t*)data_buff);
+		temp_data = *((uint32_t*)req_buffer);
 printf("write %08x\n", temp_data);
 		*fifo = temp_data;
-		data_buff += 4;
+		req_buffer += 4;
 	}
 
-	ep->txn_offset += byte_count;
+	ep->req_offset += byte_count;
 }
 
 static void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
@@ -732,10 +681,10 @@ printf("not enabled\n");
 		txstatus = regs->gnptxsts;
 		while  (/*txstatus.b.nptxqspcavail > 0 &&
 			txstatus.b.nptxfspcavail > dwords &&*/
-		            ep->txn_offset < ep->txn_length) {
+		            ep->req_offset < ep->req_length) {
 			uint32_t retry = 1000000;
 
-			len = ep->txn_length - ep->txn_offset;
+			len = ep->req_length - ep->req_offset;
 			if (len > ep->max_packet_size)
 				len = ep->max_packet_size;
 

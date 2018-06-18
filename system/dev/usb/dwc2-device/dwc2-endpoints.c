@@ -4,30 +4,70 @@
 
 #include "dwc2.h"
 
+void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in) {
+printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
+    dwc_regs_t* regs = dwc->regs;
+    dwc_endpoint_t* ep = &dwc->eps[ep_num];
+
+	volatile dwc_depctl_t* depctl_reg;
+	volatile dwc_deptsiz_t* deptsiz_reg;
+	uint32_t ep_mps = ep->max_packet_size;
+//    _ep->total_len = _ep->xfer_len;
+
+	if (is_in) {
+		depctl_reg = &regs->depin[ep_num].diepctl;
+		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
+	} else {
+		depctl_reg = &regs->depout[ep_num].doepctl;
+		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
+	}
+
+    dwc_depctl_t depctl = *depctl_reg;
+	dwc_deptsiz_t deptsiz = *deptsiz_reg;
+
+	/* Zero Length Packet? */
+	if (ep->req_length == 0) {
+		deptsiz.xfersize = is_in ? 0 : ep_mps;
+		deptsiz.pktcnt = 1;
+	} else {
+		deptsiz.pktcnt = (ep->req_length + (ep_mps - 1)) / ep_mps;
+		if (is_in && ep->req_length < ep_mps) {
+			deptsiz.xfersize = ep->req_length;
+		}
+		else {
+			deptsiz.xfersize = ep->req_length - ep->req_offset;
+		}
+	}
+
+    *deptsiz_reg = deptsiz;
+
+	/* IN endpoint */
+	if (is_in) {
+		/* First clear it from GINTSTS */
+//?????		regs->gintsts.nptxfempty = 0;
+		regs->gintmsk.nptxfempty = 1;
+	}
+
+	/* EP enable */
+	depctl.cnak = 1;
+	depctl.epena = 1;
+
+    *depctl_reg = depctl;
+}
+
 static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {
     usb_request_t* req;
 
-    if (ep->current_req == NULL && ep->got_not_ready &&
+    if (ep->current_req == NULL &&
         (req = list_remove_head_type(&ep->queued_reqs, usb_request_t, node)) != NULL) {
         ep->current_req = req;
-/*
-        ep->got_not_ready = false;
-        if (DWC_EP_IS_IN(ep->ep_num)) {
-            usb_request_cache_flush(req, 0, req->header.length);
-        } else {
-            usb_request_cache_flush_invalidate(req, 0, req->header.length);
-        }
+        
+        usb_request_mmap(req, (void **)&ep->req_buffer);
+        ep->req_offset = 0;
+        ep->req_length = req->header.length;
+        ep->send_zlp = req->header.send_zlp && (req->header.length % ep->max_packet_size) == 0;
 
-        // TODO(voydanoff) scatter/gather support
-        phys_iter_t iter;
-        zx_paddr_t phys;
-        usb_request_physmap(req);
-        usb_request_phys_iter_init(&iter, req, PAGE_SIZE);
-        usb_request_phys_iter_next(&iter, &phys);
-        bool send_zlp = req->header.send_zlp && (req->header.length % ep->max_packet_size) == 0;
-        dwc3_ep_start_transfer(dwc, ep->ep_num, TRB_TRBCTL_NORMAL, phys, req->header.length,
-                               send_zlp);
-*/
+	    dwc_ep_start_transfer(dwc, ep->ep_num, DWC_EP_IS_IN(ep->ep_num));
     }
 }
 

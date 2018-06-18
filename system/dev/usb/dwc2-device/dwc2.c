@@ -282,6 +282,8 @@ static zx_status_t dwc_bind(void* ctx, zx_device_t* dev) {
         mtx_init(&ep->lock, mtx_plain);
         list_initialize(&ep->queued_reqs);
     }
+    dwc->eps[0].req_buffer = dwc->ep0_buffer;
+
 
     // Carve out some address space for this device.
     size_t mmio_size;
