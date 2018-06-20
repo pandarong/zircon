@@ -8,6 +8,7 @@
 
 #include <fbl/function.h>
 #include <fbl/string.h>
+#include <fbl/vector.h>
 #include <perftest/results.h>
 
 // This is a library for writing performance tests.  It supports
@@ -180,6 +181,9 @@ void RegisterSimpleTest(const char* test_name) {
 // based on the command line arguments.  (See the "--help" output for more
 // details.)
 int PerfTestMain(int argc, char** argv);
+
+// Experimental. Just returns the test results so they may be written to a FIDL service.
+fbl::Vector<TestCaseResults> RunPerfTests();
 
 // Run a single test |run_count| times, and add the results to
 // |results_set| using the given name, |test_name|.  On error, this returns

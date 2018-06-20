@@ -69,7 +69,7 @@ private:
 class ResultsSet {
 public:
     fbl::Vector<TestCaseResults>* results() { return &results_; }
-
+    fbl::Vector<TestCaseResults> take_results() { return fbl::move(results_); }
     TestCaseResults* AddTestCase(const fbl::String& label,
                                  const fbl::String& unit);
 

@@ -8,6 +8,7 @@
 #include <perftest/perftest.h>
 
 namespace perftest {
+
 namespace internal {
 
 // Definitions used by the perf test runner.  These are in a header file so
@@ -22,6 +23,8 @@ typedef fbl::Vector<NamedTest> TestList;
 
 bool RunTests(TestList* test_list, uint32_t run_count, const char* regex_string,
               FILE* log_stream, ResultsSet* results_set);
+
+fbl::Vector<TestCaseResults> RunPerfTests();
 
 struct CommandArgs {
     const char* output_filename = nullptr;

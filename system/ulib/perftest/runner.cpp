@@ -22,7 +22,14 @@
 #include <zircon/assert.h>
 #include <zircon/syscalls.h>
 
+
 namespace perftest {
+
+// Experimental. Just returns the test results so they may be written to a FIDL service.
+fbl::Vector<TestCaseResults> RunPerfTests() {
+    return internal::RunPerfTests();
+}
+
 namespace {
 
 // g_tests needs to be POD because this list is populated by constructors.
@@ -272,6 +279,20 @@ bool RunTest(const char* test_name, const fbl::Function<TestFunc>& test_func,
 }
 
 namespace internal {
+
+// Experimental. Just returns the test results so they may be written to a FIDL service.
+fbl::Vector<TestCaseResults> RunPerfTests() {
+    internal::CommandArgs args;
+
+    zx_duration_t duration =
+        static_cast<zx_duration_t>(ZX_SEC(1) * args.startup_delay_seconds);
+    zx_nanosleep(zx_deadline_after(duration));
+
+    ResultsSet results;
+    // Just run each test 10 times to make the output easy to understand.
+    RunTests(g_tests, 10, args.filter_regex, stdout, &results);
+    return results.take_results();
+}
 
 bool RunTests(TestList* test_list, uint32_t run_count, const char* regex_string,
               FILE* log_stream, ResultsSet* results_set) {
