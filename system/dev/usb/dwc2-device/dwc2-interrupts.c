@@ -494,6 +494,8 @@ static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 	ep_intr = (regs->daint & regs->daintmsk);
 	ep_intr = (ep_intr & 0xffff);
 
+printf("dwc_handle_inepintr_irq ep_intr %08x\n", ep_intr);
+
 	/* Clear all the interrupt bits for all IN endpoints in DAINT */
     regs->daint = 0xFFFF;
 
@@ -514,10 +516,13 @@ if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
 				if (0 == epnum) {
 					dwc_handle_ep0(dwc);
 				} else {
+#if 0
+//This doesn't seem to be getting called, so we complete after we are done writing instead
 					dwc_complete_ep(dwc, epnum);
 					if (diepint.nak) {
 						CLEAR_IN_EP_INTR(epnum, nak);
 				    }
+#endif
 				}
 			}
 			/* Endpoint disable  */
@@ -620,7 +625,6 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 
 	dwc_gnptxsts_t txstatus = {0};
 	dwc_endpoint_t *ep = NULL;
-	dwc_depctl_t depctl;
 	uint32_t len = 0;
 	uint32_t dwords;
 	uint32_t epnum = 0;
@@ -629,18 +633,8 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 	for (epnum = 0; epnum < MAX_EPS_CHANNELS; epnum++) {
 		ep = &dwc->eps[epnum];
 
-		/* IN endpoint ? */
-		if (epnum > 0 && DWC_EP_IS_OUT(epnum)) {
-//printf("not IN\n");
-			continue;
-		}
-
-//!!		if (ep->type == DWC_OTG_EP_TYPE_INTR && ep->xfer_len == 0)
-//			continue;
-
-		depctl = regs->depin[epnum].diepctl;
+		dwc_depctl_t depctl = regs->depin[epnum].diepctl;
 		if (depctl.epena != 1) {
-//printf("not enabled\n");
 			continue;
         }
 
@@ -670,6 +664,13 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 			/* Write the FIFO */
 			dwc_ep_write_packet(dwc, epnum, len, dwords);
 		}
+#if 1
+// hack ????
+if (epnum > 0 && ep->current_req && ep->req_offset == ep->req_length) {
+printf("hack the complete\n");
+dwc_complete_ep(dwc, epnum);
+}
+#endif
 	}
 }
 

@@ -37,14 +37,14 @@ if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", e
 	} else {
 		deptsiz.pktcnt = (length + (ep_mps - 1)) / ep_mps;
 		if (is_in && length < ep_mps) {
-printf("deptsiz.xfersize 1 = %zu deptsiz.pktcnt %u\n", length, deptsiz.pktcnt);
 			deptsiz.xfersize = length;
 		}
 		else {
-printf("deptsiz.xfersize 2 = %zu deptsiz.pktcnt %u\n", length, deptsiz.pktcnt);
 			deptsiz.xfersize = length - ep->req_offset;
 		}
 	}
+printf("epnum %d is_in %d xfer_count %d xfer_len %d pktcnt %d xfersize %d\n",
+        ep_num, is_in, ep->req_offset, ep->req_length, deptsiz.pktcnt, deptsiz.xfersize);
 
     *deptsiz_reg = deptsiz;
 
