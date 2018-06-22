@@ -147,15 +147,14 @@ static void dwc_enable_ep(dwc_usb_t* dwc, unsigned ep_num, bool enable) {
 
     mtx_lock(&dwc->lock);
 
-    uint32_t daint = regs->daint;
     uint32_t bit = 1 << ep_num;
 
     if (enable) {
-        daint |= bit;
+        regs->daint |= bit;
+        regs->daintmsk |= bit;
     } else {
-        daint &= ~bit;
+        regs->daintmsk &= ~bit;
     }
-    regs->daint = daint;
 
     mtx_unlock(&dwc->lock);
 }

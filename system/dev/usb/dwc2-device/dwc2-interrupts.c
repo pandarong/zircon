@@ -6,6 +6,8 @@
 
 #include "dwc2.h"
 
+#define FAKE_COMPLETE 1
+
 #define DWC_REG_DATA_FIFO_START 0x1000
 #define DWC_REG_DATA_FIFO(regs, ep)	((volatile uint32_t*)((uint8_t*)regs + (ep + 1) * 0x1000))
 
@@ -22,7 +24,6 @@ do { \
 	doepint.__intr = 1; \
 	regs->depout[__epnum].doepint = doepint; \
 } while (0)
-
 
 static void dwc_ep_read_packet(dwc_regs_t* regs, void* buffer, uint32_t length, uint32_t ep_num) {
     uint32_t count = (length + 3) >> 2;
@@ -491,10 +492,9 @@ static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 
 	/* Read in the device interrupt bits */
 	ep_intr = regs->daint;
+printf("dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs->daintmsk);
 	ep_intr = (regs->daint & regs->daintmsk);
 	ep_intr = (ep_intr & 0xffff);
-
-printf("dwc_handle_inepintr_irq ep_intr %08x\n", ep_intr);
 
 	/* Clear all the interrupt bits for all IN endpoints in DAINT */
     regs->daint = 0xFFFF;
@@ -516,7 +516,7 @@ if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
 				if (0 == epnum) {
 					dwc_handle_ep0(dwc);
 				} else {
-#if 0
+#ifndef FAKE_COMPLETE
 //This doesn't seem to be getting called, so we complete after we are done writing instead
 					dwc_complete_ep(dwc, epnum);
 					if (diepint.nak) {
@@ -664,7 +664,7 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 			/* Write the FIFO */
 			dwc_ep_write_packet(dwc, epnum, len, dwords);
 		}
-#if 1
+#ifdef FAKE_COMPLETE
 // hack ????
 if (epnum > 0 && ep->current_req && ep->req_offset == ep->req_length) {
 printf("hack the complete\n");
