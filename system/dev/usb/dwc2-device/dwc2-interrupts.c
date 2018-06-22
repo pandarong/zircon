@@ -6,8 +6,6 @@
 
 #include "dwc2.h"
 
-#define FAKE_COMPLETE 1
-
 #define DWC_REG_DATA_FIFO_START 0x1000
 #define DWC_REG_DATA_FIFO(regs, ep)	((volatile uint32_t*)((uint8_t*)regs + (ep + 1) * 0x1000))
 
@@ -516,13 +514,10 @@ if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
 				if (0 == epnum) {
 					dwc_handle_ep0(dwc);
 				} else {
-#ifndef FAKE_COMPLETE
-//This doesn't seem to be getting called, so we complete after we are done writing instead
 					dwc_complete_ep(dwc, epnum);
 					if (diepint.nak) {
 						CLEAR_IN_EP_INTR(epnum, nak);
 				    }
-#endif
 				}
 			}
 			/* Endpoint disable  */
@@ -664,13 +659,6 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 			/* Write the FIFO */
 			dwc_ep_write_packet(dwc, epnum, len, dwords);
 		}
-#ifdef FAKE_COMPLETE
-// hack ????
-if (epnum > 0 && ep->current_req && ep->req_offset == ep->req_length) {
-printf("hack the complete\n");
-dwc_complete_ep(dwc, epnum);
-}
-#endif
 	}
 }
 
