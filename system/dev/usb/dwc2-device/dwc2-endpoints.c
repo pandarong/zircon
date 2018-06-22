@@ -17,12 +17,15 @@ if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", e
     ep->req_length = length;
 
 	if (is_in) {
-		depctl_reg = &regs->depin[ep_num >> DWC_EP_IN_SHIFT].diepctl;
-		deptsiz_reg = &regs->depin[ep_num >> DWC_EP_IN_SHIFT].dieptsiz;
+		depctl_reg = &regs->depin[ep_num].diepctl;
+		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
 printf("dwc_otg_ep_start_transfer IN ep_num %d epctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	} else {
-		depctl_reg = &regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doepctl;
-		deptsiz_reg = &regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doeptsiz;
+	    if (ep_num > 0) {
+	        ep_num -= 16;
+	    }
+		depctl_reg = &regs->depout[ep_num].doepctl;
+		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
 printf("dwc_otg_ep_start_transfer OUT ep_num %d depctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	}
 
@@ -262,9 +265,9 @@ printf("dwc_ep_config address %02x ep_num %d\n", ep_desc->bEndpointAddress, ep_n
     volatile dwc_depctl_t* depctl_ptr;
 
     if (DWC_EP_IS_IN(ep_num)) {
-        depctl_ptr = &regs->depin[ep_num >> DWC_EP_IN_SHIFT].diepctl;
+        depctl_ptr = &regs->depin[ep_num].diepctl;
     } else {
-        depctl_ptr = &regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doepctl;
+        depctl_ptr = &regs->depout[ep_num - 16].doepctl;
     }
 
     ep->max_packet_size = usb_ep_max_packet(ep_desc);
@@ -310,9 +313,9 @@ zx_status_t dwc_ep_disable(dwc_usb_t* dwc, uint8_t ep_addr) {
     mtx_lock(&ep->lock);
 
     if (DWC_EP_IS_IN(ep_num)) {
-        regs->depin[ep_num >> DWC_EP_IN_SHIFT].diepctl.usbactep = 0;
+        regs->depin[ep_num].diepctl.usbactep = 0;
     } else {
-        regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doepctl.usbactep = 0;
+        regs->depout[ep_num - 16].doepctl.usbactep = 0;
     }
 
     ep->enabled = false;
