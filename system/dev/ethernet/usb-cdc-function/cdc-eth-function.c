@@ -163,9 +163,9 @@ static zx_status_t cdc_generate_mac_address(usb_cdc_t* cdc) {
     // TODO(voydanoff) add a way to configure a real MAC address here
     cdc->mac_addr[0] = 0x02;
     char buffer[sizeof(cdc->mac_addr) * 3];
-    snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X%02X%02X",
-             cdc->mac_addr[0], cdc->mac_addr[1], cdc->mac_addr[2],
-             cdc->mac_addr[3], cdc->mac_addr[4], cdc->mac_addr[5]);
+    snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X%02X%02X", 0x02, 0x1a, 0x28, 0xe1, 0xcd, 0xec);
+//             cdc->mac_addr[0], cdc->mac_addr[1], cdc->mac_addr[2],
+//             cdc->mac_addr[3], cdc->mac_addr[4], cdc->mac_addr[5]);
 
     return usb_function_alloc_string_desc(&cdc->function, buffer, &descriptors.cdc_eth.iMACAddress);
 }
