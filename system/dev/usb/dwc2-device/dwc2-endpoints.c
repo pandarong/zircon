@@ -19,14 +19,12 @@ if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", e
 	if (is_in) {
 		depctl_reg = &regs->depin[ep_num].diepctl;
 		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
-printf("dwc_otg_ep_start_transfer IN ep_num %d epctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	} else {
 	    if (ep_num > 0) {
 	        ep_num -= 16;
 	    }
 		depctl_reg = &regs->depout[ep_num].doepctl;
 		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
-printf("dwc_otg_ep_start_transfer OUT ep_num %d depctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	}
 
     dwc_depctl_t depctl = *depctl_reg;
@@ -64,11 +62,22 @@ printf("deptsiz.xfersize 2 = %zu deptsiz.pktcnt %u\n", length, deptsiz.pktcnt);
     *depctl_reg = depctl;
 }
 
-void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in) {
-//    dwc_regs_t* regs = dwc->regs;
+void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num) {
+    printf("XXXXX dwc_complete_ep ep_num %u\n", ep_num);
 
-    printf("XXXXX dwc_complete_ep\n");
+    if (ep_num != 0) {
+    	dwc_endpoint_t* ep = &dwc->eps[ep_num];
+        usb_request_t* req = ep->current_req;
 
+        if (req) {
+            ep->current_req = NULL;
+            usb_request_complete(req, ZX_OK, ep->req_offset);
+        }
+
+        ep->req_buffer = NULL;
+        ep->req_offset = 0;
+        ep->req_length = 0;
+	}
 
 /*
 	u32 epnum = ep_num;
@@ -78,7 +87,6 @@ void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in) {
 	}
 */
 
-	dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
 /*
 	if (is_in) {
@@ -100,17 +108,6 @@ void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in) {
 		pcd->dwc_eps[epnum].req->status = 0;
 	}
 */
-
-    if (ep_num != 0) {
-        usb_request_t* req = ep->current_req;
-        if (req) {
-            ep->current_req = NULL;
-            
-//	if (pcd->dwc_eps[epnum].req->complete) {
-//		pcd->dwc_eps[epnum].req->complete((struct usb_ep *)(pcd->dwc_eps[epnum].priv), pcd->dwc_eps[epnum].req);
-
-        }
-	}
 }
 
 static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {

@@ -24,6 +24,44 @@ do { \
 } while (0)
 
 
+static void dwc_ep_read_packet(dwc_regs_t* regs, void* buffer, uint32_t length, uint32_t ep_num) {
+    uint32_t count = (length + 3) >> 2;
+    uint32_t* dest = (uint32_t*)buffer;
+	volatile uint32_t* fifo = DWC_REG_DATA_FIFO(regs, ep_num);
+
+	for (uint32_t i = 0; i < count; i++) {
+	    *dest++ = *fifo;
+printf("read %08x\n", dest[-1]);
+	}
+}
+
+static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
+if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
+    dwc_regs_t* regs = dwc->regs;
+    dwc_endpoint_t* ep = &dwc->eps[epnum];
+
+	uint32_t i;
+	volatile uint32_t* fifo;
+	uint32_t temp_data;
+    uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
+
+	if (ep->req_offset >= ep->req_length) {
+		printf("dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
+		return;
+	}
+
+	fifo = DWC_REG_DATA_FIFO(regs, epnum);
+
+	for (i = 0; i < dword_count; i++) {
+		temp_data = *((uint32_t*)req_buffer);
+printf("write %08x\n", temp_data);
+		*fifo = temp_data;
+		req_buffer += 4;
+	}
+
+	ep->req_offset += byte_count;
+}
+
 static void dwc_set_address(dwc_usb_t* dwc, uint8_t address) {
     dwc_regs_t* regs = dwc->regs;
 printf("dwc_set_address %u\n", address);
@@ -396,24 +434,28 @@ static void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
 
 	/* Get the Status from the top of the FIFO */
 	 dwc_grxstsp_t grxstsp = regs->grxstsp;
-//printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum, grxstsp.bcnt, grxstsp.pktsts);
-	 
-	if (grxstsp.epnum != 0)
-		grxstsp.epnum = 2; // ??????
-	/* Get pointer to EP structure */
-//	ep = &pcd->dwc_eps[status.b.epnum].dwc_ep;
+printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum, grxstsp.bcnt, grxstsp.pktsts);
+
+    int ep_num = grxstsp.epnum;
+    if (ep_num > 0) {
+        ep_num += 16;
+    }
+    dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
 	switch (grxstsp.pktsts) {
-	case DWC_STS_DATA_UPDT:
-//printf("DWC_STS_DATA_UPDT grxstsp.bcnt: %u\n", grxstsp.bcnt);
-/*
-		if (status.b.bcnt && ep->xfer_buff) {
-			dwc_otg_read_packet(ep->xfer_buff, status.b.bcnt);
-			ep->xfer_count += status.b.bcnt;
-			ep->xfer_buff += status.b.bcnt;
+	case DWC_STS_DATA_UPDT: {
+	    uint32_t fifo_count = grxstsp.bcnt;
+printf("DWC_STS_DATA_UPDT grxstsp.bcnt: %u\n", grxstsp.bcnt);
+        if (fifo_count > ep->req_length - ep->req_offset) {
+printf("fifo_count %u > %u\n", fifo_count, ep->req_length - ep->req_offset);
+            fifo_count = ep->req_length - ep->req_offset;
+        }
+		if (fifo_count > 0) {
+			dwc_ep_read_packet(regs, ep->req_buffer + ep->req_offset, fifo_count, ep_num);
+			ep->req_offset += fifo_count;
 		}
-*/
 		break;
+    }
 
 	case DWC_DSTS_SETUP_UPDT: {
 //printf("DWC_DSTS_SETUP_UPDT\n"); 
@@ -442,7 +484,6 @@ break;
 	}
 }
 
-
 static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 	uint32_t ep_intr;
@@ -463,15 +504,17 @@ static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 
 			/* Transfer complete */
 			if (diepint.xfercompl) {
+if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
 				/* Disable the NP Tx FIFO Empty Interrrupt  */
-		        regs->gintmsk.nptxfempty = 0;
+//???		        regs->gintmsk.nptxfempty = 0;
 				/* Clear the bit in DIEPINTn for this interrupt */
-				regs->depin[epnum].diepint.xfercompl = 1;
+				CLEAR_IN_EP_INTR(epnum, xfercompl);
+//				regs->depin[epnum].diepint.xfercompl = 1;
 				/* Complete the transfer */
 				if (0 == epnum) {
 					dwc_handle_ep0(dwc);
 				} else {
-					dwc_complete_ep(dwc, epnum, true);
+					dwc_complete_ep(dwc, epnum);
 					if (diepint.nak) {
 						CLEAR_IN_EP_INTR(epnum, nak);
 				    }
@@ -511,33 +554,6 @@ printf("TODO handle_in_ep_timeout_intr\n");
 	}
 }
 
-static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
-if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
-    dwc_regs_t* regs = dwc->regs;
-    dwc_endpoint_t* ep = &dwc->eps[epnum];
-
-	uint32_t i;
-	volatile uint32_t* fifo;
-	uint32_t temp_data;
-    uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
-
-	if (ep->req_offset >= ep->req_length) {
-		printf("dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
-		return;
-	}
-
-	fifo = DWC_REG_DATA_FIFO(regs, epnum);
-
-	for (i = 0; i < dword_count; i++) {
-		temp_data = *((uint32_t*)req_buffer);
-printf("write %08x\n", temp_data);
-		*fifo = temp_data;
-		req_buffer += 4;
-	}
-
-	ep->req_offset += byte_count;
-}
-
 static void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
@@ -570,7 +586,7 @@ if (epnum > 0) printf("dwc_handle_outepintr_irq xfercompl\n");
     			    }
 					dwc_handle_ep0(dwc);
 				} else {
-					dwc_complete_ep(dwc, epnum, false);
+					dwc_complete_ep(dwc, epnum);
 				}
 			}
 			/* Endpoint disable  */
