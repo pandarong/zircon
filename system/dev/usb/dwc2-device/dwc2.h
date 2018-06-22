@@ -105,7 +105,7 @@ typedef struct {
 } dwc_usb_t;
 
 // dwc-ep.c
-void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in);
+void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in, size_t length);
 void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num, int is_in);
 void dwc_reset_configuration(dwc_usb_t* dwc);
 void dwc_start_eps(dwc_usb_t* dwc);

@@ -4,38 +4,44 @@
 
 #include "dwc2.h"
 
-void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in) {
-if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d\n", ep_num, is_in);
+void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in, size_t length) {
+if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", ep_num, is_in, length);
     dwc_regs_t* regs = dwc->regs;
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
 	volatile dwc_depctl_t* depctl_reg;
 	volatile dwc_deptsiz_t* deptsiz_reg;
 	uint32_t ep_mps = ep->max_packet_size;
-//    _ep->total_len = _ep->xfer_len;
+
+    ep->req_offset = 0;
+    ep->req_length = length;
 
 	if (is_in) {
-		depctl_reg = &regs->depin[ep_num].diepctl;
-		deptsiz_reg = &regs->depin[ep_num].dieptsiz;
+		depctl_reg = &regs->depin[ep_num >> DWC_EP_IN_SHIFT].diepctl;
+		deptsiz_reg = &regs->depin[ep_num >> DWC_EP_IN_SHIFT].dieptsiz;
+printf("dwc_otg_ep_start_transfer IN ep_num %d epctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	} else {
-		depctl_reg = &regs->depout[ep_num].doepctl;
-		deptsiz_reg = &regs->depout[ep_num].doeptsiz;
+		depctl_reg = &regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doepctl;
+		deptsiz_reg = &regs->depout[ep_num >> DWC_EP_OUT_SHIFT].doeptsiz;
+printf("dwc_otg_ep_start_transfer OUT ep_num %d depctl_reg %p deptsiz_reg %p\n", ep_num, depctl_reg, deptsiz_reg);
 	}
 
     dwc_depctl_t depctl = *depctl_reg;
 	dwc_deptsiz_t deptsiz = *deptsiz_reg;
 
 	/* Zero Length Packet? */
-	if (ep->req_length == 0) {
+	if (length == 0) {
 		deptsiz.xfersize = is_in ? 0 : ep_mps;
 		deptsiz.pktcnt = 1;
 	} else {
-		deptsiz.pktcnt = (ep->req_length + (ep_mps - 1)) / ep_mps;
-		if (is_in && ep->req_length < ep_mps) {
-			deptsiz.xfersize = ep->req_length;
+		deptsiz.pktcnt = (length + (ep_mps - 1)) / ep_mps;
+		if (is_in && length < ep_mps) {
+printf("deptsiz.xfersize 1 = %zu deptsiz.pktcnt %u\n", length, deptsiz.pktcnt);
+			deptsiz.xfersize = length;
 		}
 		else {
-			deptsiz.xfersize = ep->req_length - ep->req_offset;
+printf("deptsiz.xfersize 2 = %zu deptsiz.pktcnt %u\n", length, deptsiz.pktcnt);
+			deptsiz.xfersize = length - ep->req_offset;
 		}
 	}
 
@@ -112,11 +118,9 @@ static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {
         ep->current_req = req;
         
         usb_request_mmap(req, (void **)&ep->req_buffer);
-        ep->req_offset = 0;
-        ep->req_length = req->header.length;
         ep->send_zlp = req->header.send_zlp && (req->header.length % ep->max_packet_size) == 0;
 
-	    dwc_ep_start_transfer(dwc, ep->ep_num, DWC_EP_IS_IN(ep->ep_num));
+	    dwc_ep_start_transfer(dwc, ep->ep_num, DWC_EP_IS_IN(ep->ep_num), req->header.length);
     }
 }
 

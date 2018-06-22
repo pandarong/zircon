@@ -51,14 +51,11 @@ static void dwc2_ep0_out_start(dwc_usb_t* dwc)  {
 
 static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
 //printf("do_setup_status_phase is_in: %d\n", is_in);
-     dwc_endpoint_t* ep = &dwc->eps[0];
+//     dwc_endpoint_t* ep = &dwc->eps[0];
 
 	dwc->ep0_state = EP0_STATE_STATUS;
 
-    ep->req_offset = 0;
-    ep->req_length = 0;
-
-	dwc_ep_start_transfer(dwc, 0, is_in);
+	dwc_ep_start_transfer(dwc, 0, is_in, 0);
 
 	/* Prepare for more SETUP Packets */
 	dwc2_ep0_out_start(dwc);
@@ -189,7 +186,7 @@ static void pcd_setup(dwc_usb_t* dwc) {
 //printf("queue read\n");
         // queue a read for the data phase
         dwc->ep0_state = EP0_STATE_DATA_OUT;
-        dwc_ep_start_transfer(dwc, 0, false);
+        dwc_ep_start_transfer(dwc, 0, false, setup->wLength);
     } else {
         size_t actual;
         __UNUSED zx_status_t status = dwc_handle_setup(dwc, setup, dwc->ep0_buffer,
@@ -204,7 +201,7 @@ static void pcd_setup(dwc_usb_t* dwc) {
         if (dwc->ep0_state == EP0_STATE_DATA_IN && setup->wLength > 0) {
 //            printf("queue a write for the data phase\n");
             dwc->ep0_state = EP0_STATE_DATA_IN;
-            dwc_ep_start_transfer(dwc, 0, true);
+            dwc_ep_start_transfer(dwc, 0, true, actual);
         } else {
 			dwc_ep0_complete_request(dwc);
         }
@@ -517,7 +514,7 @@ printf("TODO handle_in_ep_timeout_intr\n");
 static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
 if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
     dwc_regs_t* regs = dwc->regs;
-    dwc_endpoint_t* ep = &dwc->eps[0];  // FIXME
+    dwc_endpoint_t* ep = &dwc->eps[epnum];
 
 	uint32_t i;
 	volatile uint32_t* fifo;
@@ -525,7 +522,7 @@ if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n
     uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
 
 	if (ep->req_offset >= ep->req_length) {
-		printf("dwc_ep_write_packet: No data for EP%d!!!\n", epnum);
+		printf("dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
 		return;
 	}
 
@@ -533,7 +530,7 @@ if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n
 
 	for (i = 0; i < dword_count; i++) {
 		temp_data = *((uint32_t*)req_buffer);
-//printf("write %08x\n", temp_data);
+printf("write %08x\n", temp_data);
 		*fifo = temp_data;
 		req_buffer += 4;
 	}
@@ -613,7 +610,7 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 	uint32_t epnum = 0;
 
     /* Get the epnum from the IN Token Learning Queue. */
-	for (epnum = 0; epnum < 1/* MAX_EPS_CHANNELS */; epnum++) {
+	for (epnum = 0; epnum < MAX_EPS_CHANNELS; epnum++) {
 		ep = &dwc->eps[epnum];
 
 		/* IN endpoint ? */
