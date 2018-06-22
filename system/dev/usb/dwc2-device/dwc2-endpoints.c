@@ -5,7 +5,7 @@
 #include "dwc2.h"
 
 void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in, size_t length) {
-if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", ep_num, is_in, length);
+if (ep_num > 0) zxlogf(LINFO, "dwc_ep_start_transfer epnum %u is_in %d length %zu\n", ep_num, is_in, length);
     dwc_regs_t* regs = dwc->regs;
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
@@ -43,7 +43,7 @@ if (ep_num > 0) printf("dwc_ep_start_transfer epnum %u is_in %d length %zu\n", e
 			deptsiz.xfersize = length - ep->req_offset;
 		}
 	}
-printf("epnum %d is_in %d xfer_count %d xfer_len %d pktcnt %d xfersize %d\n",
+zxlogf(LINFO, "epnum %d is_in %d xfer_count %d xfer_len %d pktcnt %d xfersize %d\n",
         ep_num, is_in, ep->req_offset, ep->req_length, deptsiz.pktcnt, deptsiz.xfersize);
 
     *deptsiz_reg = deptsiz;
@@ -63,7 +63,7 @@ printf("epnum %d is_in %d xfer_count %d xfer_len %d pktcnt %d xfersize %d\n",
 }
 
 void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num) {
-    printf("XXXXX dwc_complete_ep ep_num %u\n", ep_num);
+    zxlogf(LINFO, "XXXXX dwc_complete_ep ep_num %u\n", ep_num);
 
     if (ep_num != 0) {
     	dwc_endpoint_t* ep = &dwc->eps[ep_num];
@@ -243,7 +243,7 @@ zx_status_t dwc_ep_config(dwc_usb_t* dwc, usb_endpoint_descriptor_t* ep_desc,
     // convert address to index in range 0 - 31
     // low bit is IN/OUT
     unsigned ep_num = DWC_ADDR_TO_INDEX(ep_desc->bEndpointAddress);
-printf("dwc_ep_config address %02x ep_num %d\n", ep_desc->bEndpointAddress, ep_num);
+zxlogf(LINFO, "dwc_ep_config address %02x ep_num %d\n", ep_desc->bEndpointAddress, ep_num);
     if (ep_num == 0) {
         return ZX_ERR_INVALID_ARGS;
     }

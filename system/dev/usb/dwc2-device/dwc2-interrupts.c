@@ -30,12 +30,12 @@ static void dwc_ep_read_packet(dwc_regs_t* regs, void* buffer, uint32_t length, 
 
 	for (uint32_t i = 0; i < count; i++) {
 	    *dest++ = *fifo;
-printf("read %08x\n", dest[-1]);
+zxlogf(LSPEW, "read %08x\n", dest[-1]);
 	}
 }
 
 static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
-if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
+if (epnum > 0) zxlogf(LINFO, "dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
     dwc_regs_t* regs = dwc->regs;
     dwc_endpoint_t* ep = &dwc->eps[epnum];
 
@@ -45,7 +45,7 @@ if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n
     uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
 
 	if (ep->req_offset >= ep->req_length) {
-		printf("dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
+		zxlogf(LINFO, "dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
 		return;
 	}
 
@@ -53,7 +53,7 @@ if (epnum > 0) printf("dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n
 
 	for (i = 0; i < dword_count; i++) {
 		temp_data = *((uint32_t*)req_buffer);
-printf("write %08x\n", temp_data);
+zxlogf(LSPEW, "write %08x\n", temp_data);
 		*fifo = temp_data;
 		req_buffer += 4;
 	}
@@ -63,12 +63,12 @@ printf("write %08x\n", temp_data);
 
 static void dwc_set_address(dwc_usb_t* dwc, uint8_t address) {
     dwc_regs_t* regs = dwc->regs;
-printf("dwc_set_address %u\n", address);
+zxlogf(LINFO, "dwc_set_address %u\n", address);
     regs->dcfg.devaddr = address;
 }
 
 static void dwc2_ep0_out_start(dwc_usb_t* dwc)  {
-//    printf("dwc2_ep0_out_start\n");
+//    zxlogf(LINFO, "dwc2_ep0_out_start\n");
 
     dwc_regs_t* regs = dwc->regs;
 
@@ -87,7 +87,7 @@ static void dwc2_ep0_out_start(dwc_usb_t* dwc)  {
 }
 
 static void do_setup_status_phase(dwc_usb_t* dwc, bool is_in) {
-//printf("do_setup_status_phase is_in: %d\n", is_in);
+//zxlogf(LINFO, "do_setup_status_phase is_in: %d\n", is_in);
 //     dwc_endpoint_t* ep = &dwc->eps[0];
 
 	dwc->ep0_state = EP0_STATE_STATUS;
@@ -102,20 +102,20 @@ static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
      dwc_endpoint_t* ep = &dwc->eps[0];
 
     if (dwc->ep0_state == EP0_STATE_STATUS) {
-//printf("dwc_ep0_complete_request EP0_STATE_STATUS\n");
+//zxlogf(LINFO, "dwc_ep0_complete_request EP0_STATE_STATUS\n");
         ep->req_offset = 0;
         ep->req_length = 0;
 // this interferes with zero length OUT
 //    } else if ( ep->req_length == 0) {
-//printf("dwc_ep0_complete_request ep->req_length == 0\n");
+//zxlogf(LINFO, "dwc_ep0_complete_request ep->req_length == 0\n");
 //		dwc_otg_ep_start_transfer(ep);
     } else if (dwc->ep0_state == EP0_STATE_DATA_IN) {
-//printf("dwc_ep0_complete_request EP0_STATE_DATA_IN\n");
+//zxlogf(LINFO, "dwc_ep0_complete_request EP0_STATE_DATA_IN\n");
  	   if (ep->req_offset >= ep->req_length) {
 	        do_setup_status_phase(dwc, false);
        }
     } else {
-//printf("dwc_ep0_complete_request ep0-OUT\n");
+//zxlogf(LINFO, "dwc_ep0_complete_request ep0-OUT\n");
 	    do_setup_status_phase(dwc, true);
     }
 
@@ -153,7 +153,7 @@ static void dwc_ep0_complete_request(dwc_usb_t* dwc) {
 
 static zx_status_t dwc_handle_setup(dwc_usb_t* dwc, usb_setup_t* setup, void* buffer, size_t length,
                                      size_t* out_actual) {
-//printf("dwc_handle_setup\n");
+//zxlogf(LINFO, "dwc_handle_setup\n");
     zx_status_t status;
     dwc_endpoint_t* ep = &dwc->eps[0];
 
@@ -204,7 +204,7 @@ static void pcd_setup(dwc_usb_t* dwc) {
     usb_setup_t* setup = &dwc->cur_setup;
 
 	if (!dwc->got_setup) {
-//printf("no setup\n");
+//zxlogf(LINFO, "no setup\n");
 		return;
 	}
 	dwc->got_setup = false;
@@ -212,15 +212,15 @@ static void pcd_setup(dwc_usb_t* dwc) {
 
 
 	if (setup->bmRequestType & USB_DIR_IN) {
-//printf("pcd_setup set EP0_STATE_DATA_IN\n");
+//zxlogf(LINFO, "pcd_setup set EP0_STATE_DATA_IN\n");
 		dwc->ep0_state = EP0_STATE_DATA_IN;
 	} else {
-//printf("pcd_setup set EP0_STATE_DATA_OUT\n");
+//zxlogf(LINFO, "pcd_setup set EP0_STATE_DATA_OUT\n");
 		dwc->ep0_state = EP0_STATE_DATA_OUT;
 	}
 
     if (setup->wLength > 0 && dwc->ep0_state == EP0_STATE_DATA_OUT) {
-//printf("queue read\n");
+//zxlogf(LINFO, "queue read\n");
         // queue a read for the data phase
         dwc->ep0_state = EP0_STATE_DATA_OUT;
         dwc_ep_start_transfer(dwc, 0, false, setup->wLength);
@@ -236,7 +236,7 @@ static void pcd_setup(dwc_usb_t* dwc) {
 //            }
 
         if (dwc->ep0_state == EP0_STATE_DATA_IN && setup->wLength > 0) {
-//            printf("queue a write for the data phase\n");
+//            zxlogf(LINFO, "queue a write for the data phase\n");
             dwc->ep0_state = EP0_STATE_DATA_IN;
             dwc_ep_start_transfer(dwc, 0, true, actual);
         } else {
@@ -247,28 +247,28 @@ static void pcd_setup(dwc_usb_t* dwc) {
 
 
 static void dwc_handle_ep0(dwc_usb_t* dwc) {
-//    printf("dwc_handle_ep0\n");
+//    zxlogf(LINFO, "dwc_handle_ep0\n");
 
 	switch (dwc->ep0_state) {
 	case EP0_STATE_IDLE: {
-//printf("dwc_handle_ep0 EP0_STATE_IDLE\n");
+//zxlogf(LINFO, "dwc_handle_ep0 EP0_STATE_IDLE\n");
 //		req_flag->request_config = 0;
 		pcd_setup(dwc);
         break;
     }
 	case EP0_STATE_DATA_IN:
-//    printf("dwc_handle_ep0 EP0_STATE_DATA_IN\n");
+//    zxlogf(LINFO, "dwc_handle_ep0 EP0_STATE_DATA_IN\n");
 //		if (ep0->xfer_count < ep0->total_len)
-//			printf("FIX ME!! dwc_otg_ep0_continue_transfer!\n");
+//			zxlogf(LINFO, "FIX ME!! dwc_otg_ep0_continue_transfer!\n");
 //		else
 			dwc_ep0_complete_request(dwc);
 		break;
 	case EP0_STATE_DATA_OUT:
-//    printf("dwc_handle_ep0 EP0_STATE_DATA_OUT\n");
+//    zxlogf(LINFO, "dwc_handle_ep0 EP0_STATE_DATA_OUT\n");
 		dwc_ep0_complete_request(dwc);
 		break;
 	case EP0_STATE_STATUS:
-//    printf("dwc_handle_ep0 EP0_STATE_STATUS\n");
+//    zxlogf(LINFO, "dwc_handle_ep0 EP0_STATE_STATUS\n");
 		dwc_ep0_complete_request(dwc);
 		/* OUT for next SETUP */
 		dwc->ep0_state = EP0_STATE_IDLE;
@@ -278,7 +278,7 @@ static void dwc_handle_ep0(dwc_usb_t* dwc) {
 
 	case EP0_STATE_STALL:
 	default:
-		printf("EP0 state is %d, should not get here pcd_setup()\n", dwc->ep0_state);
+		zxlogf(LINFO, "EP0 state is %d, should not get here pcd_setup()\n", dwc->ep0_state);
 		break;
     }
 }
@@ -322,7 +322,7 @@ void dwc_flush_fifo(dwc_usb_t* dwc, const int num) {
 static void dwc_handle_reset_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
-	printf("\nUSB RESET\n");
+	zxlogf(LINFO, "\nUSB RESET\n");
 
     dwc->ep0_state = EP0_STATE_DISCONNECTED;
 
@@ -433,7 +433,7 @@ static void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
 
 	/* Get the Status from the top of the FIFO */
 	 dwc_grxstsp_t grxstsp = regs->grxstsp;
-printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum, grxstsp.bcnt, grxstsp.pktsts);
+zxlogf(LINFO, "dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum, grxstsp.bcnt, grxstsp.pktsts);
 
     int ep_num = grxstsp.epnum;
     if (ep_num > 0) {
@@ -444,9 +444,9 @@ printf("dwc_handle_rxstsqlvl_irq epnum: %u bcnt: %u pktsts: %u\n", grxstsp.epnum
 	switch (grxstsp.pktsts) {
 	case DWC_STS_DATA_UPDT: {
 	    uint32_t fifo_count = grxstsp.bcnt;
-printf("DWC_STS_DATA_UPDT grxstsp.bcnt: %u\n", grxstsp.bcnt);
+zxlogf(LINFO, "DWC_STS_DATA_UPDT grxstsp.bcnt: %u\n", grxstsp.bcnt);
         if (fifo_count > ep->req_length - ep->req_offset) {
-printf("fifo_count %u > %u\n", fifo_count, ep->req_length - ep->req_offset);
+zxlogf(LINFO, "fifo_count %u > %u\n", fifo_count, ep->req_length - ep->req_offset);
             fifo_count = ep->req_length - ep->req_offset;
         }
 		if (fifo_count > 0) {
@@ -457,12 +457,12 @@ printf("fifo_count %u > %u\n", fifo_count, ep->req_length - ep->req_offset);
     }
 
 	case DWC_DSTS_SETUP_UPDT: {
-//printf("DWC_DSTS_SETUP_UPDT\n"); 
+//zxlogf(LINFO, "DWC_DSTS_SETUP_UPDT\n"); 
     volatile uint32_t* fifo = (uint32_t *)((uint8_t *)regs + 0x1000);
     uint32_t* dest = (uint32_t*)&dwc->cur_setup;
     dest[0] = *fifo;
     dest[1] = *fifo;
-printf("SETUP bmRequestType: 0x%02x bRequest: %u wValue: %u wIndex: %u wLength: %u\n",
+zxlogf(LINFO, "SETUP bmRequestType: 0x%02x bRequest: %u wValue: %u wIndex: %u wLength: %u\n",
        dwc->cur_setup.bmRequestType, dwc->cur_setup.bRequest, dwc->cur_setup.wValue,
        dwc->cur_setup.wIndex, dwc->cur_setup.wLength); 
        dwc->got_setup = true;
@@ -470,13 +470,13 @@ printf("SETUP bmRequestType: 0x%02x bRequest: %u wValue: %u wIndex: %u wLength: 
 	}
 
 	case DWC_DSTS_GOUT_NAK:
-printf("DWC_DSTS_GOUT_NAK\n");
+zxlogf(LINFO, "DWC_DSTS_GOUT_NAK\n");
 break;
 	case DWC_STS_XFER_COMP:
-//printf("DWC_STS_XFER_COMP\n");
+//zxlogf(LINFO, "DWC_STS_XFER_COMP\n");
 break;
 	case DWC_DSTS_SETUP_COMP:
-//printf("DWC_DSTS_SETUP_COMP\n");
+//zxlogf(LINFO, "DWC_DSTS_SETUP_COMP\n");
 break;
 	default:
 		break;
@@ -490,7 +490,7 @@ static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
 
 	/* Read in the device interrupt bits */
 	ep_intr = regs->daint;
-printf("dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs->daintmsk);
+zxlogf(LINFO, "dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs->daintmsk);
 	ep_intr = (regs->daint & regs->daintmsk);
 	ep_intr = (ep_intr & 0xffff);
 
@@ -504,7 +504,7 @@ printf("dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs->daintm
 
 			/* Transfer complete */
 			if (diepint.xfercompl) {
-if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
+if (epnum > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl\n");
 				/* Disable the NP Tx FIFO Empty Interrrupt  */
 //???		        regs->gintmsk.nptxfempty = 0;
 				/* Clear the bit in DIEPINTn for this interrupt */
@@ -533,7 +533,7 @@ if (epnum > 0) printf("dwc_handle_inepintr_irq xfercompl\n");
 			/* TimeOUT Handshake (non-ISOC IN EPs) */
 			if (diepint.timeout) {
 //				handle_in_ep_timeout_intr(epnum);
-printf("TODO handle_in_ep_timeout_intr\n");
+zxlogf(LINFO, "TODO handle_in_ep_timeout_intr\n");
 				CLEAR_IN_EP_INTR(epnum, timeout);
 			}
 			/** IN Token received with TxF Empty */
@@ -557,7 +557,7 @@ printf("TODO handle_in_ep_timeout_intr\n");
 static void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
-//printf("dwc_handle_outepintr_irq\n");
+//zxlogf(LINFO, "dwc_handle_outepintr_irq\n");
 
 	uint32_t epnum = 0;
 
@@ -572,11 +572,11 @@ static void dwc_handle_outepintr_irq(dwc_usb_t* dwc) {
 		if (ep_intr & 1) {
 		    dwc_doepint_t doepint = regs->depout[epnum].doepint;
 		    doepint.val &= regs->doepmsk.val;
-if (epnum > 0) printf("dwc_handle_outepintr_irq doepint.val %08x\n", doepint.val);
+if (epnum > 0) zxlogf(LINFO, "dwc_handle_outepintr_irq doepint.val %08x\n", doepint.val);
 
 			/* Transfer complete */
 			if (doepint.xfercompl) {
-if (epnum > 0) printf("dwc_handle_outepintr_irq xfercompl\n");
+if (epnum > 0) zxlogf(LINFO, "dwc_handle_outepintr_irq xfercompl\n");
 				/* Clear the bit in DOEPINTn for this interrupt */
 				CLEAR_OUT_EP_INTR(epnum, xfercompl);
 
@@ -591,13 +591,13 @@ if (epnum > 0) printf("dwc_handle_outepintr_irq xfercompl\n");
 			}
 			/* Endpoint disable  */
 			if (doepint.epdisabled) {
-printf("dwc_handle_outepintr_irq epdisabled\n");
+zxlogf(LINFO, "dwc_handle_outepintr_irq epdisabled\n");
 				/* Clear the bit in DOEPINTn for this interrupt */
 				CLEAR_OUT_EP_INTR(epnum, epdisabled);
 			}
 			/* AHB Error */
 			if (doepint.ahberr) {
-printf("dwc_handle_outepintr_irq ahberr\n");
+zxlogf(LINFO, "dwc_handle_outepintr_irq ahberr\n");
 				CLEAR_OUT_EP_INTR(epnum, ahberr);
 			}
 			/* Setup Phase Done (contr0l EPs) */
@@ -616,7 +616,7 @@ printf("dwc_handle_outepintr_irq ahberr\n");
 static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
-//printf("dwc_handle_nptxfempty_irq\n");
+//zxlogf(LINFO, "dwc_handle_nptxfempty_irq\n");
 
 	dwc_gnptxsts_t txstatus = {0};
 	dwc_endpoint_t *ep = NULL;
@@ -653,7 +653,7 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 					break;
 			}
 			if (0 == retry) {
-				printf("TxFIFO FULL: Can't trans data to HOST !\n");
+				zxlogf(LINFO, "TxFIFO FULL: Can't trans data to HOST !\n");
 				break;
 			}
 			/* Write the FIFO */
@@ -663,7 +663,7 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 }
 
 static void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
-    printf("dwc_handle_usbsuspend_irq\n");
+    zxlogf(LINFO, "dwc_handle_usbsuspend_irq\n");
 }
 
 
@@ -683,39 +683,39 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     regs->gotgint = gotgint;
 
 /*
-printf("dwc_handle_irq:");
-if (interrupts.modemismatch) printf(" modemismatch");
-if (interrupts.otgintr) printf(" otgintr");
-if (interrupts.sof_intr) printf(" sof_intr");
-if (interrupts.rxstsqlvl) printf(" rxstsqlvl");
-if (interrupts.nptxfempty) printf(" nptxfempty");
-if (interrupts.ginnakeff) printf(" ginnakeff");
-if (interrupts.goutnakeff) printf(" goutnakeff");
-if (interrupts.ulpickint) printf(" ulpickint");
-if (interrupts.i2cintr) printf(" i2cintr");
-if (interrupts.erlysuspend) printf(" erlysuspend");
-if (interrupts.usbsuspend) printf(" usbsuspend");
-if (interrupts.usbreset) printf(" usbreset");
-if (interrupts.enumdone) printf(" enumdone");
-if (interrupts.isooutdrop) printf(" isooutdrop");
-if (interrupts.eopframe) printf(" eopframe");
-if (interrupts.restoredone) printf(" restoredone");
-if (interrupts.epmismatch) printf(" epmismatch");
-if (interrupts.inepintr) printf(" inepintr");
-if (interrupts.outepintr) printf(" outepintr");
-if (interrupts.incomplisoin) printf(" incomplisoin");
-if (interrupts.incomplisoout) printf(" incomplisoout");
-if (interrupts.fetsusp) printf(" fetsusp");
-if (interrupts.resetdet) printf(" resetdet");
-if (interrupts.port_intr) printf(" port_intr");
-if (interrupts.host_channel_intr) printf(" host_channel_intr");
-if (interrupts.ptxfempty) printf(" ptxfempty");
-if (interrupts.lpmtranrcvd) printf(" lpmtranrcvd");
-if (interrupts.conidstschng) printf(" conidstschng");
-if (interrupts.disconnect) printf(" disconnect");
-if (interrupts.sessreqintr) printf(" sessreqintr");
-if (interrupts.wkupintr) printf(" wkupintr");
-printf("\n");
+zxlogf(LINFO, "dwc_handle_irq:");
+if (interrupts.modemismatch) zxlogf(LINFO, " modemismatch");
+if (interrupts.otgintr) zxlogf(LINFO, " otgintr");
+if (interrupts.sof_intr) zxlogf(LINFO, " sof_intr");
+if (interrupts.rxstsqlvl) zxlogf(LINFO, " rxstsqlvl");
+if (interrupts.nptxfempty) zxlogf(LINFO, " nptxfempty");
+if (interrupts.ginnakeff) zxlogf(LINFO, " ginnakeff");
+if (interrupts.goutnakeff) zxlogf(LINFO, " goutnakeff");
+if (interrupts.ulpickint) zxlogf(LINFO, " ulpickint");
+if (interrupts.i2cintr) zxlogf(LINFO, " i2cintr");
+if (interrupts.erlysuspend) zxlogf(LINFO, " erlysuspend");
+if (interrupts.usbsuspend) zxlogf(LINFO, " usbsuspend");
+if (interrupts.usbreset) zxlogf(LINFO, " usbreset");
+if (interrupts.enumdone) zxlogf(LINFO, " enumdone");
+if (interrupts.isooutdrop) zxlogf(LINFO, " isooutdrop");
+if (interrupts.eopframe) zxlogf(LINFO, " eopframe");
+if (interrupts.restoredone) zxlogf(LINFO, " restoredone");
+if (interrupts.epmismatch) zxlogf(LINFO, " epmismatch");
+if (interrupts.inepintr) zxlogf(LINFO, " inepintr");
+if (interrupts.outepintr) zxlogf(LINFO, " outepintr");
+if (interrupts.incomplisoin) zxlogf(LINFO, " incomplisoin");
+if (interrupts.incomplisoout) zxlogf(LINFO, " incomplisoout");
+if (interrupts.fetsusp) zxlogf(LINFO, " fetsusp");
+if (interrupts.resetdet) zxlogf(LINFO, " resetdet");
+if (interrupts.port_intr) zxlogf(LINFO, " port_intr");
+if (interrupts.host_channel_intr) zxlogf(LINFO, " host_channel_intr");
+if (interrupts.ptxfempty) zxlogf(LINFO, " ptxfempty");
+if (interrupts.lpmtranrcvd) zxlogf(LINFO, " lpmtranrcvd");
+if (interrupts.conidstschng) zxlogf(LINFO, " conidstschng");
+if (interrupts.disconnect) zxlogf(LINFO, " disconnect");
+if (interrupts.sessreqintr) zxlogf(LINFO, " sessreqintr");
+if (interrupts.wkupintr) zxlogf(LINFO, " wkupintr");
+zxlogf(LINFO, "\n");
 */
 
     if (interrupts.usbreset) {

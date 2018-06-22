@@ -88,7 +88,7 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
 	regs->gotgint = 0xFFFFFFF;
 	regs->gintsts.val = 0xFFFFFFF;
 
-printf("enabling interrupts %08x\n", gintmsk.val);
+zxlogf(LINFO, "enabling interrupts %08x\n", gintmsk.val);
 
     regs->gintmsk = gintmsk;
 
