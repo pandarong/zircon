@@ -136,7 +136,7 @@ zx_status_t aml_usb_init(aml_bus_t* bus) {
 #else
     const bool host = true;
 #endif
-    status = aml_usb_phy_v2_init(bti, host);
+    status = aml_usb_phy_v2_init(&bus->phy, bti, host);
     if (status != ZX_OK) {
         return status;
     }

@@ -38,11 +38,11 @@
 #define USB_R1_U3H_PME_EN                           (1 << 1)
 #define USB_R1_U3H_HUB_PORT_OVERCURRENT             (1 << 2)    // 3 bits
 #define USB_R1_U3H_HUB_PORT_PERM_ATTACH             (1 << 7)    // 3 bits
-#define USB_R1_U3H_HOST_U2_PORT_DISABLE             (1 << 12)   // 2 bits
+#define USB_R1_U3H_HOST_U2_PORT_DISABLE_SHIFT       12          // 2 bits
 #define USB_R1_U3H_HOST_U3_PORT_DISABLE             (1 << 16)
 #define USB_R1_U3H_HOST_PORT_POWER_CONTROL_PRESENT  (1 << 17)
 #define USB_R1_U3H_HOST_MSI_ENABLE                  (1 << 18)
-#define USB_R1_U3H_FLADJ_30MHZ_REG                  (1 << 19)   // 6 bits
+#define USB_R1_U3H_FLADJ_30MHZ_REG_SHIFT            19          // 6 bits
 #define USB_R1_P30_PCS_TX_SWING_FULL                (1 << 25)   // 7 bits
 
 #define USB_R2_P30_PCS_TX_DEEMPH_3P5DB              (1 << 20)   // 6 bits
@@ -65,5 +65,5 @@
 #define USB_R5_IDDIG_EN1                            (1 << 5)
 #define USB_R5_IDDIG_CURR                           (1 << 6)
 #define USB_R5_USB_IDDIG_IRQ                        (1 << 7)
-#define USB_R5_IDDIG_TH                             (1 << 8)    // 8 bits
+#define USB_R5_IDDIG_TH_SHIFT                       8           // 8 bits
 #define USB_R5_IDDIG_CNT                            (1 << 16)   // 8 bits

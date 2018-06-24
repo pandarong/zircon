@@ -11,6 +11,7 @@
 #include <ddk/protocol/iommu.h>
 #include <ddk/protocol/platform-bus.h>
 #include <ddk/protocol/serial.h>
+#include <soc/aml-common/aml-usb-phy-v2.h>
 
 // BTI IDs for our devices
 enum {
@@ -27,6 +28,7 @@ typedef struct {
     serial_impl_protocol_t serial;
     zx_device_t* parent;
     iommu_protocol_t iommu;
+    aml_usb_phy_v2_t phy;
 } aml_bus_t;
 
 // aml-gpio.c
