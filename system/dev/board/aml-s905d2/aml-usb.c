@@ -12,6 +12,44 @@
 
 #include "aml.h"
 
+#define USB_DEVICE 1
+
+#if USB_DEVICE
+static const pbus_mmio_t dwc2_mmios[] = {
+    {
+        .base = S905D2_USB1_BASE,
+        .length = S905D2_USB1_LENGTH,
+    },
+};
+
+static const pbus_irq_t dwc2_irqs[] = {
+    {
+        .irq = S905D2_USB1_IRQ,
+        .mode = ZX_INTERRUPT_MODE_LEVEL_HIGH,
+    },
+};
+
+static const pbus_bti_t dwc2_btis[] = {
+    {
+        .iommu_index = 0,
+        .bti_id = BTI_USB,
+    },
+};
+
+static const pbus_dev_t dwc2_dev = {
+    .name = "dwc2",
+    .vid = PDEV_VID_GENERIC,
+    .pid = PDEV_PID_GENERIC,
+    .did = PDEV_DID_USB_DWC2_DEVICE,
+    .mmios = dwc2_mmios,
+    .mmio_count = countof(dwc2_mmios),
+    .irqs = dwc2_irqs,
+    .irq_count = countof(dwc2_irqs),
+    .btis = dwc2_btis,
+    .bti_count = countof(dwc2_btis),
+};
+#else
+
 static const pbus_mmio_t xhci_mmios[] = {
     {
         .base = S905D2_USB0_BASE,
@@ -29,7 +67,7 @@ static const pbus_irq_t xhci_irqs[] = {
 static const pbus_bti_t xhci_btis[] = {
     {
         .iommu_index = 0,
-        .bti_id = BTI_USB_XHCI,
+        .bti_id = BTI_USB,
     },
 };
 
@@ -45,6 +83,7 @@ static const pbus_dev_t xhci_dev = {
     .btis = xhci_btis,
     .bti_count = countof(xhci_btis),
 };
+#endif
 
 zx_status_t aml_usb_init(aml_bus_t* bus) {
     zx_handle_t bti;
@@ -59,11 +98,19 @@ zx_status_t aml_usb_init(aml_bus_t* bus) {
         return status;
     }
 
-    status = aml_usb_phy_v2_init(&bus->phy, bti, true);
-    zx_handle_close(bti);
+#if USB_DEVICE
+    const bool host = false;
+#else
+    const bool host = true;
+#endif
+    status = aml_usb_phy_v2_init(&bus->phy, bti, host);    zx_handle_close(bti);
     if (status != ZX_OK) {
         return status;
     }
 
+#if USB_DEVICE
+    return pbus_device_add(&bus->pbus, &dwc2_dev, 0);
+#else
     return pbus_device_add(&bus->pbus, &xhci_dev, 0);
+#endif
 }
