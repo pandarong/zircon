@@ -203,11 +203,7 @@ static void dwc_enable_ep(dwc_usb_t* dwc, unsigned ep_num, bool enable) {
 static void dwc_ep_set_config(dwc_usb_t* dwc, unsigned ep_num, bool enable) {
     zxlogf(TRACE, "dwc3_ep_set_config %u\n", ep_num);
 
-//    dwc_endpoint_t* ep = &dwc->eps[ep_num];
-
     if (enable) {
-//        dwc3_cmd_ep_set_config(dwc, ep_num, ep->type, ep->max_packet_size, ep->interval, false);
-//        dwc3_cmd_ep_transfer_config(dwc, ep_num);
         dwc_enable_ep(dwc, ep_num, true);
     } else {
         dwc_enable_ep(dwc, ep_num, false);
@@ -250,8 +246,6 @@ void dwc_start_eps(dwc_usb_t* dwc) {
 
 void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req) {
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
-
-//if (ep_num != 2) return;
 
     // OUT transactions must have length > 0 and multiple of max packet size
     if (DWC_EP_IS_OUT(ep_num)) {

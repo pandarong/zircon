@@ -601,92 +601,88 @@ static void dwc_handle_usbsuspend_irq(dwc_usb_t* dwc) {
 }
 
 
-static void dwc_handle_irq(dwc_usb_t* dwc) {
-    dwc_regs_t* regs = dwc->regs;
-    dwc_interrupts_t interrupts = regs->gintsts;
-    dwc_interrupts_t mask = regs->gintmsk;
-
-    interrupts.val &= mask.val;
-
-    if (!interrupts.val) {
-        return;
-    }
-
-    // clear OTG interrupt
-    uint32_t gotgint = regs->gotgint;
-    regs->gotgint = gotgint;
-
-zxlogf(LINFO, "dwc_handle_irq:");
-if (interrupts.modemismatch) zxlogf(LINFO, " modemismatch");
-if (interrupts.otgintr) zxlogf(LINFO, " otgintr");
-if (interrupts.sof_intr) zxlogf(LINFO, " sof_intr");
-if (interrupts.rxstsqlvl) zxlogf(LINFO, " rxstsqlvl");
-if (interrupts.nptxfempty) zxlogf(LINFO, " nptxfempty");
-if (interrupts.ginnakeff) zxlogf(LINFO, " ginnakeff");
-if (interrupts.goutnakeff) zxlogf(LINFO, " goutnakeff");
-if (interrupts.ulpickint) zxlogf(LINFO, " ulpickint");
-if (interrupts.i2cintr) zxlogf(LINFO, " i2cintr");
-if (interrupts.erlysuspend) zxlogf(LINFO, " erlysuspend");
-if (interrupts.usbsuspend) zxlogf(LINFO, " usbsuspend");
-if (interrupts.usbreset) zxlogf(LINFO, " usbreset");
-if (interrupts.enumdone) zxlogf(LINFO, " enumdone");
-if (interrupts.isooutdrop) zxlogf(LINFO, " isooutdrop");
-if (interrupts.eopframe) zxlogf(LINFO, " eopframe");
-if (interrupts.restoredone) zxlogf(LINFO, " restoredone");
-if (interrupts.epmismatch) zxlogf(LINFO, " epmismatch");
-if (interrupts.inepintr) zxlogf(LINFO, " inepintr");
-if (interrupts.outepintr) zxlogf(LINFO, " outepintr");
-if (interrupts.incomplisoin) zxlogf(LINFO, " incomplisoin");
-if (interrupts.incomplisoout) zxlogf(LINFO, " incomplisoout");
-if (interrupts.fetsusp) zxlogf(LINFO, " fetsusp");
-if (interrupts.resetdet) zxlogf(LINFO, " resetdet");
-if (interrupts.port_intr) zxlogf(LINFO, " port_intr");
-if (interrupts.host_channel_intr) zxlogf(LINFO, " host_channel_intr");
-if (interrupts.ptxfempty) zxlogf(LINFO, " ptxfempty");
-if (interrupts.lpmtranrcvd) zxlogf(LINFO, " lpmtranrcvd");
-if (interrupts.conidstschng) zxlogf(LINFO, " conidstschng");
-if (interrupts.disconnect) zxlogf(LINFO, " disconnect");
-if (interrupts.sessreqintr) zxlogf(LINFO, " sessreqintr");
-if (interrupts.wkupintr) zxlogf(LINFO, " wkupintr");
-zxlogf(LINFO, "\n");
-
-    if (interrupts.usbreset) {
-        dwc_handle_reset_irq(dwc);
-    }
-    if (interrupts.usbsuspend) {
-        dwc_handle_usbsuspend_irq(dwc);
-    }
-    if (interrupts.enumdone) {
-        dwc_handle_enumdone_irq(dwc);
-    }
-    if (interrupts.rxstsqlvl) {
-        dwc_handle_rxstsqlvl_irq(dwc);
-    }
-    if (interrupts.inepintr) {
-        dwc_handle_inepintr_irq(dwc);
-    }
-    if (interrupts.outepintr) {
-        dwc_handle_outepintr_irq(dwc);
-    }
-    if (interrupts.nptxfempty) {
-        dwc_handle_nptxfempty_irq(dwc);
-    }
-
-    regs->gintsts = interrupts;
-}
-
 // Thread to handle interrupts.
 static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
+    dwc_regs_t* regs = dwc->regs;
 
     while (1) {
-/*        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
+        zx_status_t wait_res = zx_interrupt_wait(dwc->irq_handle, NULL);
         if (wait_res != ZX_OK) {
             zxlogf(ERROR, "dwc_usb: irq wait failed, retcode = %d\n", wait_res);
         }
+
+        //?? is while loop necessary?
+        while (1) {
+            dwc_interrupts_t interrupts = regs->gintsts;
+            dwc_interrupts_t mask = regs->gintmsk;
+            interrupts.val &= mask.val;
+
+            if (!interrupts.val) {
+                break;
+            }
+
+            // acknowledge
+            regs->gintsts = interrupts;
+
+/*
+            zxlogf(LINFO, "dwc_handle_irq:");
+            if (interrupts.modemismatch) zxlogf(LINFO, " modemismatch");
+            if (interrupts.otgintr) zxlogf(LINFO, " otgintr");
+            if (interrupts.sof_intr) zxlogf(LINFO, " sof_intr");
+            if (interrupts.rxstsqlvl) zxlogf(LINFO, " rxstsqlvl");
+            if (interrupts.nptxfempty) zxlogf(LINFO, " nptxfempty");
+            if (interrupts.ginnakeff) zxlogf(LINFO, " ginnakeff");
+            if (interrupts.goutnakeff) zxlogf(LINFO, " goutnakeff");
+            if (interrupts.ulpickint) zxlogf(LINFO, " ulpickint");
+            if (interrupts.i2cintr) zxlogf(LINFO, " i2cintr");
+            if (interrupts.erlysuspend) zxlogf(LINFO, " erlysuspend");
+            if (interrupts.usbsuspend) zxlogf(LINFO, " usbsuspend");
+            if (interrupts.usbreset) zxlogf(LINFO, " usbreset");
+            if (interrupts.enumdone) zxlogf(LINFO, " enumdone");
+            if (interrupts.isooutdrop) zxlogf(LINFO, " isooutdrop");
+            if (interrupts.eopframe) zxlogf(LINFO, " eopframe");
+            if (interrupts.restoredone) zxlogf(LINFO, " restoredone");
+            if (interrupts.epmismatch) zxlogf(LINFO, " epmismatch");
+            if (interrupts.inepintr) zxlogf(LINFO, " inepintr");
+            if (interrupts.outepintr) zxlogf(LINFO, " outepintr");
+            if (interrupts.incomplisoin) zxlogf(LINFO, " incomplisoin");
+            if (interrupts.incomplisoout) zxlogf(LINFO, " incomplisoout");
+            if (interrupts.fetsusp) zxlogf(LINFO, " fetsusp");
+            if (interrupts.resetdet) zxlogf(LINFO, " resetdet");
+            if (interrupts.port_intr) zxlogf(LINFO, " port_intr");
+            if (interrupts.host_channel_intr) zxlogf(LINFO, " host_channel_intr");
+            if (interrupts.ptxfempty) zxlogf(LINFO, " ptxfempty");
+            if (interrupts.lpmtranrcvd) zxlogf(LINFO, " lpmtranrcvd");
+            if (interrupts.conidstschng) zxlogf(LINFO, " conidstschng");
+            if (interrupts.disconnect) zxlogf(LINFO, " disconnect");
+            if (interrupts.sessreqintr) zxlogf(LINFO, " sessreqintr");
+            if (interrupts.wkupintr) zxlogf(LINFO, " wkupintr");
+            zxlogf(LINFO, "\n");
 */
-        dwc_handle_irq(dwc);
-        usleep(10000);
+
+            if (interrupts.usbreset) {
+                dwc_handle_reset_irq(dwc);
+            }
+            if (interrupts.usbsuspend) {
+                dwc_handle_usbsuspend_irq(dwc);
+            }
+            if (interrupts.enumdone) {
+                dwc_handle_enumdone_irq(dwc);
+            }
+            if (interrupts.rxstsqlvl) {
+                dwc_handle_rxstsqlvl_irq(dwc);
+            }
+            if (interrupts.inepintr) {
+                dwc_handle_inepintr_irq(dwc);
+            }
+            if (interrupts.outepintr) {
+                dwc_handle_outepintr_irq(dwc);
+            }
+            if (interrupts.nptxfempty) {
+                dwc_handle_nptxfempty_irq(dwc);
+            }
+        }
     }
 
     zxlogf(INFO, "dwc_usb: irq thread finished\n");
