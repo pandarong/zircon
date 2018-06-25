@@ -219,20 +219,16 @@ void dwc_reset_configuration(dwc_usb_t* dwc) {
     regs->daint = 1;
     mtx_unlock(&dwc->lock);
 
-    for (unsigned i = 2; i < countof(dwc->eps); i++) {
-        dwc_ep_end_transfers(dwc, i, ZX_ERR_IO_NOT_PRESENT);
-        dwc_ep_set_stall(dwc, i, false);
+    for (unsigned ep_num = 1; ep_num < countof(dwc->eps); ep_num++) {
+        dwc_ep_end_transfers(dwc, ep_num, ZX_ERR_IO_NOT_PRESENT);
+        dwc_ep_set_stall(dwc, ep_num, false);
     }
 }
 
 void dwc_start_eps(dwc_usb_t* dwc) {
     zxlogf(TRACE, "dwc3_start_eps\n");
 
-//    dwc3_cmd_ep_set_config(dwc, EP0_IN, USB_ENDPOINT_CONTROL, dwc->eps[EP0_IN].max_packet_size, 0,
-//                           true);
-//    dwc3_cmd_start_new_config(dwc, EP0_OUT, 2);
-
-    for (unsigned ep_num = 2; ep_num < countof(dwc->eps); ep_num++) {
+    for (unsigned ep_num = 1; ep_num < countof(dwc->eps); ep_num++) {
         dwc_endpoint_t* ep = &dwc->eps[ep_num];
         if (ep->enabled) {
             dwc_ep_set_config(dwc, ep_num, true);

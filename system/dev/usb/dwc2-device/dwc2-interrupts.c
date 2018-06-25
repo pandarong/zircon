@@ -455,69 +455,59 @@ break;
 
 static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
-	uint32_t ep_intr;
-	uint32_t epnum = 0;
 
-	/* Read in the device interrupt bits */
-	ep_intr = regs->daint;
-zxlogf(LINFO, "dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs->daintmsk);
-	ep_intr = (regs->daint & regs->daintmsk);
-	ep_intr = (ep_intr & 0xffff);
+	for (uint32_t ep_num = 0; ep_num < MAX_EPS_CHANNELS; ep_num++) {
+        uint32_t bit = 1 << ep_num;
+        if ((regs->daint & bit) == 0) {
+            continue;
+        }
+        regs->daint |= bit;
 
-	/* Clear all the interrupt bits for all IN endpoints in DAINT */
-    regs->daint = 0xFFFF;
+		dwc_diepint_t diepint = regs->depin[ep_num].diepint;
 
-	/* Service the Device IN interrupts for each endpoint */
-	while (ep_intr) {
-		if (ep_intr & 1) {
-		    dwc_diepint_t diepint = regs->depin[epnum].diepint;
-
-			/* Transfer complete */
-			if (diepint.xfercompl) {
-if (epnum > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl epnum %u\n", epnum);
-				CLEAR_IN_EP_INTR(epnum, xfercompl);
-//				regs->depin[epnum].diepint.xfercompl = 1;
-				/* Complete the transfer */
-				if (0 == epnum) {
-					dwc_handle_ep0(dwc);
-				} else {
-					dwc_complete_ep(dwc, epnum);
-					if (diepint.nak) {
-						CLEAR_IN_EP_INTR(epnum, nak);
-				    }
-				}
-			}
-			/* Endpoint disable  */
-			if (diepint.epdisabled) {
-				/* Clear the bit in DIEPINTn for this interrupt */
-				CLEAR_IN_EP_INTR(epnum, epdisabled);
-			}
-			/* AHB Error */
-			if (diepint.ahberr) {
-				/* Clear the bit in DIEPINTn for this interrupt */
-				CLEAR_IN_EP_INTR(epnum, ahberr);
-			}
-			/* TimeOUT Handshake (non-ISOC IN EPs) */
-			if (diepint.timeout) {
-//				handle_in_ep_timeout_intr(epnum);
-zxlogf(LINFO, "TODO handle_in_ep_timeout_intr\n");
-				CLEAR_IN_EP_INTR(epnum, timeout);
-			}
-			/** IN Token received with TxF Empty */
-			if (diepint.intktxfemp) {
-				CLEAR_IN_EP_INTR(epnum, intktxfemp);
-			}
-			/** IN Token Received with EP mismatch */
-			if (diepint.intknepmis) {
-				CLEAR_IN_EP_INTR(epnum, intknepmis);
-			}
-			/** IN Endpoint NAK Effective */
-			if (diepint.inepnakeff) {
-				CLEAR_IN_EP_INTR(epnum, inepnakeff);
+		/* Transfer complete */
+		if (diepint.xfercompl) {
+if (ep_num > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl ep_num %u\n", ep_num);
+			CLEAR_IN_EP_INTR(ep_num, xfercompl);
+//				regs->depin[ep_num].diepint.xfercompl = 1;
+			/* Complete the transfer */
+			if (0 == ep_num) {
+				dwc_handle_ep0(dwc);
+			} else {
+				dwc_complete_ep(dwc, ep_num);
+				if (diepint.nak) {
+					CLEAR_IN_EP_INTR(ep_num, nak);
+			    }
 			}
 		}
-		epnum++;
-		ep_intr >>= 1;
+		/* Endpoint disable  */
+		if (diepint.epdisabled) {
+			/* Clear the bit in DIEPINTn for this interrupt */
+			CLEAR_IN_EP_INTR(ep_num, epdisabled);
+		}
+		/* AHB Error */
+		if (diepint.ahberr) {
+			/* Clear the bit in DIEPINTn for this interrupt */
+			CLEAR_IN_EP_INTR(ep_num, ahberr);
+		}
+		/* TimeOUT Handshake (non-ISOC IN EPs) */
+		if (diepint.timeout) {
+//				handle_in_ep_timeout_intr(ep_num);
+zxlogf(LINFO, "TODO handle_in_ep_timeout_intr\n");
+			CLEAR_IN_EP_INTR(ep_num, timeout);
+		}
+		/** IN Token received with TxF Empty */
+		if (diepint.intktxfemp) {
+			CLEAR_IN_EP_INTR(ep_num, intktxfemp);
+		}
+		/** IN Token Received with EP mismatch */
+		if (diepint.intknepmis) {
+			CLEAR_IN_EP_INTR(ep_num, intknepmis);
+		}
+		/** IN Endpoint NAK Effective */
+		if (diepint.inepnakeff) {
+			CLEAR_IN_EP_INTR(ep_num, inepnakeff);
+		}
 	}
 }
 
