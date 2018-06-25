@@ -210,6 +210,8 @@ void dwc_start_eps(dwc_usb_t* dwc) {
 void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req) {
     dwc_endpoint_t* ep = &dwc->eps[ep_num];
 
+//if (ep_num != 2) return;
+
     // OUT transactions must have length > 0 and multiple of max packet size
     if (DWC_EP_IS_OUT(ep_num)) {
         if (req->header.length == 0 || req->header.length % ep->max_packet_size != 0) {

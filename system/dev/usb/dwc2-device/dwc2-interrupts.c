@@ -53,7 +53,7 @@ if (epnum > 0) zxlogf(LINFO, "dwc_ep_write_packet ep %d byte_count: %u dword_cou
 
 	for (i = 0; i < dword_count; i++) {
 		temp_data = *((uint32_t*)req_buffer);
-zxlogf(LSPEW, "write %08x\n", temp_data);
+zxlogf(LINFO, "write %08x\n", temp_data);
 		*fifo = temp_data;
 		req_buffer += 4;
 	}
@@ -649,6 +649,9 @@ static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
 
 			while (retry--) {
 				txstatus = regs->gnptxsts;
+
+zxlogf(LINFO, "ep_num %d nptxqspcavail %u nptxfspcavail %u dwords %u\n", ep->ep_num, txstatus.nptxqspcavail, txstatus.nptxfspcavail, dwords);
+
 				if (txstatus.nptxqspcavail > 0 && txstatus.nptxfspcavail > dwords)
 					break;
 			}
@@ -682,7 +685,6 @@ static void dwc_handle_irq(dwc_usb_t* dwc) {
     uint32_t gotgint = regs->gotgint;
     regs->gotgint = gotgint;
 
-/*
 zxlogf(LINFO, "dwc_handle_irq:");
 if (interrupts.modemismatch) zxlogf(LINFO, " modemismatch");
 if (interrupts.otgintr) zxlogf(LINFO, " otgintr");
@@ -716,7 +718,6 @@ if (interrupts.disconnect) zxlogf(LINFO, " disconnect");
 if (interrupts.sessreqintr) zxlogf(LINFO, " sessreqintr");
 if (interrupts.wkupintr) zxlogf(LINFO, " wkupintr");
 zxlogf(LINFO, "\n");
-*/
 
     if (interrupts.usbreset) {
         dwc_handle_reset_irq(dwc);
@@ -754,6 +755,7 @@ static int dwc_irq_thread(void* arg) {
         }
 */
         dwc_handle_irq(dwc);
+        usleep(10000);
     }
 
     zxlogf(INFO, "dwc_usb: irq thread finished\n");
