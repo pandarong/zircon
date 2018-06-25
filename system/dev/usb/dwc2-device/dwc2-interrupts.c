@@ -6,9 +6,6 @@
 
 #include "dwc2.h"
 
-#define DWC_REG_DATA_FIFO_START 0x1000
-#define DWC_REG_DATA_FIFO(regs, ep)	((volatile uint32_t*)((uint8_t*)regs + (ep + 1) * 0x1000))
-
 #define CLEAR_IN_EP_INTR(__epnum, __intr) \
 do { \
         dwc_diepint_t diepint = {0}; \
@@ -32,33 +29,6 @@ static void dwc_ep_read_packet(dwc_regs_t* regs, void* buffer, uint32_t length, 
 	    *dest++ = *fifo;
 zxlogf(LSPEW, "read %08x\n", dest[-1]);
 	}
-}
-
-static void dwc_ep_write_packet(dwc_usb_t* dwc, int epnum, uint32_t byte_count, uint32_t dword_count) {
-if (epnum > 0) zxlogf(LINFO, "dwc_ep_write_packet ep %d byte_count: %u dword_count %u\n", epnum, byte_count, dword_count);
-    dwc_regs_t* regs = dwc->regs;
-    dwc_endpoint_t* ep = &dwc->eps[epnum];
-
-	uint32_t i;
-	volatile uint32_t* fifo;
-	uint32_t temp_data;
-    uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
-
-	if (ep->req_offset >= ep->req_length) {
-		zxlogf(LINFO, "dwc_ep_write_packet: No data for EP%d! offset %u length %u\n", epnum, ep->req_offset, ep->req_length);
-		return;
-	}
-
-	fifo = DWC_REG_DATA_FIFO(regs, epnum);
-
-	for (i = 0; i < dword_count; i++) {
-		temp_data = *((uint32_t*)req_buffer);
-zxlogf(LINFO, "write %08x\n", temp_data);
-		*fifo = temp_data;
-		req_buffer += 4;
-	}
-
-	ep->req_offset += byte_count;
 }
 
 static void dwc_set_address(dwc_usb_t* dwc, uint8_t address) {
@@ -499,15 +469,12 @@ zxlogf(LINFO, "dwc_handle_inepintr_irq ep_intr %08x mask %08x\n", ep_intr, regs-
 
 	/* Service the Device IN interrupts for each endpoint */
 	while (ep_intr) {
-		if (ep_intr & 0x1) {
+		if (ep_intr & 1) {
 		    dwc_diepint_t diepint = regs->depin[epnum].diepint;
 
 			/* Transfer complete */
 			if (diepint.xfercompl) {
-if (epnum > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl\n");
-				/* Disable the NP Tx FIFO Empty Interrrupt  */
-//???		        regs->gintmsk.nptxfempty = 0;
-				/* Clear the bit in DIEPINTn for this interrupt */
+if (epnum > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl epnum %u\n", epnum);
 				CLEAR_IN_EP_INTR(epnum, xfercompl);
 //				regs->depin[epnum].diepint.xfercompl = 1;
 				/* Complete the transfer */
@@ -614,54 +581,18 @@ zxlogf(LINFO, "dwc_handle_outepintr_irq ahberr\n");
 }
 
 static void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc) {
+    bool need_more = false;
     dwc_regs_t* regs = dwc->regs;
-
-//zxlogf(LINFO, "dwc_handle_nptxfempty_irq\n");
-
-	dwc_gnptxsts_t txstatus = {0};
-	dwc_endpoint_t *ep = NULL;
-	uint32_t len = 0;
-	uint32_t dwords;
-	uint32_t epnum = 0;
-
-    /* Get the epnum from the IN Token Learning Queue. */
-	for (epnum = 0; epnum < MAX_EPS_CHANNELS; epnum++) {
-		ep = &dwc->eps[epnum];
-
-		dwc_depctl_t depctl = regs->depin[epnum].diepctl;
-		if (depctl.epena != 1) {
-			continue;
+	for (uint32_t ep_num = 0; ep_num < MAX_EPS_CHANNELS; ep_num++) {
+	    if (regs->daintmsk & (1 << ep_num)) {
+            if (dwc_ep_write_packet(dwc, ep_num)) {
+                need_more = true;
+            }
         }
-
-		/* While there is space in the queue and space in the FIFO and
-		 * More data to tranfer, Write packets to the Tx FIFO */
-		txstatus = regs->gnptxsts;
-		while  (/*txstatus.b.nptxqspcavail > 0 &&
-			txstatus.b.nptxfspcavail > dwords &&*/
-		            ep->req_offset < ep->req_length) {
-			uint32_t retry = 1000000;
-
-			len = ep->req_length - ep->req_offset;
-			if (len > ep->max_packet_size)
-				len = ep->max_packet_size;
-
-			dwords = (len + 3) >> 2;
-
-			while (retry--) {
-				txstatus = regs->gnptxsts;
-
-zxlogf(LINFO, "ep_num %d nptxqspcavail %u nptxfspcavail %u dwords %u\n", ep->ep_num, txstatus.nptxqspcavail, txstatus.nptxfspcavail, dwords);
-
-				if (txstatus.nptxqspcavail > 0 && txstatus.nptxfspcavail > dwords)
-					break;
-			}
-			if (0 == retry) {
-				zxlogf(LINFO, "TxFIFO FULL: Can't trans data to HOST !\n");
-				break;
-			}
-			/* Write the FIFO */
-			dwc_ep_write_packet(dwc, epnum, len, dwords);
-		}
+	}
+	if (!need_more) {
+	    zxlogf(LINFO, "turn off nptxfempty\n");
+		regs->gintmsk.nptxfempty = 0;
 	}
 }
 

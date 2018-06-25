@@ -4,6 +4,50 @@
 
 #include "dwc2.h"
 
+bool dwc_ep_write_packet(dwc_usb_t* dwc, int ep_num) {
+    dwc_regs_t* regs = dwc->regs;
+    dwc_endpoint_t* ep = &dwc->eps[ep_num];
+
+	uint32_t len = ep->req_length - ep->req_offset;
+	if (len > ep->max_packet_size)
+		len = ep->max_packet_size;
+
+	uint32_t dwords = (len + 3) >> 2;
+    uint8_t *req_buffer = &ep->req_buffer[ep->req_offset];
+
+	dwc_gnptxsts_t txstatus = regs->gnptxsts;
+	while  (ep->req_offset < ep->req_length && txstatus.nptxqspcavail > 0 && txstatus.nptxfspcavail > dwords) {
+zxlogf(LINFO, "ep_num %d nptxqspcavail %u nptxfspcavail %u dwords %u\n", ep->ep_num, txstatus.nptxqspcavail, txstatus.nptxfspcavail, dwords);
+
+    	volatile uint32_t* fifo = DWC_REG_DATA_FIFO(regs, ep_num);
+    
+    	for (uint32_t i = 0; i < dwords; i++) {
+    		uint32_t temp = *((uint32_t*)req_buffer);
+//zxlogf(LINFO, "write %08x\n", temp);
+    		*fifo = temp;
+    		req_buffer += 4;
+    	}
+    
+    	ep->req_offset += len;
+
+	    len = ep->req_length - ep->req_offset;
+		if (len > ep->max_packet_size)
+			len = ep->max_packet_size;
+
+	    dwords = (len + 3) >> 2;
+		txstatus = regs->gnptxsts;
+	}
+
+    if (ep->req_offset < ep->req_length) {
+        // enable txempty
+	    zxlogf(LINFO, "turn on nptxfempty\n");
+		regs->gintmsk.nptxfempty = 1;
+		return true;
+    } else {
+        return false;
+    }
+}
+
 void dwc_ep_start_transfer(dwc_usb_t* dwc, unsigned ep_num, bool is_in, size_t length) {
 if (ep_num > 0) zxlogf(LINFO, "dwc_ep_start_transfer epnum %u is_in %d length %zu\n", ep_num, is_in, length);
     dwc_regs_t* regs = dwc->regs;
@@ -48,18 +92,15 @@ zxlogf(LINFO, "epnum %d is_in %d xfer_count %d xfer_len %d pktcnt %d xfersize %d
 
     *deptsiz_reg = deptsiz;
 
-	/* IN endpoint */
-	if (is_in) {
-		/* First clear it from GINTSTS */
-//?????		regs->gintsts.nptxfempty = 0;
-		regs->gintmsk.nptxfempty = 1;
-	}
-
 	/* EP enable */
 	depctl.cnak = 1;
 	depctl.epena = 1;
 
     *depctl_reg = depctl;
+
+    if (is_in) {
+        dwc_ep_write_packet(dwc, ep_num);
+    }
 }
 
 void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num) {
