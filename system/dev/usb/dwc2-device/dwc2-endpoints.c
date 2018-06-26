@@ -111,6 +111,13 @@ void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num) {
         usb_request_t* req = ep->current_req;
 
         if (req) {
+#if SINGLE_EP_IN_QUEUE
+        if (DWC_EP_IS_IN(ep->ep_num)) {
+            ZX_DEBUG_ASSERT(dwc->current_in_req == ep->current_req);
+            dwc->current_in_req = NULL;
+        }
+#endif
+
             ep->current_req = NULL;
             usb_request_complete(req, ZX_OK, ep->req_offset);
         }
@@ -152,16 +159,29 @@ void dwc_complete_ep(dwc_usb_t* dwc, uint32_t ep_num) {
 }
 
 static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {
-    usb_request_t* req;
+    usb_request_t* req = NULL;
+    bool is_in = DWC_EP_IS_IN(ep->ep_num);
 
-    if (ep->current_req == NULL &&
-        (req = list_remove_head_type(&ep->queued_reqs, usb_request_t, node)) != NULL) {
+#if SINGLE_EP_IN_QUEUE
+    if (is_in) {
+        if (dwc->current_in_req == NULL) {
+            req = list_remove_head_type(&dwc->queued_in_reqs, usb_request_t, node);
+        }
+    } else
+#endif
+    {
+        if (ep->current_req == NULL) {
+            req = list_remove_head_type(&ep->queued_reqs, usb_request_t, node);
+        }
+    }
+
+    if (req) {
         ep->current_req = req;
         
         usb_request_mmap(req, (void **)&ep->req_buffer);
         ep->send_zlp = req->header.send_zlp && (req->header.length % ep->max_packet_size) == 0;
 
-	    dwc_ep_start_transfer(dwc, ep->ep_num, DWC_EP_IS_IN(ep->ep_num), req->header.length);
+	    dwc_ep_start_transfer(dwc, ep->ep_num, is_in, req->header.length);
     }
 }
 
@@ -218,6 +238,10 @@ void dwc_reset_configuration(dwc_usb_t* dwc) {
     // disable all endpoints except EP0_OUT and EP0_IN
     regs->daint = 1;
     mtx_unlock(&dwc->lock);
+
+#if SINGLE_EP_IN_QUEUE
+    // Do something here
+#endif
 
     for (unsigned ep_num = 1; ep_num < countof(dwc->eps); ep_num++) {
         dwc_ep_end_transfers(dwc, ep_num, ZX_ERR_IO_NOT_PRESENT);

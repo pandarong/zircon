@@ -36,6 +36,8 @@
 #define MMIO_INDEX  0
 #define IRQ_INDEX   0
 
+#define SINGLE_EP_IN_QUEUE 1
+
 typedef enum dwc_ep0_state {
     EP0_STATE_DISCONNECTED,
     EP0_STATE_IDLE,
@@ -87,6 +89,11 @@ typedef struct {
     dwc_endpoint_t eps[DWC_MAX_EPS];
 
     usb_dci_interface_t dci_intf;
+
+#if SINGLE_EP_IN_QUEUE
+    list_node_t queued_in_reqs;
+    usb_request_t* current_in_req;
+#endif
 
     // Used for synchronizing global state
     // and non ep specific hardware registers.

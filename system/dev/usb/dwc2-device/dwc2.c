@@ -260,6 +260,10 @@ static zx_status_t dwc_bind(void* ctx, zx_device_t* dev) {
         return ZX_ERR_NO_MEMORY;
     }
 
+#if SINGLE_EP_IN_QUEUE
+    list_initialize(&dwc->queued_in_reqs);
+#endif
+
     zx_status_t status = device_get_protocol(dev, ZX_PROTOCOL_PLATFORM_DEV, &dwc->pdev);
     if (status != ZX_OK) {
         free(dwc);
@@ -282,7 +286,6 @@ static zx_status_t dwc_bind(void* ctx, zx_device_t* dev) {
         list_initialize(&ep->queued_reqs);
     }
     dwc->eps[0].req_buffer = dwc->ep0_buffer;
-
 
     // Carve out some address space for this device.
     size_t mmio_size;
