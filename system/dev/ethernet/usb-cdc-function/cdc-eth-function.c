@@ -454,9 +454,6 @@ static zx_status_t cdc_set_interface(void* ctx, unsigned interface, unsigned alt
 
     // TODO(voydanoff) fullspeed and superspeed support
     if (alt_setting) {
-        // send status notifications on interrupt endpoint
-        status = cdc_send_notifications(cdc);
-
         if ((status = usb_function_config_ep(&cdc->function, &descriptors.bulk_out_ep, NULL))
                 != ZX_OK ||
             (status = usb_function_config_ep(&cdc->function, &descriptors.bulk_in_ep, NULL))
@@ -481,6 +478,9 @@ static zx_status_t cdc_set_interface(void* ctx, unsigned interface, unsigned alt
             usb_function_queue(&cdc->function, req);
         }
         mtx_unlock(&cdc->rx_mutex);
+
+        // send status notifications on interrupt endpoint
+        status = cdc_send_notifications(cdc);
     }
 
     mtx_lock(&cdc->ethmac_mutex);

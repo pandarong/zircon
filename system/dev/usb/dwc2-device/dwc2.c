@@ -46,7 +46,7 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
 
     regs->grxfsiz = 256;    //???
 
-	regs->gnptxfsiz.depth = 512;
+	regs->gnptxfsiz.depth = 256;
 	regs->gnptxfsiz.startaddr = 256;
 
 	dwc_flush_fifo(dwc, 0x10);
@@ -76,6 +76,11 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
 //    gintmsk.sof_intr = 1;
     gintmsk.usbsuspend = 1;
 
+
+    gintmsk.ginnakeff = 1;
+    gintmsk.goutnakeff = 1;
+
+
 /*
 	gintmsk.modemismatch = 1;
 	gintmsk.otgintr = 1;
@@ -84,6 +89,8 @@ static zx_status_t usb_dwc_setupcontroller(dwc_usb_t* dwc) {
 	gintmsk.disconnect = 0;
 	gintmsk.sessreqintr = 1;
 */
+
+printf("ghwcfg1 %08x ghwcfg2 %08x ghwcfg3 %08x\n", regs->ghwcfg1, regs->ghwcfg2, regs->ghwcfg3);
 
 	regs->gotgint = 0xFFFFFFF;
 	regs->gintsts.val = 0xFFFFFFF;
@@ -100,7 +107,7 @@ zxlogf(LINFO, "enabling interrupts %08x\n", gintmsk.val);
 static void dwc_request_queue(void* ctx, usb_request_t* req) {
     dwc_usb_t* dwc = ctx;
 
-//    zxlogf(INFO, "XXXXXXX dwc_request_queue ep: 0x%02x\n", req->header.ep_address);
+    zxlogf(INFO, "XXXXXXX dwc_request_queue ep: 0x%02x length %zu\n", req->header.ep_address, req->header.length);
     unsigned ep_num = DWC_ADDR_TO_INDEX(req->header.ep_address);
     if (ep_num == 0 || ep_num >= countof(dwc->eps)) {
         zxlogf(ERROR, "dwc_request_queue: bad ep address 0x%02X\n", req->header.ep_address);

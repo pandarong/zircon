@@ -174,6 +174,7 @@ static void dwc_ep_queue_next_locked(dwc_usb_t* dwc, dwc_endpoint_t* ep) {
             req = list_remove_head_type(&ep->queued_reqs, usb_request_t, node);
         }
     }
+printf("dwc_ep_queue_next_locked current_req %p req %p\n", ep->current_req, req);
 
     if (req) {
         ep->current_req = req;
@@ -280,7 +281,8 @@ void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req) {
 
     if (!ep->enabled) {
         mtx_unlock(&ep->lock);
-        usb_request_complete(req, ZX_ERR_BAD_STATE, 0);
+        zxlogf(ERROR, "dwc_ep_queue ep not enabled!\n");    
+       usb_request_complete(req, ZX_ERR_BAD_STATE, 0);
         return;
     }
 
@@ -288,6 +290,8 @@ void dwc_ep_queue(dwc_usb_t* dwc, unsigned ep_num, usb_request_t* req) {
 
     if (dwc->configured) {
         dwc_ep_queue_next_locked(dwc, ep);
+    } else {
+            zxlogf(ERROR, "dwc_ep_queue not configured!\n");    
     }
 
     mtx_unlock(&ep->lock);

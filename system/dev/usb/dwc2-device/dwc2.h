@@ -36,7 +36,7 @@
 #define MMIO_INDEX  0
 #define IRQ_INDEX   0
 
-#define SINGLE_EP_IN_QUEUE 1
+//#define SINGLE_EP_IN_QUEUE 1
 
 typedef enum dwc_ep0_state {
     EP0_STATE_DISCONNECTED,

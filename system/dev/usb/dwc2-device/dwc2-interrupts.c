@@ -138,11 +138,12 @@ static zx_status_t dwc_handle_setup(dwc_usb_t* dwc, usb_setup_t* setup, void* bu
         case USB_REQ_SET_CONFIGURATION:
             zxlogf(INFO, "SET_CONFIGURATION %d\n", setup->wValue);
             dwc_reset_configuration(dwc);
-            dwc->configured = false;
+                dwc->configured = true;
             status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
             if (status == ZX_OK && setup->wValue) {
-                dwc->configured = true;
                 dwc_start_eps(dwc);
+            } else {
+                dwc->configured = false;
             }
             return status;
         default:
@@ -153,11 +154,12 @@ static zx_status_t dwc_handle_setup(dwc_usb_t* dwc, usb_setup_t* setup, void* bu
                setup->bRequest == USB_REQ_SET_INTERFACE) {
         zxlogf(INFO, "SET_INTERFACE %d\n", setup->wValue);
         dwc_reset_configuration(dwc);
-        dwc->configured = false;
+        dwc->configured = true;
         status = usb_dci_control(&dwc->dci_intf, setup, buffer, length, out_actual);
         if (status == ZX_OK) {
-            dwc->configured = true;
             dwc_start_eps(dwc);
+        } else {
+            dwc->configured = false;
         }
         return status;
     }
@@ -456,9 +458,11 @@ break;
 static void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
     dwc_regs_t* regs = dwc->regs;
 
+printf("dwc_handle_inepintr_irq\n");
 	for (uint32_t ep_num = 0; ep_num < MAX_EPS_CHANNELS; ep_num++) {
         uint32_t bit = 1 << ep_num;
-        if ((regs->daint & bit) == 0) {
+        uint32_t daint = regs->daint;
+        if ((daint & bit) == 0) {
             continue;
         }
         regs->daint |= bit;
@@ -476,6 +480,7 @@ if (ep_num > 0) zxlogf(LINFO, "dwc_handle_inepintr_irq xfercompl ep_num %u\n", e
 			} else {
 				dwc_complete_ep(dwc, ep_num);
 				if (diepint.nak) {
+printf("diepint.nak ep_num %u\n", ep_num);
 					CLEAR_IN_EP_INTR(ep_num, nak);
 			    }
 			}
@@ -506,6 +511,7 @@ zxlogf(LINFO, "TODO handle_in_ep_timeout_intr\n");
 		}
 		/** IN Endpoint NAK Effective */
 		if (diepint.inepnakeff) {
+printf("diepint.inepnakeff ep_num %u\n", ep_num);
 			CLEAR_IN_EP_INTR(ep_num, inepnakeff);
 		}
 	}
@@ -615,7 +621,6 @@ static int dwc_irq_thread(void* arg) {
             // acknowledge
             regs->gintsts = interrupts;
 
-/*
             zxlogf(LINFO, "dwc_handle_irq:");
             if (interrupts.modemismatch) zxlogf(LINFO, " modemismatch");
             if (interrupts.otgintr) zxlogf(LINFO, " otgintr");
@@ -649,7 +654,6 @@ static int dwc_irq_thread(void* arg) {
             if (interrupts.sessreqintr) zxlogf(LINFO, " sessreqintr");
             if (interrupts.wkupintr) zxlogf(LINFO, " wkupintr");
             zxlogf(LINFO, "\n");
-*/
 
             if (interrupts.usbreset) {
                 dwc_handle_reset_irq(dwc);
