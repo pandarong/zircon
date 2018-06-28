@@ -13,6 +13,7 @@
 #include <ddk/debug.h>
 #include <ddk/driver.h>
 #include <ddk/metadata.h>
+#include <ddk/protocol/bad-block.h>
 
 #include <fbl/algorithm.h>
 #include <fbl/alloc_checker.h>
@@ -111,11 +112,38 @@ zx_status_t NandPartDevice::Create(zx_device_t* parent) {
     // Make sure parent_op_size is aligned, so we can safely add our data at the end.
     parent_op_size = fbl::round_up(parent_op_size, 8u);
 
-    // Query parent for partition map.
+    // Query parent for bad block configuration info.
     size_t actual;
+    bad_block_config_t bad_block_config;
+    zx_status_t status = device_get_metadata(parent, DEVICE_METADATA_DRIVER_DATA, &bad_block_config,
+                                             sizeof(bad_block_config), &actual);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "nandpart: parent device '%s' has no device metadata\n",
+               device_get_name(parent));
+        return status;
+    }
+    if (actual != sizeof(bad_block_config)) {
+        zxlogf(ERROR, "nandpart: Expected metadata of size %zu, got %zu\n",
+               sizeof(bad_block_config), actual);
+        return ZX_ERR_INTERNAL;
+    }
+
+    // Create a bad block instance.
+    BadBlock::Config config = {
+        .bad_block_config = bad_block_config,
+        .nand_proto = nand_proto,
+    };
+    fbl::RefPtr<BadBlock> bad_block;
+    status = BadBlock::Create(config, &bad_block);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "nandpart: Failed to create BadBlock object\n");
+        return status;
+    }
+
+    // Query parent for partition map.
     uint8_t buffer[METADATA_PARTITION_MAP_MAX];
-    zx_status_t status = device_get_metadata(parent, DEVICE_METADATA_PARTITION_MAP, buffer,
-                                             sizeof(buffer), &actual);
+    status = device_get_metadata(parent, DEVICE_METADATA_PARTITION_MAP, buffer, sizeof(buffer),
+                                 &actual);
     if (status != ZX_OK) {
         zxlogf(ERROR, "nandpart: parent device '%s' has no parititon map\n",
                device_get_name(parent));
@@ -161,7 +189,7 @@ zx_status_t NandPartDevice::Create(zx_device_t* parent) {
 
         fbl::AllocChecker ac;
         fbl::unique_ptr<NandPartDevice> device(new (&ac) NandPartDevice(
-            parent, nand_proto, parent_op_size, nand_info,
+            parent, nand_proto, bad_block, parent_op_size, nand_info,
             static_cast<uint32_t>(part->first_block)));
         if (!ac.check()) {
             continue;
@@ -237,6 +265,105 @@ void NandPartDevice::GetBadBlockList(uint32_t* bad_blocks, uint32_t bad_block_le
                                      uint32_t* num_bad_blocks) {
     // TODO implement this
     *num_bad_blocks = 0;
+}
+
+zx_status_t NandPartDevice::GetBadBlockList2(uint32_t* bad_block_list, uint32_t bad_block_list_len,
+                                             uint32_t* bad_block_count) {
+
+    if (!bad_block_list_) {
+        const zx_status_t status = bad_block_->GetBadBlockList(
+            &bad_block_list_, erase_block_start_, erase_block_start_ + nand_info_.num_blocks);
+        if (status != ZX_OK) {
+            return status;
+        }
+    }
+
+    *bad_block_count = static_cast<uint32_t>(bad_block_list_.size());
+    zxlogf(TRACE, "nandpart: %s: Bad block count: %u\n", name(), *bad_block_count);
+
+    if (bad_block_list_len == 0 || bad_block_list_.size() == 0) {
+        return ZX_OK;
+    }
+    if (bad_block_list == NULL) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+
+    if (bad_block_list_.size() > 0) {
+        const size_t size = sizeof(uint32_t) * bad_block_list_.size();
+        memcpy(bad_block_list, bad_block_list_.get(), size);
+    }
+    return ZX_OK;
+}
+
+zx_status_t NandPartDevice::IsBlockBad(uint32_t block, bool* is_bad) {
+    if (block >= nand_info_.num_blocks) {
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+
+    if (!bad_block_list_) {
+        const zx_status_t status = bad_block_->GetBadBlockList(
+            &bad_block_list_, erase_block_start_, erase_block_start_ + nand_info_.num_blocks);
+        if (status != ZX_OK) {
+            return status;
+        }
+    }
+
+    *is_bad = false;
+    // bad_block_list should be relatively small and we don't keep the
+    // bad_block_list sorted, so we simply iterate through entire list.
+    for (const auto& bad_block : bad_block_list_) {
+        if (bad_block == block) {
+            *is_bad = true;
+            break;
+        }
+    }
+    return ZX_OK;
+}
+
+zx_status_t NandPartDevice::MarkBlockBad(uint32_t block) {
+    if (block >= nand_info_.num_blocks) {
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+
+    if (!bad_block_list_) {
+        const zx_status_t status = bad_block_->GetBadBlockList(
+            &bad_block_list_, erase_block_start_, erase_block_start_ + nand_info_.num_blocks);
+        if (status != ZX_OK) {
+            return status;
+        }
+    }
+
+    // First, update our cached copy of the bad block list.
+    fbl::AllocChecker ac;
+    const size_t new_size = bad_block_list_.size() + 1;
+    fbl::Array<uint32_t> new_bad_block_list(new (&ac) uint32_t[new_size], new_size);
+    if (!ac.check()) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    memcpy(new_bad_block_list.get(), bad_block_list_.get(),
+           bad_block_list_.size() * sizeof(uint32_t));
+    new_bad_block_list[bad_block_list_.size()] = block;
+    bad_block_list_ = fbl::move(new_bad_block_list);
+
+    // Second, "write-through" to actually persist.
+    block += erase_block_start_;
+    return bad_block_->MarkBlockBad(block);
+}
+
+zx_status_t NandPartDevice::DdkGetProtocol(uint32_t proto_id, void* protocol) {
+    auto* proto = static_cast<ddk::AnyProtocol*>(protocol);
+    proto->ctx = this;
+    switch (proto_id) {
+    case ZX_PROTOCOL_NAND:
+        proto->ops = &nand_proto_ops_;
+        break;
+    case ZX_PROTOCOL_BAD_BLOCK:
+        proto->ops = &bad_block_proto_ops_;
+        break;
+    default:
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+    return ZX_OK;
 }
 
 } // namespace nand
