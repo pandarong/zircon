@@ -127,6 +127,8 @@ zx_status_t nand_erase_op(nand_device_t *dev, nand_op_t *nand_op)
 static zx_status_t nand_read_page_data_oob_op(nand_device_t *dev,
                                               nand_op_t *nand_op)
 {
+    uint8_t *aligned_vaddr_data = NULL;
+    uint8_t *aligned_vaddr_oob = NULL;
     uint8_t *vaddr_data = NULL;
     uint8_t *vaddr_oob = NULL;
     int ecc_correct;
@@ -134,35 +136,43 @@ static zx_status_t nand_read_page_data_oob_op(nand_device_t *dev,
 
     /* Map data */
     if (nand_op->rw_data_oob.data.length > 0) {
+        const size_t offset_bytes = nand_op->rw_data_oob.data.offset_vmo * dev->nand_info.page_size;
+        const size_t page_offset_bytes = offset_bytes & (PAGE_SIZE - 1);
+        const size_t aligned_offset_bytes = offset_bytes - page_offset_bytes;
         status = zx_vmar_map(zx_vmar_root_self(),
                              0,
                              nand_op->rw_data_oob.data.vmo,
-                             nand_op->rw_data_oob.data.offset_vmo * dev->nand_info.page_size,
-                             dev->nand_info.page_size,
+                             aligned_offset_bytes,
+                             dev->nand_info.page_size + offset_bytes,
                              ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE,
-                             (uintptr_t*)&vaddr_data);
+                             (uintptr_t*)&aligned_vaddr_data);
         if (status != ZX_OK) {
             zxlogf(ERROR, "nand read page: Cannot map data vmo\n");
             return status;
         }
+        vaddr_data = aligned_vaddr_data + page_offset_bytes;
     }
 
     /* Map oob */
     if (nand_op->rw_data_oob.oob.length > 0) {
+        const size_t offset_bytes = nand_op->rw_data_oob.oob.offset_vmo;
+        const size_t page_offset_bytes = offset_bytes & (PAGE_SIZE - 1);
+        const size_t aligned_offset_bytes = offset_bytes - page_offset_bytes;
         status = zx_vmar_map(zx_vmar_root_self(),
                              0,
                              nand_op->rw_data_oob.oob.vmo,
-                             nand_op->rw_data_oob.oob.offset_vmo,
-                             nand_op->rw_data_oob.oob.length,
+                             aligned_offset_bytes,
+                             nand_op->rw_data_oob.oob.length + page_offset_bytes,
                              ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE,
-                             (uintptr_t*)&vaddr_oob);
+                             (uintptr_t*)&aligned_vaddr_oob);
         if (status != ZX_OK) {
             zxlogf(ERROR, "nand read page: Cannot map oob vmo\n");
-            if (vaddr_data != NULL)
+            if (aligned_vaddr_data != NULL)
                 status = zx_vmar_unmap(zx_vmar_root_self(),
-                                       (uintptr_t)vaddr_data, dev->nand_info.page_size);
+                                       (uintptr_t)aligned_vaddr_data, dev->nand_info.page_size);
             return status;
         }
+        vaddr_oob = aligned_vaddr_oob + page_offset_bytes;
     }
 
     ecc_correct = 0;
@@ -178,16 +188,16 @@ static zx_status_t nand_read_page_data_oob_op(nand_device_t *dev,
     } else {
         nand_op->rw_data_oob.corrected_bit_flips = ecc_correct;
     }
-    if (vaddr_data != NULL) {
+    if (aligned_vaddr_data != NULL) {
         status = zx_vmar_unmap(zx_vmar_root_self(),
-                               (uintptr_t)vaddr_data, dev->nand_info.page_size);
+                               (uintptr_t)aligned_vaddr_data, dev->nand_info.page_size);
         if (status != ZX_OK)
             zxlogf(ERROR, "nand: Read Cannot unmap data %d\n",
                    status);
     }
-    if (vaddr_oob != NULL) {
+    if (aligned_vaddr_oob != NULL) {
         status = zx_vmar_unmap(zx_vmar_root_self(),
-                               (uintptr_t)vaddr_oob, nand_op->rw_data_oob.oob.length);
+                               (uintptr_t)aligned_vaddr_oob, nand_op->rw_data_oob.oob.length);
         if (status != ZX_OK)
             zxlogf(ERROR, "nand: Read Cannot unmap oob %d\n",
                    status);
