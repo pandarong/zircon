@@ -123,20 +123,21 @@ zx_status_t imx_usb_phy_init(zx_paddr_t usb_base, size_t usb_length, zx_handle_t
     volatile void* regs = io_buffer_virt(&usb_buf);
     //TODO: More stuff might be needed if we were to boot from our own bootloader.
     reg = readl(regs + USB_PHY_CTRL1);
-    reg &= ~(PHY_CTRL1_VDATSRCENB0 | PHY_CTRL1_VDATDETENB0);
-    reg |= PHY_CTRL1_RESET | PHY_CTRL1_ATERESET;
+    reg &= ~(USB_PHY_CTRL1_VDATSRCENB0 | USB_PHY_CTRL1_VDATDETENB0 |
+			USB_PHY_CTRL1_COMMONONN);
+    reg |= USB_PHY_CTRL1_RESET | USB_PHY_CTRL1_ATERESET;
     writel(reg, regs + USB_PHY_CTRL1);
 
     reg = readl(regs + USB_PHY_CTRL0);
-    reg |= PHY_CTRL0_REF_SSP_EN;
+    reg |= USB_PHY_CTRL0_REF_SSP_EN;
     writel(reg, regs + USB_PHY_CTRL0);
 
     reg = readl(regs + USB_PHY_CTRL2);
-    reg |= PHY_CTRL2_TXENABLEN0;
+    reg |= USB_PHY_CTRL2_TXENABLEN0;
     writel(reg, regs + USB_PHY_CTRL2);
 
     reg = readl(regs + USB_PHY_CTRL1);
-    reg &= ~(PHY_CTRL1_RESET | PHY_CTRL1_ATERESET);
+    reg &= ~(USB_PHY_CTRL1_RESET | USB_PHY_CTRL1_ATERESET);
     writel(reg, regs + USB_PHY_CTRL1);
 
     io_buffer_release(&usb_buf);
@@ -197,6 +198,7 @@ zx_status_t imx_usb_init(imx8mevk_bus_t* bus) {
         zxlogf(ERROR, "imx_usb_init could not add usb2_dev: %d\n", status);
         return status;
     }
+
     return ZX_OK;
 }
 

@@ -89,6 +89,39 @@ static void dwc3_start_peripheral_mode(dwc3_t* dwc) {
 
     mtx_lock(&dwc->lock);
 
+    temp = DWC3_READ32(mmio + DCTL);
+    temp |= DCTL_CSFTRST;
+    DWC3_WRITE32(mmio + DCTL, temp);
+    dwc3_wait_bits(mmio + DCTL, DCTL_CSFTRST, 0);
+
+    temp = DWC3_READ32(mmio + GCTL);
+    temp |= GCTL_CORESOFTRESET;
+    DWC3_WRITE32(mmio + GCTL, temp);
+
+    /* Assert USB2 PHY reset */
+    temp = DWC3_READ32(mmio + GUSB2PHYCFG(0));
+    temp |= GUSB2PHYCFG_PHYSOFTRST;
+    DWC3_WRITE32(mmio + GUSB2PHYCFG(0), temp);
+
+    usleep(100 * 1000);
+
+    /* Clear USB3 PHY reset */
+    temp = DWC3_READ32(mmio + GUSB3PIPECTL(0));
+    temp &= ~GUSB3PIPECTL_PHYSOFTRST;
+    DWC3_WRITE32(mmio + GUSB3PIPECTL(0), temp);
+
+    /* Clear USB2 PHY reset */
+    temp = DWC3_READ32(mmio + GUSB2PHYCFG(0));
+    temp &= ~GUSB2PHYCFG_PHYSOFTRST;
+    DWC3_WRITE32(mmio + GUSB2PHYCFG(0), temp);
+
+    usleep(100 * 1000);
+
+    /* After PHYs are stable we can take Core out of reset state */
+    temp = DWC3_READ32(mmio + GCTL);
+    temp &= ~GCTL_CORESOFTRESET;
+    DWC3_WRITE32(mmio + GCTL, temp);
+
     // configure and enable PHYs
     temp = DWC3_READ32(mmio + GUSB2PHYCFG(0));
     temp &= ~(GUSB2PHYCFG_USBTRDTIM_MASK | GUSB2PHYCFG_SUSPENDUSB20);

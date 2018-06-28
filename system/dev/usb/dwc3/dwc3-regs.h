@@ -222,7 +222,7 @@
 #define GUSB2PHYACC_ULPI(n) (0xc280 + 4 * (n))  // Global USB 2.0 UTMI PHY Vendor Control Register
 
 #define GUSB3PIPECTL(n)     (0xc2c0 + 4 * (n))      // Global USB 3.1 PIPE Control Register
-#define GUSB3PIPECTL_PHY_SOFT_RST               (1 << 31)   // USB3 PHY Soft Reset
+#define GUSB3PIPECTL_PHYSOFTRST                 (1 << 31)   // USB3 PHY Soft Reset
 #define GUSB3PIPECTL_HST_PRT_CMPL               (1 << 30)
 #define GUSB3PIPECTL_DIS_RX_DET_P3              (1 << 28)
 #define GUSB3PIPECTL_UX_EXIT_IN_PX              (1 << 27)
