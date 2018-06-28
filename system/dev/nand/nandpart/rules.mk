@@ -9,20 +9,23 @@ MODULE := $(LOCAL_DIR)
 MODULE_TYPE := driver
 
 MODULE_SRCS := \
-    $(LOCAL_DIR)/binding.c \
-    $(LOCAL_DIR)/nandpart.cpp \
+	$(LOCAL_DIR)/aml-bad-block.cpp \
+	$(LOCAL_DIR)/bad-block.cpp \
+	$(LOCAL_DIR)/binding.c \
+	$(LOCAL_DIR)/nandpart.cpp \
 
 MODULE_STATIC_LIBS := \
-    system/ulib/ddk \
+	system/ulib/ddk \
     system/ulib/ddktl \
     system/ulib/fbl \
-    system/ulib/sync \
+	system/ulib/pretty \
+	system/ulib/sync \
     system/ulib/zx \
     system/ulib/zxcpp \
 
 MODULE_LIBS := \
-    system/ulib/c \
-    system/ulib/driver \
-    system/ulib/zircon \
+	system/ulib/c \
+	system/ulib/driver \
+	system/ulib/zircon \
 
 include make/module.mk
