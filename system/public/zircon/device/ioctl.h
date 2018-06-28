@@ -77,6 +77,7 @@
 #define IOCTL_FAMILY_AUDIO_CODEC    0x39
 #define IOCTL_FAMILY_BACKLIGHT      0x3A
 #define IOCTL_FAMILY_NANDTEST       0x3B
+#define IOCTL_FAMILY_SKIP_BLOCK     0x3C
 
 // IOCTL constructor
 // --K-FFNN
