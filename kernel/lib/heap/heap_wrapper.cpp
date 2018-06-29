@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <err.h>
+#include <kernel/auto_lock.h>
 #include <kernel/spinlock.h>
 #include <lib/cmpctmalloc.h>
 #include <lib/console.h>
@@ -39,6 +40,62 @@ static bool heap_trace = false;
 #define heap_trace (false)
 #endif
 
+// keep a list of unique caller:size sites in a list
+namespace {
+
+struct alloc_stat {
+    list_node node;
+
+    void *caller;
+    size_t size;
+
+    uint64_t count;
+};
+
+const size_t num_stats = 1024;
+size_t next_unused_stat = 0;
+alloc_stat stats[num_stats];
+
+list_node stat_list = LIST_INITIAL_VALUE(stat_list);
+SpinLock stat_lock;
+
+void add_stat(void *caller, size_t size) {
+    AutoSpinLock a(&stat_lock);
+
+    // look for an existing stat, bump the count and move to head if found
+    alloc_stat *s;
+    list_for_every_entry(&stat_list, s, alloc_stat, node) {
+        if (s->caller == caller && s->size == size) {
+            s->count++;
+            list_delete(&s->node);
+            list_add_head(&stat_list, &s->node);
+            return;
+        }
+    }
+
+    // allocate a new one and add it to the list
+    if (unlikely(next_unused_stat >= num_stats))
+        return;
+
+    s = &stats[next_unused_stat++];
+    s->caller = caller;
+    s->size = size;
+    s->count = 1;
+    list_add_head(&stat_list, &s->node);
+}
+
+void dump_stats() {
+    AutoSpinLock a(&stat_lock);
+
+    // dump the list of stats
+    alloc_stat *s;
+    list_for_every_entry(&stat_list, s, alloc_stat, node) {
+        printf("size %8zu count %8" PRIu64 " caller %p\n", s->size, s->count, s->caller);
+    }
+}
+
+} // namespace;
+
 void heap_init() {
     cmpct_init();
 }
@@ -51,6 +108,8 @@ void* malloc(size_t size) {
     DEBUG_ASSERT(!arch_in_int_handler());
 
     LTRACEF("size %zu\n", size);
+
+    add_stat(__GET_CALLER(), size);
 
     void* ptr = cmpct_alloc(size);
     if (unlikely(heap_trace))
@@ -68,6 +127,8 @@ void* memalign(size_t boundary, size_t size) {
 
     LTRACEF("boundary %zu, size %zu\n", boundary, size);
 
+    add_stat(__GET_CALLER(), size);
+
     void* ptr = cmpct_memalign(size, boundary);
     if (unlikely(heap_trace))
         printf("caller %p memalign %zu, %zu -> %p\n", __GET_CALLER(), boundary, size, ptr);
@@ -84,6 +145,8 @@ void* calloc(size_t count, size_t size) {
 
     LTRACEF("count %zu, size %zu\n", count, size);
 
+    add_stat(__GET_CALLER(), size);
+
     size_t realsize = count * size;
 
     void* ptr = cmpct_alloc(realsize);
@@ -98,6 +161,8 @@ void* realloc(void* ptr, size_t size) {
     DEBUG_ASSERT(!arch_in_int_handler());
 
     LTRACEF("ptr %p, size %zu\n", ptr, size);
+
+    add_stat(__GET_CALLER(), size);
 
     void* ptr2 = cmpct_realloc(ptr, size);
     if (unlikely(heap_trace))
@@ -202,6 +267,7 @@ static int cmd_heap(int argc, const cmd_args* argv, uint32_t flags) {
         printf("\t%s info\n", argv[0].str);
         if (!(flags & CMD_FLAG_PANIC)) {
             printf("\t%s trace\n", argv[0].str);
+            printf("\t%s stats\n", argv[0].str);
             printf("\t%s trim\n", argv[0].str);
             printf("\t%s test\n", argv[0].str);
             printf("\t%s alloc <size> [alignment]\n", argv[0].str);
@@ -213,6 +279,8 @@ static int cmd_heap(int argc, const cmd_args* argv, uint32_t flags) {
 
     if (strcmp(argv[1].str, "info") == 0) {
         heap_dump(flags & CMD_FLAG_PANIC);
+    } else if (strcmp(argv[1].str, "stats") == 0) {
+        dump_stats();
     } else if (!(flags & CMD_FLAG_PANIC) && strcmp(argv[1].str, "test") == 0) {
         heap_test();
     } else if (!(flags & CMD_FLAG_PANIC) && strcmp(argv[1].str, "trace") == 0) {
