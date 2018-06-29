@@ -55,7 +55,8 @@ fbl::unique_ptr<DevicePartitioner> DevicePartitioner::Create() {
         return fbl::move(device_partitioner);
     }
 #elif defined(__aarch64__)
-    if (FixedDevicePartitioner::Initialize(&device_partitioner) == ZX_OK) {
+    if ((NandDevicePartitioner::Initialize(&device_partitioner) == ZX_OK) ||
+        (FixedDevicePartitioner::Initialize(&device_partitioner) == ZX_OK)) {
         return fbl::move(device_partitioner);
     }
 #endif
@@ -429,7 +430,7 @@ zx_status_t EfiDevicePartitioner::AddPartition(Partition partition_type, fbl::un
     }
 
     return gpt_->AddPartition(name, type, minimum_size_bytes,
-                                              optional_reserve_bytes, out_fd);
+                              optional_reserve_bytes, out_fd);
 }
 
 bool EfiDevicePartitioner::FilterZirconPartition(const block_info_t& info,
@@ -546,7 +547,7 @@ zx_status_t CrosDevicePartitioner::Initialize(fbl::unique_ptr<DevicePartitioner>
         return status;
     }
 
-    gpt_device_t *gpt = gpt_partitioner->GetGpt();
+    gpt_device_t* gpt = gpt_partitioner->GetGpt();
     if (!is_cros(gpt)) {
         return ZX_ERR_NOT_FOUND;
     }
@@ -600,7 +601,7 @@ zx_status_t CrosDevicePartitioner::AddPartition(Partition partition_type,
         return ZX_ERR_NOT_SUPPORTED;
     }
     return gpt_->AddPartition(name, type, minimum_size_bytes,
-                                              optional_reserve_bytes, out_fd);
+                              optional_reserve_bytes, out_fd);
 }
 
 zx_status_t CrosDevicePartitioner::FindPartition(Partition partition_type,
@@ -729,7 +730,7 @@ zx_status_t CrosDevicePartitioner::WipePartitions(const fbl::Vector<Partition>& 
 }
 
 /*====================================================*
- *                    NON-GPT                         *
+ *               FIXED PARTITION MAP                  *
  *====================================================*/
 
 zx_status_t FixedDevicePartitioner::Initialize(fbl::unique_ptr<DevicePartitioner>* partitioner) {
@@ -739,7 +740,7 @@ zx_status_t FixedDevicePartitioner::Initialize(fbl::unique_ptr<DevicePartitioner
 }
 
 zx_status_t FixedDevicePartitioner::FindPartition(Partition partition_type,
-                                                    fbl::unique_fd* out_fd) const {
+                                                  fbl::unique_fd* out_fd) const {
     uint8_t type[GPT_GUID_LEN];
 
     switch (partition_type) {
@@ -776,9 +777,70 @@ zx_status_t FixedDevicePartitioner::FindPartition(Partition partition_type,
 }
 
 zx_status_t FixedDevicePartitioner::GetBlockInfo(const fbl::unique_fd& block_fd,
-                                                   block_info_t* block_info) const {
+                                                 block_info_t* block_info) const {
     ssize_t r;
     if ((r = ioctl_block_get_info(block_fd.get(), block_info) < 0)) {
+        return ZX_ERR_IO;
+    }
+    return ZX_OK;
+}
+
+/*====================================================*
+ *                   NAND SPECIFIC                    *
+ *====================================================*/
+
+zx_status_t NandDevicePartitioner::Initialize(fbl::unique_ptr<DevicePartitioner>* partitioner) {
+    return ZX_ERR_NOT_SUPPORTED;
+    // TODO: Check if this is a NAND part.
+#if 0
+    LOG("Successfully intitialized NandDevicePartitioner Device Partitioner\n");
+    *partitioner = fbl::move(WrapUnique(new NandDevicePartitioner));
+#endif
+}
+
+zx_status_t NandDevicePartitioner::FindPartition(Partition partition_type,
+                                                 fbl::unique_fd* out_fd) const {
+    uint8_t type[GPT_GUID_LEN];
+
+    switch (partition_type) {
+    case Partition::kZirconA: {
+        const uint8_t zircon_a_type[GPT_GUID_LEN] = GUID_ZIRCON_A_VALUE;
+        memcpy(type, zircon_a_type, GPT_GUID_LEN);
+        break;
+    }
+    case Partition::kZirconB: {
+        const uint8_t zircon_b_type[GPT_GUID_LEN] = GUID_ZIRCON_B_VALUE;
+        memcpy(type, zircon_b_type, GPT_GUID_LEN);
+        break;
+    }
+    case Partition::kZirconR: {
+        const uint8_t zircon_r_type[GPT_GUID_LEN] = GUID_ZIRCON_R_VALUE;
+        memcpy(type, zircon_r_type, GPT_GUID_LEN);
+        break;
+    }
+    case Partition::kFuchsiaVolumeManager: {
+        const uint8_t fvm_type[GPT_GUID_LEN] = GUID_FVM_VALUE;
+        memcpy(type, fvm_type, GPT_GUID_LEN);
+        out_fd->reset(open_partition(nullptr, type, ZX_SEC(5), nullptr));
+        if (!out_fd) {
+            return ZX_ERR_NOT_FOUND;
+        }
+        return ZX_OK;
+    }
+    default:
+        ERROR("partition_type is invalid!\n");
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+
+    // TODO: Find skip-block partition.
+    return ZX_ERR_NOT_SUPPORTED;
+}
+
+zx_status_t NandDevicePartitioner::GetBlockInfo(const fbl::unique_fd& block_fd,
+                                                block_info_t* block_info) const {
+    skip_block_partition_info_t info;
+    ssize_t r;
+    if ((r = ioctl_skip_block_get_info(block_fd.get(), block_info) < 0)) {
         return ZX_ERR_IO;
     }
     return ZX_OK;
