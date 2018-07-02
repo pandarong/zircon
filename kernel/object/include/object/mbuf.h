@@ -89,6 +89,6 @@ private:
 
     fbl::SinglyLinkedList<MBuf*> freelist_;
     fbl::SinglyLinkedList<MBuf*> tail_;
-    MBuf* head_ = nullptr;;
+    MBuf* head_ = nullptr;
     size_t size_ = 0u;
 };
