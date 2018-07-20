@@ -24,6 +24,7 @@
 
 #include <zircon/assert.h>
 #include <zircon/compiler.h>
+#include <zircon/device/device.h>
 #include <zircon/device/vfs.h>
 #include <zircon/process.h>
 #include <zircon/processargs.h>
@@ -743,6 +744,14 @@ ssize_t fdio_ioctl(int fd, int op, const void* in_buf, size_t in_len, void* out_
         return ZX_ERR_BAD_HANDLE;
     }
     ssize_t r = io->ops->ioctl(io, op, in_buf, in_len, out_buf, out_len);
+
+    if (r == ZX_ERR_TIMED_OUT) {
+        char path[PATH_MAX];
+        if (io->ops->ioctl(io, IOCTL_DEVICE_GET_TOPO_PATH, NULL, 0, path, PATH_MAX) >= 0) {
+            printf("FDIO ERROR: ioctl to %s timed out\n", path);
+        }
+    }
+
     fdio_release(io);
     return r;
 }
