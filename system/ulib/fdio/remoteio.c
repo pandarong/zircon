@@ -20,6 +20,7 @@
 #include <zircon/device/vfs.h>
 #include <zircon/processargs.h>
 #include <zircon/syscalls.h>
+#include <zircon/crashlogger.h>
 
 #include <fuchsia/io/c/fidl.h>
 #include <lib/fdio/debug.h>
@@ -34,6 +35,8 @@
 
 #define ZXDEBUG 0
 
+static const zx_time_t kTimeout = ZX_SEC(10);
+
 // POLL_MASK and POLL_SHIFT intend to convert the lower five POLL events into
 // ZX_USER_SIGNALs and vice-versa. Other events need to be manually converted to
 // a zx_signals_t, if they are desired.
@@ -46,6 +49,7 @@ static_assert((POLLPRI << POLL_SHIFT) == DEVICE_SIGNAL_OOB, "");
 static_assert((POLLOUT << POLL_SHIFT) == DEVICE_SIGNAL_WRITABLE, "");
 static_assert((POLLERR << POLL_SHIFT) == DEVICE_SIGNAL_ERROR, "");
 static_assert((POLLHUP << POLL_SHIFT) == DEVICE_SIGNAL_HANGUP, "");
+
 
 static const char* _opnames[] = ZXRIO_OPNAMES;
 const char* fdio_opname(uint32_t op) {
@@ -175,7 +179,11 @@ static zx_status_t zxrio_txn(zxrio_t* rio, zxrio_msg_t* msg) {
     args.rd_num_handles = FDIO_MAX_HANDLES;
     const uint32_t request_op = ZXRIO_OP(msg->op);
 
-    r = zx_channel_call(rio->h, 0, ZX_TIME_INFINITE, &args, &dsize, &msg->hcount);
+    r = zx_channel_call(rio->h, 0, zx_deadline_after(kTimeout), &args, &dsize, &msg->hcount);
+    // Die in POSIX I/O timeouts
+    if (r == ZX_ERR_TIMED_OUT) {
+        crashlogger_request_backtrace();
+    }
     if (r < 0) {
         msg->hcount = 0;
         return r;
@@ -294,6 +302,9 @@ static zx_status_t zxrio_sync_open_connection(zx_handle_t svc, uint32_t op,
     }
 
     if ((r = zxrio_process_open_response(h, info)) != ZX_OK) {
+        if (r == ZX_ERR_TIMED_OUT) {
+            printf("ZXRIO ERROR (line %d): timed out opening %s\n", __LINE__, path);
+        }
         zx_handle_close(h);
         return r;
     }
@@ -508,6 +519,9 @@ static zx_status_t zxrio_sync_open_connection(zx_handle_t svc, uint32_t op,
     }
 
     if ((r = zxrio_process_open_response(h, info)) != ZX_OK) {
+        if (r == ZX_ERR_TIMED_OUT) {
+            printf("ZXRIO ERROR (line %d): timed out opening %s\n", __LINE__, path);
+        }
         zx_handle_close(h);
         return r;
     }
@@ -830,15 +844,19 @@ fail:
     return ZX_ERR_IO;
 }
 
-zx_status_t zxrio_process_open_response(zx_handle_t h, zxrio_describe_t* info) {
-    zx_object_wait_one(h, ZX_CHANNEL_READABLE | ZX_CHANNEL_PEER_CLOSED,
-                       ZX_TIME_INFINITE, NULL);
+zx_status_t zxrio_process_open_response(zx_handle_t h, zxrio_describe_t* info) {    
+    zx_status_t r = zx_object_wait_one(h, ZX_CHANNEL_READABLE | ZX_CHANNEL_PEER_CLOSED,
+                       zx_deadline_after(kTimeout), NULL);
+    if (r == ZX_ERR_TIMED_OUT) {
+        crashlogger_request_backtrace();
+        return r;
+    }
 
     // Attempt to read the description from open
     uint32_t dsize = sizeof(*info);
     zx_handle_t extra_handle = ZX_HANDLE_INVALID;
     uint32_t actual_handles;
-    zx_status_t r = zx_channel_read(h, 0, info, &extra_handle, dsize, 1, &dsize,
+    r = zx_channel_read(h, 0, info, &extra_handle, dsize, 1, &dsize,
                                     &actual_handles);
     if (r != ZX_OK) {
         return r;
