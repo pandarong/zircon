@@ -42,6 +42,24 @@ struct addr_range {
 paddr_t pcie_mem_lo_base;
 size_t pcie_mem_lo_size;
 
+// These are used to track memory arenas found during boot so they can
+// be exclusively reserved within the resource system after the heap
+// has been initialized.
+constexpr uint8_t kMaxReservedMmioEntries = 64;
+typedef struct reserved_mmio_space {
+    uint64_t base;
+    size_t len;
+    ResourceDispatcher::RefPtr dispatcher;;
+} reserved_mmio_space_t;
+reserved_mmio_space_t reserved_mmio_entries[kMaxReservedMmioEntries];
+static uint8_t reserved_mmio_count = 0;
+
+static void mark_mmio_region_to_reserve(uint64_t base, size_t len) {
+    reserved_mmio_entries[reserved_mmio_count].base = base;
+    reserved_mmio_entries[reserved_mmio_count].len = len;
+    reserved_mmio_count++;
+}
+
 #define DEFAULT_MEMEND (16 * 1024 * 1024)
 
 /* boot_addr_range_t is an iterator which iterates over address ranges from
@@ -108,18 +126,6 @@ static zx_status_t mem_arena_init(boot_addr_range_t* range) {
             continue;
         }
 
-        // Remove any address ranges identified as memory by the bootloader from
-        // the MMIO aaddress space allocator. This prevents physical vmos from being created
-        // against it through syscalls.
-        //auto& pasm = PhysicalAspaceManager::Get();
-        //zx_status_t status = pasm->ReserveAddressSpaceEarly(PhysicalAspaceManager::kMmioAllocator,
-                                                                 //range->base, range->size);
-
-        //if (status != ZX_OK) {
-            //printf("MEM: Failed to allocate address space for pmm range at %#" PRIxPTR
-                    //" size %zx: %d\n", range->base, range->size, status);
-        //}
-
         // trim off parts of memory ranges that are smaller than a page
         uint64_t base = ROUNDUP(range->base, PAGE_SIZE);
         uint64_t size = ROUNDDOWN(range->base + range->size, PAGE_SIZE) -
@@ -135,6 +141,7 @@ static zx_status_t mem_arena_init(boot_addr_range_t* range) {
             size -= adjust;
         }
 
+        mark_mmio_region_to_reserve(base, static_cast<size_t>(size));
         if (have_limit) {
             status = mem_limit_add_arenas_from_range(&ctx, base, size, base_arena);
         }
@@ -537,6 +544,8 @@ void pc_mem_init(void) {
     }
 }
 
+
+
 // Initialize the higher level PhysicalAspaceManager after the heap is initialized.
 static void x86_resource_init_hook(unsigned int rl) {
     // An error is likely fatal if the bookkeeping is broken and driver
@@ -549,6 +558,23 @@ static void x86_resource_init_hook(unsigned int rl) {
     ResourceDispatcher::InitializeAllocator(ZX_RSRC_KIND_IRQ,
                                             interrupt_get_base_vector(),
                                             interrupt_get_max_vector());
+
+    // Exclusively reserve the regions marked as memory earlier so that physical
+    // vmos cannot be created against them.
+    for (uint8_t i = 0; i < reserved_mmio_count; i++) {
+        //char name[ZX_MAX_NAME_LEN] = "memory";
+        zx_rights_t rights;
+        auto& entry = reserved_mmio_entries[i];
+        zx_status_t st = ResourceDispatcher::Create(&entry.dispatcher, &rights, ZX_RSRC_KIND_MMIO,
+                                                    entry.base, entry.len, ZX_RSRC_FLAG_EXCLUSIVE,
+                                                    nullptr);
+        if (st == ZX_OK) {
+        } else {
+            TRACEF("failed to create backing resource for boot memory region %#lx - %#lx: %d\n",
+                   entry.base, entry.base + entry.len, st);
+        }
+
+    }
 }
 
 LK_INIT_HOOK(x86_resource_init, x86_resource_init_hook, LK_INIT_LEVEL_HEAP);
