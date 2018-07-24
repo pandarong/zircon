@@ -142,6 +142,24 @@ void* malloc(size_t size) {
     return ptr;
 }
 
+void *malloc_debug_caller(size_t size, void *caller) {
+    DEBUG_ASSERT(!arch_in_int_handler());
+
+    LTRACEF("size %zu\n", size);
+
+    add_stat(caller, size);
+
+    void* ptr = cmpct_alloc(size);
+    if (unlikely(heap_trace))
+        printf("caller %p malloc %zu -> %p\n", __GET_CALLER(), size, ptr);
+
+    if (HEAP_PANIC_ON_ALLOC_FAIL && unlikely(!ptr)) {
+        panic("malloc of size %zu failed\n", size);
+    }
+
+    return ptr;
+}
+
 void* memalign(size_t boundary, size_t size) {
     DEBUG_ASSERT(!arch_in_int_handler());
 

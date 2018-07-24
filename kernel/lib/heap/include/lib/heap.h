@@ -13,25 +13,27 @@
 
 __BEGIN_CDECLS
 
-/* standard heap definitions */
+// standard heap definitions
 void *malloc(size_t size) __MALLOC;
 void *memalign(size_t boundary, size_t size) __MALLOC;
 void *calloc(size_t count, size_t size) __MALLOC;
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 
+// alternate versions where the caller is passed in
+void *malloc_debug_caller(size_t size, void *caller) __MALLOC;
+
 void heap_init(void);
 
-/* tell the heap to return any free pages it can find */
+// tell the heap to return any free pages it can find
 void heap_trim(void);
 
-/* internal apis used by the heap implementation to get/return pages to the VM */
+// internal apis used by the heap implementation to get/return pages to the VM
 void *heap_page_alloc(size_t pages);
 void heap_page_free(void *ptr, size_t pages);
 
-/* Gets stats about the heap.
- * |size_bytes| is the total size of the heap, |free_bytes| is the free portion.
- */
+// Gets stats about the heap.
+// |size_bytes| is the total size of the heap, |free_bytes| is the free portion.
 void heap_get_info(size_t *size_bytes, size_t *free_bytes);
 
 __END_CDECLS
