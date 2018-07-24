@@ -87,8 +87,28 @@ void add_stat(void *caller, size_t size) {
 void dump_stats() {
     AutoSpinLock a(&stat_lock);
 
-    // dump the list of stats
+    // remove all of them from the list
     alloc_stat *s;
+    while ((s = list_remove_head_type(&stat_list, alloc_stat, node)))
+        ;
+
+    // reinsert all of the entries, sorted by size
+    for (size_t i = 0; i < next_unused_stat; i++) {
+        bool added = false;
+        list_for_every_entry(&stat_list, s, alloc_stat, node) {
+            if (stats[i].size >= s->size) {
+                list_add_before(&s->node, &stats[i].node);
+                added = true;
+                break;
+            }
+        }
+        // fell off the end
+        if (!added) {
+            list_add_tail(&stat_list, &stats[i].node);
+        }
+    }
+
+    // dump the list of stats
     list_for_every_entry(&stat_list, s, alloc_stat, node) {
         printf("size %8zu count %8" PRIu64 " caller %p\n", s->size, s->count, s->caller);
     }
