@@ -55,14 +55,8 @@ zx_status_t PlatformBus::SetProtocol(uint32_t proto_id, void* protocol) {
         }
         break;
     }
-    case ZX_PROTOCOL_I2C_IMPL: {
-        auto proto = static_cast<i2c_impl_protocol_t*>(protocol);
-        auto status = I2cInit(proto);
-        if (status != ZX_OK) {
-            return status;
-         }
-
-        i2c_impl_.reset(new (&ac) ddk::I2cImplProtocolProxy(proto));
+    case ZX_PROTOCOL_I2C: {
+        i2c_.reset(new (&ac) ddk::I2cProtocolProxy(static_cast<i2c_protocol_t*>(protocol)));
         if (!ac.check()) {
             return ZX_ERR_NO_MEMORY;
         }
@@ -217,9 +211,9 @@ zx_status_t PlatformBus::DdkGetProtocol(uint32_t proto_id, void* protocol) {
             return ZX_OK;
         }
         break;
-    case ZX_PROTOCOL_I2C_IMPL:
-        if (i2c_impl_ != nullptr) {
-            i2c_impl_->GetProto(static_cast<i2c_impl_protocol_t*>(protocol));
+    case ZX_PROTOCOL_I2C:
+        if (i2c_ != nullptr) {
+            i2c_->GetProto(static_cast<i2c_protocol_t*>(protocol));
             return ZX_OK;
         }
         break;
@@ -360,49 +354,6 @@ zx_status_t PlatformBus::ReadZbi(zx::vmo zbi) {
     }
 
     return ZX_OK;
-}
-
-zx_status_t PlatformBus::I2cInit(i2c_impl_protocol_t* i2c) {
-    if (!i2c_buses_.is_empty()) {
-        // already initialized
-        return ZX_ERR_BAD_STATE;
-    }
-
-    uint32_t bus_count = i2c_impl_get_bus_count(i2c);
-    if (!bus_count) {
-        return ZX_ERR_NOT_SUPPORTED;
-    }
-
-    fbl::AllocChecker ac;
-    i2c_buses_.reserve(bus_count, &ac);
-    if (!ac.check()) {
-        return ZX_ERR_NO_MEMORY;
-    }
-
-    for (uint32_t i = 0; i < bus_count; i++) {
-        fbl::unique_ptr<PlatformI2cBus> i2c_bus(new (&ac) PlatformI2cBus(i2c, i));
-        if (!ac.check()) {
-            return ZX_ERR_NO_MEMORY;
-        }
-
-        auto status = i2c_bus->Start();
-        if (status != ZX_OK) {
-            return status;
-        }
-
-        i2c_buses_.push_back(fbl::move(i2c_bus));
-    }
-
-    return ZX_OK;
-}
-
-zx_status_t PlatformBus::I2cTransact(uint32_t txid, rpc_i2c_req_t* req, pbus_i2c_channel_t* channel,
-                                     const void* write_buf, zx_handle_t channel_handle) {
-    if (channel->bus_id >= i2c_buses_.size()) {
-        return ZX_ERR_OUT_OF_RANGE;
-    }
-    auto i2c_bus = i2c_buses_[channel->bus_id].get();
-    return i2c_bus->Transact(txid, req, channel->address, write_buf, channel_handle);
 }
 
 void PlatformBus::DdkRelease() {

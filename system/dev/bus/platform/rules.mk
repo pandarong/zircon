@@ -14,7 +14,6 @@ MODULE_SRCS := \
     $(LOCAL_DIR)/platform-bus.cpp \
     $(LOCAL_DIR)/platform-bus-bind.c \
     $(LOCAL_DIR)/platform-device.cpp \
-    $(LOCAL_DIR)/platform-i2c.cpp \
 
 MODULE_STATIC_LIBS := \
     system/ulib/ddk \

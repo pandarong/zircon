@@ -11,7 +11,7 @@
 #include <ddktl/protocol/canvas.h>
 #include <ddktl/protocol/clk.h>
 #include <ddktl/protocol/gpio.h>
-#include <ddktl/protocol/i2c-impl.h>
+#include <ddktl/protocol/i2c.h>
 #include <ddktl/protocol/iommu.h>
 #include <ddktl/protocol/mailbox.h>
 #include <ddktl/protocol/platform-bus.h>
@@ -27,7 +27,6 @@
 #include <zircon/types.h>
 
 #include "platform-device.h"
-#include "platform-i2c.h"
 #include "proxy-protocol.h"
 
 namespace platform_bus {
@@ -61,10 +60,6 @@ public:
     // limited resource in the future.
     zx_handle_t GetResource() const { return get_root_resource(); }
 
-    // Used by PlatformDevice to queue I2C transactions on an I2C bus.
-    zx_status_t I2cTransact(uint32_t txid, rpc_i2c_req_t* req, pbus_i2c_channel_t* channel,
-                            const void* write_buf, zx_handle_t channel_handle);
-
     // Helper for PlatformDevice.
     zx_status_t GetBoardInfo(pdev_board_info_t* out_info);
 
@@ -72,7 +67,7 @@ public:
     inline ddk::CanvasProtocolProxy* canvas() const { return canvas_.get(); }
     inline ddk::ClkProtocolProxy* clk() const { return clk_.get(); }
     inline ddk::GpioProtocolProxy* gpio() const { return gpio_.get(); }
-    inline ddk::I2cImplProtocolProxy* i2c_impl() const { return i2c_impl_.get(); }
+    inline ddk::I2cProtocolProxy* i2c() const { return i2c_.get(); }
     inline ddk::ScpiProtocolProxy* scpi() const { return scpi_.get(); }
     inline ddk::UmsProtocolProxy* ums() const { return ums_.get(); }
     inline const uint8_t* metadata() const { return metadata_.get(); }
@@ -88,8 +83,6 @@ private:
     // Reads the platform ID and driver metadata records from the boot image.
     zx_status_t ReadZbi(zx::vmo zbi);
 
-    zx_status_t I2cInit(i2c_impl_protocol_t* i2c);
-
     pdev_board_info_t board_info_;
 
     // Protocols that are optionally provided by the board driver.
@@ -97,7 +90,7 @@ private:
     fbl::unique_ptr<ddk::ClkProtocolProxy> clk_;
     fbl::unique_ptr<ddk::GpioProtocolProxy> gpio_;
     fbl::unique_ptr<ddk::IommuProtocolProxy> iommu_;
-    fbl::unique_ptr<ddk::I2cImplProtocolProxy> i2c_impl_;
+    fbl::unique_ptr<ddk::I2cProtocolProxy> i2c_;
     fbl::unique_ptr<ddk::ScpiProtocolProxy> scpi_;
     fbl::unique_ptr<ddk::MailboxProtocolProxy> mailbox_;
     fbl::unique_ptr<ddk::UmsProtocolProxy> ums_;
@@ -112,8 +105,6 @@ private:
 
     // List of platform devices.
     fbl::Vector<fbl::unique_ptr<PlatformDevice>> devices_;
-    // List of I2C buses.
-    fbl::Vector<fbl::unique_ptr<PlatformI2cBus>> i2c_buses_;
 
     // Dummy IOMMU.
     zx::handle iommu_handle_;

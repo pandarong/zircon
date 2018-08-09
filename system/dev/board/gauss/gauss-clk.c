@@ -29,7 +29,7 @@ static const pbus_dev_t clk_dev = {
 };
 
 zx_status_t gauss_clk_init(gauss_bus_t* bus) {
-    zxlogf(INFO, "gauss_clk_init");
+    zxlogf(INFO, "gauss_clk_init\n");
     zx_status_t st;
 
     st = pbus_device_add(&bus->pbus, &clk_dev, PDEV_ADD_PBUS_DEVHOST);

@@ -77,7 +77,7 @@ zx_status_t gauss_i2c_init(gauss_bus_t* bus) {
         return status;
     }
 
-    status = pbus_wait_protocol(&bus->pbus, ZX_PROTOCOL_I2C_IMPL);
+    status = pbus_wait_protocol(&bus->pbus, ZX_PROTOCOL_I2C);
     if (status != ZX_OK) {
         zxlogf(ERROR, "gauss_i2c_init: pbus_wait_protocol failed: %d\n", status);
         return status;

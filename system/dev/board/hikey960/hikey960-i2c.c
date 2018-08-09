@@ -59,7 +59,7 @@ zx_status_t hikey960_i2c_init(hikey960_t* bus) {
         return status;
     }
 
-    status = pbus_wait_protocol(&bus->pbus, ZX_PROTOCOL_I2C_IMPL);
+    status = pbus_wait_protocol(&bus->pbus, ZX_PROTOCOL_I2C);
     if (status != ZX_OK) {
         zxlogf(ERROR, "hikey960_i2c_init: pbus_wait_protocol failed: %d\n", status);
         return status;

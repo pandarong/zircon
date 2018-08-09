@@ -417,20 +417,21 @@ zx_status_t PlatformDevice::RpcScpiSetDvfsIdx(uint8_t power_domain, uint16_t idx
 
 zx_status_t PlatformDevice::RpcI2cTransact(uint32_t txid, rpc_i2c_req_t* req, uint8_t* data,
                                            zx_handle_t channel) {
-    if (bus_->i2c_impl() == nullptr) {
+    if (bus_->i2c() == nullptr) {
         return ZX_ERR_NOT_SUPPORTED;
     }
     uint32_t index = req->index;
     if (index >= i2c_channels_.size()) {
         return ZX_ERR_OUT_OF_RANGE;
     }
-    pbus_i2c_channel_t* pdev_channel = &i2c_channels_[index];
+//    pbus_i2c_channel_t* pdev_channel = &i2c_channels_[index];
 
-    return bus_->I2cTransact(txid, req, pdev_channel, data, channel);
+//FIXME    return bus_->i2c()->Transact(pdev_channel->bus_id, out_size);
+return 0;
 }
 
 zx_status_t PlatformDevice::RpcI2cGetMaxTransferSize(uint32_t index, size_t* out_size) {
-    if (bus_->i2c_impl() == nullptr) {
+    if (bus_->i2c() == nullptr) {
         return ZX_ERR_NOT_SUPPORTED;
     }
     if (index >= i2c_channels_.size()) {
@@ -438,7 +439,7 @@ zx_status_t PlatformDevice::RpcI2cGetMaxTransferSize(uint32_t index, size_t* out
     }
     pbus_i2c_channel_t* pdev_channel = &i2c_channels_[index];
 
-    return bus_->i2c_impl()->GetMaxTransferSize(pdev_channel->bus_id, out_size);
+    return bus_->i2c()->GetMaxTransferSize(pdev_channel->bus_id, out_size);
 }
 
 zx_status_t PlatformDevice::RpcClkEnable(uint32_t index) {

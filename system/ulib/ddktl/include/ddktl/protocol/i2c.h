@@ -71,6 +71,11 @@ public:
     I2cProtocolProxy(i2c_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(i2c_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t Transact(uint32_t index, const void* write_buf, size_t write_length,
                             size_t read_length, i2c_complete_cb complete_cb, void* cookie) {
         return ops_->transact(ctx_, index, write_buf, write_length, read_length, complete_cb,

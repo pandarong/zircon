@@ -6,20 +6,23 @@
 
 #include <threads.h>
 
+#include <ddk/protocol/i2c.h>
 #include <ddktl/protocol/i2c-impl.h>
 #include <fbl/mutex.h>
+#include <zircon/listnode.h>
 
-#include "proxy-protocol.h"
+namespace i2c {
 
-namespace platform_bus {
-
-class PlatformI2cBus {
+class I2cBus {
 public:
-    explicit PlatformI2cBus(i2c_impl_protocol_t* i2c, uint32_t bus_id);
+    explicit I2cBus(ddk::I2cImplProtocolProxy i2c_impl, uint32_t bus_id);
     zx_status_t Start();
 
-    zx_status_t Transact(uint32_t txid, rpc_i2c_req_t* req, uint16_t address, const void* write_buf,
-                         zx_handle_t channel_handle);
+    zx_status_t Transact(const void* write_buf, size_t write_length, size_t read_length,
+                         i2c_complete_cb complete_cb, void* cookie);
+
+    inline size_t GetMaxTransferSize() const { return max_transfer_size_; }
+
 private:
     // struct representing an I2C transaction.
     struct I2cTxn {
@@ -39,9 +42,9 @@ private:
                   size_t data_length);
     int I2cThread();
 
-    ddk::I2cImplProtocolProxy i2c_;
+    ddk::I2cImplProtocolProxy i2c_impl_;
     const uint32_t bus_id_;
-    size_t max_transfer_;
+    size_t max_transfer_size_;
 
     list_node_t queued_txns_ __TA_GUARDED(mutex_);
     list_node_t free_txns_ __TA_GUARDED(mutex_);
@@ -51,4 +54,4 @@ private:
     fbl::Mutex mutex_;
 };
 
-} // namespace platform_bus
+} // namespace i2c
