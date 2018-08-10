@@ -38,7 +38,7 @@
                                 GAUSS_TDM_CLK_N)
 
 // turn this on to enable Gauss accelerometer test driver
-//#define I2C_TEST 1
+#define I2C_TEST 1
 
 #if I2C_TEST
 static const pbus_i2c_channel_t i2c_test_channels[] = {
