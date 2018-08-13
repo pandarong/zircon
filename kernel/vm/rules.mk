@@ -24,6 +24,8 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/pmm_arena.cpp \
     $(LOCAL_DIR)/pmm_node.cpp \
     $(LOCAL_DIR)/vm.cpp \
+    $(LOCAL_DIR)/vmalloc.cpp \
+    $(LOCAL_DIR)/vmm.cpp \
     $(LOCAL_DIR)/vm_address_region.cpp \
     $(LOCAL_DIR)/vm_address_region_or_mapping.cpp \
     $(LOCAL_DIR)/vm_aspace.cpp \
@@ -33,6 +35,5 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/vm_object_physical.cpp \
     $(LOCAL_DIR)/vm_page_list.cpp \
     $(LOCAL_DIR)/vm_unittest.cpp \
-    $(LOCAL_DIR)/vmm.cpp \
 
 include make/module.mk
