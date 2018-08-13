@@ -23,7 +23,7 @@
 
 #define LOCAL_TRACE 0
 
-int sys_invalid_syscall(uint64_t num, uint64_t pc,
+__NO_INLINE static int sys_invalid_syscall(uint64_t num, uint64_t pc,
                         uintptr_t vdso_code_address) {
     LTRACEF("invalid syscall %lu from PC %#lx vDSO code %#lx\n",
             num, pc, vdso_code_address);
@@ -35,9 +35,7 @@ int sys_invalid_syscall(uint64_t num, uint64_t pc,
 // The reason is the two calls two arch_curr_cpu_num in the ktrace calls: we
 // don't want the cpu changing during the call.
 
-template <typename T>
-inline syscall_result do_syscall(uint64_t syscall_num, uint64_t pc,
-                                        bool (*valid_pc)(uintptr_t), T make_call) {
+__NO_INLINE static void syscall_pre(uint64_t syscall_num, uint64_t pc, ProcessDispatcher** current_process, uintptr_t* vdso_code_address) {
     ktrace_tiny(TAG_SYSCALL_ENTER, (static_cast<uint32_t>(syscall_num) << 8) | arch_curr_cpu_num());
 
     CPU_STATS_INC(syscalls);
@@ -50,16 +48,11 @@ inline syscall_result do_syscall(uint64_t syscall_num, uint64_t pc,
     LTRACEF_LEVEL(2, "t %p syscall num %" PRIu64 " ip/pc %#" PRIx64 "\n",
                   get_current_thread(), syscall_num, pc);
 
-    ProcessDispatcher* current_process = ProcessDispatcher::GetCurrent();
-    const uintptr_t vdso_code_address = current_process->vdso_code_address();
+    *current_process = ProcessDispatcher::GetCurrent();
+    *vdso_code_address = (*current_process)->vdso_code_address();
+}
 
-    uint64_t ret;
-    if (unlikely(!valid_pc(pc - vdso_code_address))) {
-        ret = sys_invalid_syscall(syscall_num, pc, vdso_code_address);
-    } else {
-        ret = make_call(current_process);
-    }
-
+__NO_INLINE static syscall_result syscall_post(uint64_t syscall_num, uint64_t ret) {
     LTRACEF_LEVEL(2, "t %p ret %#" PRIx64 "\n", get_current_thread(), ret);
 
     /* re-disable interrupts on the way out
@@ -70,6 +63,27 @@ inline syscall_result do_syscall(uint64_t syscall_num, uint64_t pc,
 
     // The assembler caller will re-disable interrupts at the appropriate time.
     return {ret, thread_is_signaled(get_current_thread())};
+}
+
+template <typename T>
+static inline syscall_result do_syscall(uint64_t syscall_num, uint64_t pc,
+                                        bool (*valid_pc)(uintptr_t), T make_call) {
+
+    ProcessDispatcher* current_process;
+    uintptr_t vdso_code_address;
+
+    // call the shared pre syscall routine
+    syscall_pre(syscall_num, pc, &current_process, &vdso_code_address);
+
+    uint64_t ret;
+    if (unlikely(!valid_pc(pc - vdso_code_address))) {
+        ret = sys_invalid_syscall(syscall_num, pc, vdso_code_address);
+    } else {
+        ret = make_call(current_process);
+    }
+
+    // call the shared post-syscall routine
+    return syscall_post(syscall_num, ret);
 }
 
 syscall_result unknown_syscall(uint64_t syscall_num, uint64_t pc) {
