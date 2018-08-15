@@ -30,7 +30,8 @@ zx_status_t PlatformBus::GetBti(uint32_t iommu_index, uint32_t bti_id, zx_handle
     return zx_bti_create(iommu_handle_.get(), 0, bti_id, out_handle);
 }
 
-zx_status_t PlatformBus::RegisterProtocol(uint32_t proto_id, void* protocol) {
+zx_status_t PlatformBus::RegisterProtocol(uint32_t proto_id, void* protocol,
+                                          platform_proxy_cb proxy_cb) {
     if (!protocol) {
         return ZX_ERR_INVALID_ARGS;
     }
@@ -89,8 +90,20 @@ zx_status_t PlatformBus::RegisterProtocol(uint32_t proto_id, void* protocol) {
         break;
     }
     default:
-        // TODO(voydanoff) consider having a registry of arbitrary protocols
-        return ZX_ERR_NOT_SUPPORTED;
+        if (proxy_cb == nullptr) {
+            return ZX_ERR_NOT_SUPPORTED;
+        }
+        fbl::AllocChecker ac;
+        fbl::unique_ptr<ProtoProxy> proxy(new (&ac) ProtoProxy(proto_id,
+                                          static_cast<ddk::AnyProtocol*>(protocol), proxy_cb));
+        if (!ac.check()) {
+            return ZX_ERR_NO_MEMORY;
+        }
+
+        fbl::AutoLock lock(&mutex_);
+        proto_proxys_.insert_or_replace(fbl::move(proxy));
+        sync_completion_signal(&proto_completion_);
+        return ZX_OK;
     }
 
     fbl::AutoLock lock(&mutex_);
@@ -192,44 +205,44 @@ zx_status_t PlatformBus::GetBoardInfo(pdev_board_info_t* out_info) {
     return ZX_OK;
 }
 
-zx_status_t PlatformBus::DdkGetProtocol(uint32_t proto_id, void* protocol) {
+zx_status_t PlatformBus::DdkGetProtocol(uint32_t proto_id, void* out) {
     switch (proto_id) {
     case ZX_PROTOCOL_PLATFORM_BUS: {
-        auto proto = static_cast<platform_bus_protocol_t*>(protocol);
+        auto proto = static_cast<platform_bus_protocol_t*>(out);
         proto->ctx = this;
         proto->ops = &pbus_proto_ops_;
         return ZX_OK;
     }
     case ZX_PROTOCOL_USB_MODE_SWITCH:
         if (ums_ != nullptr) {
-            ums_->GetProto(static_cast<usb_mode_switch_protocol_t*>(protocol));
+            ums_->GetProto(static_cast<usb_mode_switch_protocol_t*>(out));
             return ZX_OK;
         }
         break;
     case ZX_PROTOCOL_GPIO:
         if (gpio_ != nullptr) {
-            gpio_->GetProto(static_cast<gpio_protocol_t*>(protocol));
+            gpio_->GetProto(static_cast<gpio_protocol_t*>(out));
             return ZX_OK;
         }
         break;
     case ZX_PROTOCOL_I2C_IMPL:
         if (i2c_impl_ != nullptr) {
-            i2c_impl_->GetProto(static_cast<i2c_impl_protocol_t*>(protocol));
+            i2c_impl_->GetProto(static_cast<i2c_impl_protocol_t*>(out));
             return ZX_OK;
         }
         break;
     case ZX_PROTOCOL_CLK:
         if (clk_ != nullptr) {
-            clk_->GetProto(static_cast<clk_protocol_t*>(protocol));
+            clk_->GetProto(static_cast<clk_protocol_t*>(out));
             return ZX_OK;
         }
         break;
     case ZX_PROTOCOL_IOMMU:
         if (iommu_ != nullptr) {
-            iommu_->GetProto(static_cast<iommu_protocol_t*>(protocol));
+            iommu_->GetProto(static_cast<iommu_protocol_t*>(out));
         } else {
             // return default implementation
-            auto proto = static_cast<iommu_protocol_t*>(protocol);
+            auto proto = static_cast<iommu_protocol_t*>(out);
             proto->ctx = this;
             proto->ops = &iommu_proto_ops_;
             return ZX_OK;
@@ -237,13 +250,17 @@ zx_status_t PlatformBus::DdkGetProtocol(uint32_t proto_id, void* protocol) {
         break;
     case ZX_PROTOCOL_CANVAS:
         if (canvas_ != nullptr) {
-            canvas_->GetProto(static_cast<canvas_protocol_t*>(protocol));
+            canvas_->GetProto(static_cast<canvas_protocol_t*>(out));
             return ZX_OK;
         }
         break;
     default:
-        // TODO(voydanoff) consider having a registry of arbitrary protocols
-        return ZX_ERR_NOT_SUPPORTED;
+        auto proto_proxy = proto_proxys_.find(proto_id);
+        if (!proto_proxy.IsValid()) {
+            return ZX_ERR_NOT_SUPPORTED;
+        }
+        proto_proxy->GetProtocol(out);
+        return ZX_OK;
     }
 
     return ZX_ERR_NOT_SUPPORTED;

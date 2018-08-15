@@ -158,12 +158,30 @@ static zx_protocol_device_t aml_canvas_device_protocol = {
     .unbind = aml_canvas_unbind,
 };
 
+static zx_protocol_device_t empty_device_protocol = {
+    .version = DEVICE_OPS_VERSION,
+};
+
 static canvas_protocol_ops_t canvas_ops = {
     .config = aml_canvas_config,
     .free = aml_canvas_free,
 };
 
 static zx_status_t aml_canvas_bind(void* ctx, zx_device_t* parent) {
+    platform_proxy_protocol_t proxy;
+    if (device_get_protocol(parent, ZX_PROTOCOL_PLATFORM_PROXY, &proxy) == ZX_OK) {
+printf("bind as proxy\n");
+ 
+         device_add_args_t args = {
+            .version = DEVICE_ADD_ARGS_VERSION,
+            .name = "aml-canvas-proxy",
+            .ops = &empty_device_protocol,
+            .flags = DEVICE_ADD_NON_BINDABLE,
+        };
+
+        return device_add(parent, &args, NULL);
+    }
+
     zx_status_t status = ZX_OK;
 
     aml_canvas_t* canvas = calloc(1, sizeof(aml_canvas_t));
@@ -222,7 +240,7 @@ static zx_status_t aml_canvas_bind(void* ctx, zx_device_t* parent) {
     canvas->canvas.ctx = canvas;
 
     // Set the canvas protocol on the platform bus
-    pbus_register_protocol(&pbus, ZX_PROTOCOL_CANVAS, &canvas->canvas);
+    pbus_register_protocol(&pbus, ZX_PROTOCOL_CANVAS, &canvas->canvas, NULL);
     return ZX_OK;
 fail:
     aml_canvas_release(canvas);
@@ -234,9 +252,15 @@ static zx_driver_ops_t aml_canvas_driver_ops = {
     .bind = aml_canvas_bind,
 };
 
-ZIRCON_DRIVER_BEGIN(aml_canvas, aml_canvas_driver_ops, "zircon", "0.1", 4)
-    BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_PLATFORM_DEV),
+ZIRCON_DRIVER_BEGIN(aml_canvas, aml_canvas_driver_ops, "zircon", "0.1", 7)
+    // platform device binding support
+    BI_GOTO_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_PLATFORM_DEV, 0),
     BI_ABORT_IF(NE, BIND_PLATFORM_DEV_VID, PDEV_VID_AMLOGIC),
     BI_ABORT_IF(NE, BIND_PLATFORM_DEV_PID, PDEV_PID_GENERIC),
     BI_MATCH_IF(EQ, BIND_PLATFORM_DEV_DID, PDEV_DID_AMLOGIC_CANVAS),
+
+    // platform proxy binding support
+    BI_LABEL(0),
+    BI_ABORT_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_PLATFORM_PROXY),
+    BI_MATCH_IF(EQ, BIND_PLATFORM_PROTO, ZX_PROTOCOL_CANVAS),
 ZIRCON_DRIVER_END(aml_canvas)

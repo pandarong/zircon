@@ -104,7 +104,7 @@ private:
 
     DISALLOW_COPY_ASSIGN_AND_MOVE(ProxyDevice);
 
-    uint32_t device_id_;
+    const uint32_t device_id_;
     fbl::RefPtr<PlatformProxy> proxy_;
     fbl::Vector<Mmio> mmios_;
     fbl::Vector<Irq> irqs_;

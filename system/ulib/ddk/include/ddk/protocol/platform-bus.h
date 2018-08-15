@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <ddk/protocol/platform-proxy.h>
 #include <zircon/compiler.h>
 #include <zircon/types.h>
 
@@ -74,6 +75,10 @@ struct pbus_dev {
     // platform bus resources.
     const pbus_dev_t* children;
     uint32_t child_count;
+    // Extra protocols to be provided to this platform device and its children.
+    // These fields are only used for the top level pbus_dev_t,
+    const uint32_t* protocols;
+    uint32_t protocol_count;
 };
 
 // Subset of pdev_board_info_t to be set by the board driver.
@@ -85,7 +90,8 @@ typedef struct {
 typedef struct {
     zx_status_t (*device_add)(void* ctx, const pbus_dev_t* dev);
     zx_status_t (*protocol_device_add)(void* ctx, uint32_t proto_id, const pbus_dev_t* dev);
-    zx_status_t (*register_protocol)(void* ctx, uint32_t proto_id, void* protocol);
+    zx_status_t (*register_protocol)(void* ctx, uint32_t proto_id, void* protocol,
+                                     platform_proxy_cb proxy_cb);
     const char* (*get_board_name)(void* ctx);
     zx_status_t (*set_board_info)(void* ctx, const pbus_board_info_t* info);
 } platform_bus_protocol_ops_t;
@@ -116,8 +122,9 @@ static inline zx_status_t pbus_protocol_device_add(const platform_bus_protocol_t
 // Called by protocol implementation drivers to register their protocol
 // with the platform bus.
 static inline zx_status_t pbus_register_protocol(const platform_bus_protocol_t* pbus,
-                                                 uint32_t proto_id, void* protocol) {
-    return pbus->ops->register_protocol(pbus->ctx, proto_id, protocol);
+                                                 uint32_t proto_id, void* protocol,
+                                                 platform_proxy_cb proxy_cb) {
+    return pbus->ops->register_protocol(pbus->ctx, proto_id, protocol, proxy_cb);
 }
 
 // Returns the board name for the underlying hardware.

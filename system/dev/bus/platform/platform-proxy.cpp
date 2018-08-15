@@ -20,6 +20,7 @@
 #include <ddk/protocol/usb-mode-switch.h>
 
 #include "platform-proxy-device.h"
+#include "platform-proxy-host.h"
 
 // The implementation of the platform bus protocol in this file is for use by
 // drivers that exist in a proxy devhost and communicate with the platform bus
@@ -78,10 +79,34 @@ fail:
     return status;
 }
 
+zx_status_t PlatformProxy::LoadProtocols(zx_device_t* parent) {
+    // Get list of extra protocols to proxy.
+    rpc_pdev_req_t req = {};
+    struct {
+        rpc_pdev_rsp_t pdev;
+        uint32_t protocols[PROXY_MAX_PROTOCOLS];
+    } resp = {};
+    req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
+    req.header.op = PDEV_GET_PROTOCOLS;
+
+    auto status = Rpc(ROOT_DEVICE_ID, &req.header, sizeof(req), &resp.pdev.header, sizeof(resp));
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    uint32_t protocol_count = resp.pdev.protocol_count;
+    for (uint32_t i = 0; i < protocol_count; i++) {
+        printf("PROTOCOL %08x\n", resp.protocols[i]);
+        status = ProxyHost::Create(resp.protocols[i], parent, fbl::RefPtr<PlatformProxy>(this));
+    }
+
+    return ZX_OK;
+}
+
 zx_status_t PlatformProxy::Create(zx_device_t* parent, zx_handle_t rpc_channel) {
     fbl::AllocChecker ac;
 
-    auto proxy = fbl::MakeRefCountedChecked<PlatformProxy>(&ac, rpc_channel);
+    auto proxy = fbl::MakeRefCountedChecked<PlatformProxy>(&ac, parent, rpc_channel);
     if (!ac.check()) {
         return ZX_ERR_NO_MEMORY;
     }

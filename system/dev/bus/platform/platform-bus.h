@@ -14,6 +14,7 @@
 #include <ddktl/protocol/platform-bus.h>
 #include <ddktl/protocol/usb-mode-switch.h>
 #include <fbl/array.h>
+#include <fbl/intrusive_wavl_tree.h>
 #include <fbl/mutex.h>
 #include <fbl/unique_ptr.h>
 #include <fbl/vector.h>
@@ -31,6 +32,25 @@
 
 namespace platform_bus {
 
+class ProtoProxy : public fbl::WAVLTreeContainable<fbl::unique_ptr<ProtoProxy>> {
+public:
+    ProtoProxy(uint32_t proto_id, ddk::AnyProtocol* protocol, platform_proxy_cb proxy_cb)
+        : proto_id_(proto_id), protocol_(*protocol), proxy_cb_(proxy_cb) {}
+
+    inline uint32_t GetKey() const { return proto_id_; }
+    inline void GetProtocol(void* out) const { memcpy(out, &protocol_, sizeof(protocol_)); }
+
+    inline zx_status_t Proxy(const void* req_buf, uint32_t req_size, void* rsp_buf,
+                             uint32_t rsp_buf_size, uint32_t* out_rsp_actual) {
+        return proxy_cb_(req_buf, req_size, rsp_buf, rsp_buf_size, out_rsp_actual);
+    }
+
+private:
+    const uint32_t proto_id_;
+    ddk::AnyProtocol protocol_;
+    const platform_proxy_cb proxy_cb_;
+};
+
 class PlatformBus;
 using PlatformBusType = ddk::Device<PlatformBus, ddk::GetProtocolable>;
 
@@ -47,7 +67,7 @@ public:
     // Platform bus protocol implementation.
     zx_status_t DeviceAdd(const pbus_dev_t* dev);
     zx_status_t ProtocolDeviceAdd(uint32_t proto_id, const pbus_dev_t* dev);
-    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol);
+    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol, platform_proxy_cb proxy_cb);
     const char* GetBoardName();
     zx_status_t SetBoardInfo(const pbus_board_info_t* info);
 
@@ -111,6 +131,9 @@ private:
 
     // Dummy IOMMU.
     zx::handle iommu_handle_;
+
+    fbl::WAVLTree<uint32_t, fbl::unique_ptr<ProtoProxy>> proto_proxys_ __TA_GUARDED(mutex_);
+
 };
 
 } // namespace platform_bus

@@ -40,6 +40,7 @@ enum {
     PDEV_GET_BOARD_INFO,
     PDEV_DEVICE_ADD,
     PDEV_GET_METADATA,
+    PDEV_GET_PROTOCOLS,
 };
 
 typedef struct {
@@ -59,6 +60,7 @@ typedef struct {
     uint32_t device_id;
     uint32_t metadata_type;
     uint32_t metadata_length;
+    uint32_t protocol_count;
 } rpc_pdev_rsp_t;
 
 // Maximum metadata size that can be returned via PDEV_DEVICE_GET_METADATA.
@@ -69,6 +71,10 @@ typedef struct {
     rpc_pdev_rsp_t pdev;
     uint8_t metadata[PROXY_MAX_METADATA_SIZE];
 } rpc_pdev_metadata_rsp_t;
+
+// Maximum number of protocols that can be returned via PDEV_GET_PROTOCOLS.
+static constexpr size_t PROXY_MAX_PROTOCOLS = ((PROXY_MAX_TRANSFER_SIZE - sizeof(rpc_pdev_rsp_t))
+                                                / sizeof(uint32_t));
 
 // Maximum I2C transfer is I2C_MAX_TRANSFER_SIZE minus size of largest header.
 static constexpr uint32_t I2C_MAX_TRANSFER_SIZE = (PROXY_MAX_TRANSFER_SIZE -

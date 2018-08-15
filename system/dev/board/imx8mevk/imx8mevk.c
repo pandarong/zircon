@@ -148,7 +148,8 @@ static int imx8mevk_start_thread(void* arg) {
         goto fail;
     }
 
-    status = pbus_register_protocol(&bus->pbus, ZX_PROTOCOL_USB_MODE_SWITCH, &bus->usb_mode_switch);
+    status = pbus_register_protocol(&bus->pbus, ZX_PROTOCOL_USB_MODE_SWITCH, &bus->usb_mode_switch,
+                                    NULL);
     if (status != ZX_OK) {
         goto fail;
     }

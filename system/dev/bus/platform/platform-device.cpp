@@ -193,6 +193,15 @@ zx_status_t PlatformDevice::RpcGetMetadata(const DeviceResources* dr, uint32_t i
         }
         return status;
     }
+    return ZX_OK;
+}
+
+zx_status_t PlatformDevice::RpcGetProtocols(const DeviceResources* dr, uint32_t* out_protocols,
+                                            uint32_t* out_protocol_count) {
+    auto count = dr->protocol_count();
+    memcpy(out_protocols, dr->protocols(), count * sizeof(*out_protocols));
+    *out_protocol_count = static_cast<uint32_t>(count);
+    return ZX_OK;
 }
 
 zx_status_t PlatformDevice::RpcUmsSetMode(const DeviceResources* dr, usb_mode_t mode) {
@@ -421,6 +430,12 @@ zx_status_t PlatformDevice::DdkRxrpc(zx_handle_t channel) {
             status = RpcGetMetadata(dr, req->index, &resp->pdev.metadata_type, resp->metadata,
                                     buf_size, &resp->pdev.metadata_length);
             resp_len += resp->pdev.metadata_length;
+            break;
+        }
+        case PDEV_GET_PROTOCOLS: {
+            auto protos = reinterpret_cast<uint32_t*>(&resp[1]);
+            status = RpcGetProtocols(dr, protos, &resp->protocol_count);
+            resp_len += static_cast<uint32_t>(resp->protocol_count * sizeof(*protos));
             break;
         }
         default:

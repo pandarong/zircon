@@ -43,6 +43,7 @@ MODULE_SRCS := \
     $(LOCAL_DIR)/platform-proxy.cpp \
     $(LOCAL_DIR)/platform-proxy-bind.c \
     $(LOCAL_DIR)/platform-proxy-device.cpp \
+    $(LOCAL_DIR)/platform-proxy-host.cpp \
 
 MODULE_STATIC_LIBS := \
     system/ulib/ddk \

@@ -19,6 +19,8 @@ class PlatformProxy : public fbl::RefCounted<PlatformProxy> {
 public:
     static zx_status_t Create(zx_device_t* parent, zx_handle_t rpc_channel);
 
+    zx_status_t LoadProtocols(zx_device_t* parent);
+
     zx_status_t Rpc(uint32_t device_id, rpc_req_header_t* req, uint32_t req_length,
                     rpc_rsp_header_t* resp, uint32_t resp_length,
                     zx_handle_t* in_handles, uint32_t in_handle_count,
@@ -34,12 +36,13 @@ private:
     friend class fbl::RefPtr<PlatformProxy>;
     friend class fbl::internal::MakeRefCountedHelper<PlatformProxy>;
 
-    explicit PlatformProxy(zx_handle_t rpc_channel)
-        : rpc_channel_(rpc_channel) {}
+    explicit PlatformProxy(zx_device_t* parent, zx_handle_t rpc_channel)
+        :  parent_(parent), rpc_channel_(rpc_channel) {}
 
     DISALLOW_COPY_ASSIGN_AND_MOVE(PlatformProxy);
 
-    zx::channel rpc_channel_;
+    zx_device_t* parent_;
+    const zx::channel rpc_channel_;
 };
 
 } // namespace platform_bus

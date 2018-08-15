@@ -36,7 +36,7 @@
 //
 //    zx_status_t DeviceAdd(const pbus_dev_t* dev);
 //    zx_status_t ProtocolDeviceAdd(uint32_t proto_id, const pbus_dev_t* dev);
-//    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol);
+//    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol, platform_proxy_cb proxy_cb);
 //    const char* GetBoardName();
 //    zx_status_t SetBoardInfo(const pbus_board_info_t* info);
 //     ...
@@ -73,8 +73,9 @@ private:
         return static_cast<D*>(ctx)->ProtocolDeviceAdd(proto_id, dev);
     }
 
-    static zx_status_t RegisterProtocol(void* ctx, uint32_t proto_id, void* protocol) {
-        return static_cast<D*>(ctx)->RegisterProtocol(proto_id, protocol);
+    static zx_status_t RegisterProtocol(void* ctx, uint32_t proto_id, void* protocol,
+                                        platform_proxy_cb proxy_cb) {
+        return static_cast<D*>(ctx)->RegisterProtocol(proto_id, protocol, proxy_cb);
     }
 
     static const char* GetBoardName(void* ctx) {
@@ -100,8 +101,8 @@ public:
         return ops_->protocol_device_add(ctx_, proto_id, dev);
     }
 
-    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol) {
-        return ops_->register_protocol(ctx_, proto_id, protocol);
+    zx_status_t RegisterProtocol(uint32_t proto_id, void* protocol, platform_proxy_cb proxy_cb) {
+        return ops_->register_protocol(ctx_, proto_id, protocol, proxy_cb);
     }
 
     const char* GetBoardName() {
