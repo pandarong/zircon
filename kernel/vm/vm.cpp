@@ -23,6 +23,7 @@
 #include <vm/pmm.h>
 #include <vm/vm.h>
 #include <vm/vm_aspace.h>
+#include <vm/vmalloc.h>
 #include <zircon/types.h>
 
 #define LOCAL_TRACE MAX(VM_GLOBAL_TRACE, 0)
@@ -177,6 +178,8 @@ void vm_init() {
     ASSERT(status == ZX_OK);
     LTRACEF("VM: aspace random padding size: %#" PRIxPTR "\n", random_size);
 #endif
+
+    vmalloc_init();
 }
 
 paddr_t vaddr_to_paddr(const void* ptr) {

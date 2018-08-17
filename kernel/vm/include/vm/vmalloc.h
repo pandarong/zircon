@@ -16,4 +16,6 @@ __BEGIN_CDECLS
 void* vmalloc(size_t len, const char* name);
 void vmfree(void* ptr);
 
+void vmalloc_init(void);
+
 __END_CDECLS
