@@ -16,6 +16,7 @@
 #include <vector>
 
 #include <fidl/c_generator.h>
+#include <fidl/ddk_generator.h>
 #include <fidl/flat_ast.h>
 #include <fidl/identifier_table.h>
 #include <fidl/json_generator.h>
@@ -34,6 +35,9 @@ void Usage() {
            "             [--c-client CLIENT_PATH]\n"
            "             [--c-server SERVER_PATH]\n"
            "             [--tables TABLES_PATH]\n"
+           "             [--header-includes HEADER_FILE]\n"
+           "             [--ddk-header HEADER_PATH]\n"
+           "             [--ddktl-header HEADER_PATH]\n"
            "             [--json JSON_PATH]\n"
            "             [--name LIBRARY_NAME]\n"
            "             [--files [FIDL_FILE...]...]\n"
@@ -51,6 +55,15 @@ void Usage() {
            " * `--tables TABLES_PATH`. If present, this flag instructs `fidlc` to output\n"
            "   coding tables at the given path. The coding tables are required to encode and\n"
            "   decode messages from the C and C++ bindings.\n"
+           "\n"
+           " * `--header-includes [HEADER_FILE...]...`. Each `--header-include [HEADER_FILE...]\n"
+           "   chunk of arguments describes a C/C++ header to include in the generated ddktl file.\n"
+           "\n"
+           " * `--ddk-header HEADER_PATH`. If present, this flag instructs `fidlc` to output\n"
+           "   a C ddk header at the given path.\n"
+           "\n"
+           " * `--ddktl-header HEADER_PATH`. If present, this flag instructs `fidlc` to output\n"
+           "   a C++ ddktl header at the given path.\n"
            "\n"
            " * `--json JSON_PATH`. If present, this flag instructs `fidlc` to output the\n"
            "   library's intermediate representation at the given path. The intermediate\n"
@@ -216,6 +229,9 @@ enum struct Behavior {
     kCClient,
     kCServer,
     kTables,
+    kDdkHeader,
+    kDdktlHeader,
+    kDdktlInternalHeader,
     kJSON,
 };
 
@@ -285,6 +301,17 @@ int main(int argc, char* argv[]) {
             outputs.emplace(Behavior::kCServer, Open(args->Claim(), std::ios::out));
         } else if (behavior_argument == "--tables") {
             outputs.emplace(Behavior::kTables, Open(args->Claim(), std::ios::out));
+        } else if (behavior_argument == "--ddk-header") {
+            outputs.emplace(Behavior::kDdkHeader, Open(args->Claim(), std::ios::out));
+        } else if (behavior_argument == "--ddktl-header") {
+            const auto path = args->Claim();
+            outputs.emplace(Behavior::kDdktlHeader, Open(path, std::ios::out));
+            const size_t dot = path.find_last_of(".");
+            const std::string noext = (dot != std::string::npos)
+                                          ? path.substr(0, dot)
+                                          : path;
+            outputs.emplace(Behavior::kDdktlInternalHeader,
+                            Open(noext + "-internal.h", std::ios::out));
         } else if (behavior_argument == "--json") {
             outputs.emplace(Behavior::kJSON, Open(args->Claim(), std::ios::out));
         } else if (behavior_argument == "--name") {
@@ -377,6 +404,21 @@ int main(int argc, char* argv[]) {
         case Behavior::kTables: {
             fidl::TablesGenerator generator(final_library);
             Write(generator.Produce(), std::move(output_file));
+            break;
+        }
+        case Behavior::kDdkHeader: {
+            fidl::DdkGenerator generator(final_library);
+            Write(generator.ProduceHeader(), std::move(output_file));
+            break;
+        }
+        case Behavior::kDdktlHeader: {
+            fidl::DdktlGenerator generator(final_library);
+            Write(generator.ProduceHeader(), std::move(output_file));
+            break;
+        }
+        case Behavior::kDdktlInternalHeader: {
+            fidl::DdktlGenerator generator(final_library);
+            Write(generator.ProduceInternalHeader(), std::move(output_file));
             break;
         }
         case Behavior::kJSON: {
