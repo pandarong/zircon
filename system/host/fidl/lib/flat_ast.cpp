@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <iostream>
 #include "fidl/flat_ast.h"
 
 #include <assert.h>
@@ -68,6 +69,9 @@ constexpr TypeShape kUint64TypeShape = TypeShape(8u, 8u);
 constexpr TypeShape kBoolTypeShape = TypeShape(1u, 1u);
 constexpr TypeShape kFloat32TypeShape = TypeShape(4u, 4u);
 constexpr TypeShape kFloat64TypeShape = TypeShape(8u, 8u);
+constexpr TypeShape kUSizeTypeShape = TypeShape(8u, 8u);
+constexpr TypeShape kISizeTypeShape = TypeShape(8u, 8u);
+constexpr TypeShape kVoidPtrTypeShape = TypeShape(8u, 8u);
 
 uint32_t AlignTo(uint64_t size, uint64_t alignment) {
     auto mask = alignment - 1;
@@ -209,6 +213,12 @@ TypeShape PrimitiveTypeShape(types::PrimitiveSubtype type) {
         return kFloat32TypeShape;
     case types::PrimitiveSubtype::kFloat64:
         return kFloat64TypeShape;
+    case types::PrimitiveSubtype::kUSize:
+        return kUSizeTypeShape;
+    case types::PrimitiveSubtype::kISize:
+        return kISizeTypeShape;
+    case types::PrimitiveSubtype::kVoidPtr:
+        return kVoidPtrTypeShape;
     }
 }
 
@@ -216,17 +226,18 @@ std::unique_ptr<PrimitiveType> MakePrimitiveType(const raw::PrimitiveType* primi
     return std::make_unique<PrimitiveType>(primitive_type->subtype);
 }
 
-} // namespace
 
-bool Decl::HasAttribute(fidl::StringView name) const {
+bool HasAttributeHelper(const raw::AttributeList* attributes, fidl::StringView name) {
     if (!attributes)
         return false;
     return attributes->HasAttribute(name);
 }
 
-fidl::StringView Decl::GetAttribute(fidl::StringView name) const {
+fidl::StringView GetAttributeHelper(const raw::AttributeList* attributes,
+                                    fidl::StringView name) {
     if (!attributes)
         return fidl::StringView();
+
     for (const auto& attribute : attributes->attributes_->attributes_) {
         if (StringView(attribute->name) == name) {
             if (attribute->value != "") {
@@ -238,6 +249,16 @@ fidl::StringView Decl::GetAttribute(fidl::StringView name) const {
         }
     }
     return fidl::StringView();
+}
+
+} // namespace
+
+bool Decl::HasAttribute(fidl::StringView name) const {
+    return HasAttributeHelper(attributes.get(), name);
+}
+
+fidl::StringView Decl::GetAttribute(fidl::StringView name) const {
+    return GetAttributeHelper(attributes.get(), name);
 }
 
 std::string Decl::GetName() const {
@@ -283,6 +304,38 @@ bool Interface::Method::Parameter::IsSimple() const {
         }
     }
     }
+}
+
+bool Enum::Member::HasAttribute(fidl::StringView name) const {
+    return HasAttributeHelper(attributes.get(), name);
+}
+
+fidl::StringView Enum::Member::GetAttribute(fidl::StringView name) const {
+    return GetAttributeHelper(attributes.get(), name);
+}
+
+bool Interface::Method::HasAttribute(fidl::StringView name) const {
+    return HasAttributeHelper(attributes.get(), name);
+}
+
+fidl::StringView Interface::Method::GetAttribute(fidl::StringView name) const {
+    return GetAttributeHelper(attributes.get(), name);
+}
+
+bool Struct::Member::HasAttribute(fidl::StringView name) const {
+    return HasAttributeHelper(attributes.get(), name);
+}
+
+fidl::StringView Struct::Member::GetAttribute(fidl::StringView name) const {
+    return GetAttributeHelper(attributes.get(), name);
+}
+
+bool Union::Member::HasAttribute(fidl::StringView name) const {
+    return HasAttributeHelper(attributes.get(), name);
+}
+
+fidl::StringView Union::Member::GetAttribute(fidl::StringView name) const {
+    return GetAttributeHelper(attributes.get(), name);
 }
 
 bool Libraries::Insert(std::unique_ptr<Library> library) {
@@ -908,6 +961,9 @@ bool Library::TypecheckConst(const Const* const_declaration) {
                 case types::PrimitiveSubtype::kInt64:
                 case types::PrimitiveSubtype::kFloat32:
                 case types::PrimitiveSubtype::kFloat64:
+                case types::PrimitiveSubtype::kUSize:
+                case types::PrimitiveSubtype::kISize:
+                case types::PrimitiveSubtype::kVoidPtr:
                     return true;
                 case types::PrimitiveSubtype::kBool:
                     return Fail("Tried to assign a numeric literal into a bool");
@@ -927,6 +983,9 @@ bool Library::TypecheckConst(const Const* const_declaration) {
                 case types::PrimitiveSubtype::kInt64:
                 case types::PrimitiveSubtype::kFloat32:
                 case types::PrimitiveSubtype::kFloat64:
+                case types::PrimitiveSubtype::kUSize:
+                case types::PrimitiveSubtype::kISize:
+                case types::PrimitiveSubtype::kVoidPtr:
                     return Fail("Tried to assign a bool into a numeric type");
                 }
             }
@@ -1198,6 +1257,9 @@ bool Library::CompileEnum(Enum* enum_declaration) {
     case types::PrimitiveSubtype::kBool:
     case types::PrimitiveSubtype::kFloat32:
     case types::PrimitiveSubtype::kFloat64:
+    case types::PrimitiveSubtype::kUSize:
+    case types::PrimitiveSubtype::kISize:
+    case types::PrimitiveSubtype::kVoidPtr:
         // These are not allowed as enum subtypes.
         return Fail(*enum_declaration, "Enums cannot be bools, statuses, or floats");
     }
@@ -1344,7 +1406,7 @@ bool Library::CompileUnion(Union* union_declaration) {
 }
 
 bool Library::CompileLibraryName() {
-    const std::regex pattern("^[a-z][a-z0-9]*$");
+    const std::regex pattern("^[a-z][a-z0-9_]*$");
     for (const auto& part_view : library_name_) {
         std::string part = part_view;
         if (!std::regex_match(part, pattern)) {

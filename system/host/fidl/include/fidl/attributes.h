@@ -10,6 +10,7 @@
 namespace fidl {
 
 bool HasSimpleLayout(const flat::Decl* decl);
+bool IsDefault(const flat::Decl* decl);
 
 } // namespace fidl
 

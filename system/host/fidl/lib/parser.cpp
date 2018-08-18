@@ -17,7 +17,10 @@ namespace fidl {
     case Token::Kind::kUint32:     \
     case Token::Kind::kUint64:     \
     case Token::Kind::kFloat32:    \
-    case Token::Kind::kFloat64
+    case Token::Kind::kFloat64:    \
+    case Token::Kind::kUSize:      \
+    case Token::Kind::kISize:      \
+    case Token::Kind::kVoidPtr
 
 #define TOKEN_TYPE_CASES           \
     TOKEN_PRIMITIVE_TYPE_CASES:    \
@@ -64,6 +67,7 @@ Parser::Parser(Lexer* lexer, ErrorReporter* error_reporter)
         {"fifo", types::HandleSubtype::kFifo},
         {"guest", types::HandleSubtype::kGuest},
         {"timer", types::HandleSubtype::kTimer},
+        {"bti", types::HandleSubtype::kBti},
     };
 
     last_token_ = Lex();
@@ -300,7 +304,7 @@ std::unique_ptr<raw::Attribute> Parser::ParseDocComment() {
         assert(Ok());
     }
     end = MarkLastUseful();
-    return std::make_unique<raw::Attribute>(start, end, "Doc", str_value);
+    return std::make_unique<raw::Attribute>(start, end, "Doc", std::move(str_value));
 }
 
 std::unique_ptr<raw::AttributeList> Parser::MaybeParseAttributeList() {
@@ -513,6 +517,15 @@ std::unique_ptr<raw::PrimitiveType> Parser::ParsePrimitiveType() {
     case Token::Kind::kFloat64:
         subtype = types::PrimitiveSubtype::kFloat64;
         break;
+    case Token::Kind::kUSize:
+        subtype = types::PrimitiveSubtype::kUSize;
+        break;
+    case Token::Kind::kISize:
+        subtype = types::PrimitiveSubtype::kISize;
+        break;
+    case Token::Kind::kVoidPtr:
+        subtype = types::PrimitiveSubtype::kVoidPtr;
+        break;
     default:
         return Fail();
     }
@@ -702,8 +715,10 @@ Parser::ParseEnumDeclaration(std::unique_ptr<raw::AttributeList> attributes) {
     if (!Ok())
         Fail();
 
+#if 0
     if (members.empty())
         return Fail();
+#endif
 
     return std::make_unique<raw::EnumDeclaration>(start, MarkLastUseful(),
                                                   std::move(attributes), std::move(identifier),
@@ -951,8 +966,10 @@ Parser::ParseStructDeclaration(std::unique_ptr<raw::AttributeList> attributes) {
     if (!Ok())
         Fail();
 
+#if 0
     if (members.empty())
         return Fail();
+#endif
 
     return std::make_unique<raw::StructDeclaration>(start, MarkLastUseful(),
                                                     std::move(attributes), std::move(identifier),
