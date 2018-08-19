@@ -336,6 +336,7 @@ static zx_status_t aml_thermal_init(aml_thermal_t* thermal) {
 
 static zx_status_t aml_thermal_bind(void* ctx, zx_device_t* parent) {
     zx_status_t status = ZX_OK;
+printf("aml_thermal_bind 1\n");
 
     aml_thermal_t* thermal = calloc(1, sizeof(aml_thermal_t));
     if (!thermal) {
@@ -347,6 +348,7 @@ static zx_status_t aml_thermal_bind(void* ctx, zx_device_t* parent) {
         THERMAL_ERROR("Could not get parent protocol\n");
         goto fail;
     }
+printf("aml_thermal_bind 2\n");
 
     status = device_get_protocol(parent, ZX_PROTOCOL_GPIO, &thermal->gpio);
     if (status != ZX_OK) {
@@ -354,17 +356,20 @@ static zx_status_t aml_thermal_bind(void* ctx, zx_device_t* parent) {
         goto fail;
     }
 
+printf("aml_thermal_bind 3\n");
     status = device_get_protocol(parent, ZX_PROTOCOL_SCPI, &thermal->scpi);
     if (status != ZX_OK) {
         THERMAL_ERROR("Could not get SCPI protocol\n");
         goto fail;
     }
 
+printf("aml_thermal_bind 4\n");
     // Populate board specific information
     thermal_device_info_t* dev_config = calloc(1, sizeof(thermal_device_info_t));
     if (!dev_config) {
         return ZX_ERR_NO_MEMORY;
     }
+
     size_t actual;
     status = device_get_metadata(parent, DEVICE_METADATA_PRIVATE,
                                  dev_config, sizeof(thermal_device_info_t), &actual);
@@ -372,6 +377,8 @@ static zx_status_t aml_thermal_bind(void* ctx, zx_device_t* parent) {
         THERMAL_ERROR("Could not get metadata\n");
         goto fail;
     }
+
+printf("aml_thermal_bind 5\n");
 
     thermal->device = dev_config;
 
@@ -399,7 +406,9 @@ static zx_status_t aml_thermal_bind(void* ctx, zx_device_t* parent) {
 
     return ZX_OK;
 fail:
-    aml_thermal_release(thermal);
+    zx_handle_close(thermal->port);
+    free(thermal->device);
+    free(thermal);
     return status;
 }
 
