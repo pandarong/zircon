@@ -470,62 +470,58 @@ zx_status_t ProxyDevice::Init(device_add_args_t* args) {
 
     fbl::AllocChecker ac;
 
-    if (info.mmio_count) {
-        for (uint32_t i = 0; i < info.mmio_count; i++) {
-            rpc_pdev_req_t req = {};
-            rpc_pdev_rsp_t resp = {};
-            zx_handle_t rsrc_handle;
+    for (uint32_t i = 0; i < info.mmio_count; i++) {
+        rpc_pdev_req_t req = {};
+        rpc_pdev_rsp_t resp = {};
+        zx_handle_t rsrc_handle;
 
-            req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
-            req.header.op = PDEV_GET_MMIO;
-            req.index = i;
-            status = proxy_->Rpc(device_id_, &req.header, sizeof(req), &resp.header, sizeof(resp),
-                                 NULL, 0, &rsrc_handle, 1, NULL);
-            if (status != ZX_OK) {
-                return status;
-            }
-
-            Mmio mmio;
-            mmio.base = resp.paddr;
-            mmio.length = resp.length;
-            mmio.resource.reset(rsrc_handle);
-            mmios_.push_back(fbl::move(mmio), &ac);
-            if (!ac.check()) {
-                return ZX_ERR_NO_MEMORY;
-            }
-
-            zxlogf(SPEW, "%s: received MMIO %u (base %#lx length %#lx handle %#x)\n", name_, i,
-                   mmio.base, mmio.length, mmio.resource.get());
+        req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
+        req.header.op = PDEV_GET_MMIO;
+        req.index = i;
+        status = proxy_->Rpc(device_id_, &req.header, sizeof(req), &resp.header, sizeof(resp),
+                             NULL, 0, &rsrc_handle, 1, NULL);
+        if (status != ZX_OK) {
+            return status;
         }
+
+        Mmio mmio;
+        mmio.base = resp.paddr;
+        mmio.length = resp.length;
+        mmio.resource.reset(rsrc_handle);
+        mmios_.push_back(fbl::move(mmio), &ac);
+        if (!ac.check()) {
+            return ZX_ERR_NO_MEMORY;
+        }
+
+        zxlogf(SPEW, "%s: received MMIO %u (base %#lx length %#lx handle %#x)\n", name_, i,
+               mmio.base, mmio.length, mmio.resource.get());
     }
 
-    if (info.irq_count) {
-        for (uint32_t i = 0; i < info.irq_count; i++) {
-            rpc_pdev_req_t req = {};
-            rpc_pdev_rsp_t resp = {};
-            zx_handle_t rsrc_handle;
+    for (uint32_t i = 0; i < info.irq_count; i++) {
+        rpc_pdev_req_t req = {};
+        rpc_pdev_rsp_t resp = {};
+        zx_handle_t rsrc_handle;
 
-            req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
-            req.header.op = PDEV_GET_INTERRUPT;
-            req.index = i;
-            status = proxy_->Rpc(device_id_, &req.header, sizeof(req), &resp.header, sizeof(resp),
-                                 NULL, 0, &rsrc_handle, 1, NULL);
-            if (status != ZX_OK) {
-                return status;
-            }
-
-            Irq irq;
-            irq.irq = resp.irq;
-            irq.mode = resp.mode;
-            irq.resource.reset(rsrc_handle);
-            irqs_.push_back(fbl::move(irq), &ac);
-            if (!ac.check()) {
-                return ZX_ERR_NO_MEMORY;
-            }
-
-            zxlogf(SPEW, "%s: received IRQ %u (irq %#x handle %#x)\n", name_, i, irq.irq,
-                   irq.resource.get());
+        req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
+        req.header.op = PDEV_GET_INTERRUPT;
+        req.index = i;
+        status = proxy_->Rpc(device_id_, &req.header, sizeof(req), &resp.header, sizeof(resp),
+                             NULL, 0, &rsrc_handle, 1, NULL);
+        if (status != ZX_OK) {
+            return status;
         }
+
+        Irq irq;
+        irq.irq = resp.irq;
+        irq.mode = resp.mode;
+        irq.resource.reset(rsrc_handle);
+        irqs_.push_back(fbl::move(irq), &ac);
+        if (!ac.check()) {
+            return ZX_ERR_NO_MEMORY;
+        }
+
+        zxlogf(SPEW, "%s: received IRQ %u (irq %#x handle %#x)\n", name_, i, irq.irq,
+               irq.resource.get());
     }
 
     if (args) {
@@ -534,7 +530,42 @@ zx_status_t ProxyDevice::Init(device_add_args_t* args) {
         proto_id_ = args->proto_id;
         proto_ops_ = args->proto_ops;
 
-        return DdkAdd(args->name, args->flags, args->props, args->prop_count);
+        if (info.metadata_count == 0) {
+            return DdkAdd(args->name, args->flags, args->props, args->prop_count);
+        }
+
+        auto status = DdkAdd(args->name, args->flags | DEVICE_ADD_INVISIBLE, args->props,
+                             args->prop_count);
+        if (status != ZX_OK) {
+            return status;
+        }
+
+        for (uint32_t i = 0; i < info.metadata_count; i++) {
+            rpc_pdev_req_t req = {};
+            struct {
+                rpc_pdev_rsp_t pdev;
+                uint8_t metadata[PROXY_MAX_METADATA_SIZE];
+            } resp = {};
+            req.header.protocol = ZX_PROTOCOL_PLATFORM_DEV;
+            req.header.op = PDEV_GET_METADATA;
+            req.index = i;
+        
+            status = proxy_->Rpc(device_id_, &req.header, sizeof(req), &resp.pdev.header,
+                                 sizeof(resp));
+            if (status != ZX_OK) {
+                DdkRemove();
+                return status;
+            }
+            status = DdkAddMetadata(resp.pdev.metadata_type, resp.metadata,
+                                    resp.pdev.metadata_length);
+            if (status != ZX_OK) {
+                DdkRemove();
+                return status;
+            }
+        }
+
+        DdkMakeVisible(); 
+        return ZX_OK;
     } else {
         return DdkAdd(name_);
     }

@@ -248,6 +248,36 @@ zx_status_t PlatformDevice::RpcDeviceAdd(const DeviceResources* dr, uint32_t ind
     return ZX_OK;
 }
 
+zx_status_t PlatformDevice::RpcGetMetadata(const DeviceResources* dr, uint32_t index,
+                                           uint8_t* out_metadata, uint32_t* out_metadata_type,
+                                           uint32_t* out_metadata_length) {
+    if (index >= dr->metadata_count()) {
+        return ZX_ERR_OUT_OF_RANGE;
+    }
+    auto& metadata = dr->metadata(index);
+    if (metadata.data && metadata.len) {
+        if (metadata.len > PROXY_MAX_METADATA_SIZE) {
+            return ZX_ERR_BUFFER_TOO_SMALL;
+        }
+        memcpy(out_metadata, metadata.data, metadata.len);
+        *out_metadata_type = metadata.type;
+        *out_metadata_length = metadata.len;
+        return ZX_OK;
+    } else {
+        const void* data;
+        uint32_t length;
+        auto status = GetZbiMetadata(metadata.type, metadata.extra, &data, &length);
+        if (status == ZX_OK) {
+            if (length > PROXY_MAX_METADATA_SIZE) {
+                return ZX_ERR_BUFFER_TOO_SMALL;
+            }
+            memcpy(out_metadata, data, length);
+            *out_metadata_length = length;
+        }
+        return status;
+    }
+}
+
 zx_status_t PlatformDevice::RpcUmsSetMode(const DeviceResources* dr, usb_mode_t mode) {
     if (bus_->ums() == nullptr) {
         return ZX_ERR_NOT_SUPPORTED;
@@ -507,6 +537,13 @@ zx_status_t PlatformDevice::DdkRxrpc(zx_handle_t channel) {
         case PDEV_DEVICE_ADD:
             status = RpcDeviceAdd(dr, req->index, &resp->device_id);
             break;
+        case PDEV_GET_METADATA: {
+            auto metadata = reinterpret_cast<uint8_t*>(&resp[1]);
+            status = RpcGetMetadata(dr, req->index, metadata, &resp->metadata_type,
+                                    &resp->metadata_length);
+            resp_len += static_cast<uint32_t>(resp->metadata_length * sizeof(*metadata));
+            break;
+        }
         default:
             zxlogf(ERROR, "platform_dev_rxrpc: unknown op %u\n", req_header->op);
             return ZX_ERR_INTERNAL;
@@ -702,9 +739,8 @@ void PlatformDevice::DdkRelease() {
     delete this;
 }
 
-zx_status_t PlatformDevice::AddMetaData(const pbus_metadata_t& pbm) {
-    const uint32_t type = pbm.type;
-    const uint32_t extra = pbm.extra;
+zx_status_t PlatformDevice::GetZbiMetadata(uint32_t type, uint32_t extra, const void** out_metadata,
+                                           uint32_t* out_size) {
     const uint8_t* metadata = bus_->metadata();
     const size_t metadata_size = bus_->metadata_size();
     size_t offset = 0;
@@ -714,7 +750,9 @@ zx_status_t PlatformDevice::AddMetaData(const pbus_metadata_t& pbm) {
         size_t length = ZBI_ALIGN(sizeof(zbi_header_t) + header->length);
 
         if (header->type == type && header->extra == extra) {
-            return DdkAddMetadata(type, header + 1, length - sizeof(zbi_header_t));
+            *out_metadata = header + 1;
+            *out_size = static_cast<uint32_t>(length - sizeof(zbi_header_t));
+            return ZX_OK;
         }
         metadata += length;
         offset += length;
@@ -762,7 +800,12 @@ zx_status_t PlatformDevice::Start() {
             if (pbm.data && pbm.len) {
                 status = DdkAddMetadata(pbm.type, pbm.data, pbm.len);
             } else {
-                status = AddMetaData(pbm);
+                const void* data;
+                uint32_t length;
+                status = GetZbiMetadata(pbm.type, pbm.extra, &data, &length);
+                if (status == ZX_OK) {
+                    status = DdkAddMetadata(pbm.type, data, length);
+                }
             }
             if (status != ZX_OK) {
                 DdkRemove();
