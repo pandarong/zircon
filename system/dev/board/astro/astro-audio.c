@@ -100,7 +100,7 @@ zx_status_t astro_tdm_init(aml_bus_t* bus) {
 
     aml_pll_dev_t hifi_pll;
     s905d2_pll_init(&hiu, &hifi_pll, HIFI_PLL);
-    status = s905d2_pll_set_rate(&hifi_pll, 3072000000);
+    status = s905d2_pll_set_rate(&hifi_pll, 1536000000);
     if (status != ZX_OK) {
         zxlogf(ERROR,"Invalid rate selected for hifipll\n");
         return status;
@@ -126,7 +126,7 @@ zx_status_t astro_tdm_init(aml_bus_t* bus) {
     gpio_write(&bus->gpio, S905D2_GPIOA(5), 1);
 
 
-    status = pbus_device_add(&bus->pbus, &aml_tdm_dev, 0);
+    status = pbus_device_add(&bus->pbus, &aml_tdm_dev);
     if (status != ZX_OK) {
         zxlogf(ERROR, "astro_tdm_init: pbus_device_add failed: %d\n", status);
         return status;

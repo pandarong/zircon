@@ -56,7 +56,7 @@ zx_status_t AmlAudioStream::Create(zx_device_t* parent) {
     stream->tdm_->SetMclk(EE_AUDIO_MCLK_A, HIFI_PLL, 124);
 
     zxlogf(INFO, "Setting sclk\n");
-    stream->tdm_->SetSclk(EE_AUDIO_MCLK_A, 1, 0, 255);
+    stream->tdm_->SetSclk(EE_AUDIO_MCLK_A, 1, 0, 127);
 
     zxlogf(INFO, "Setting tdmoutclk\n");
     stream->tdm_->SetTdmOutClk(EE_AUDIO_TDMOUTB, EE_AUDIO_MCLK_A,
