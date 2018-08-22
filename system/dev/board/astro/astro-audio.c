@@ -18,20 +18,6 @@
 
 #include "astro.h"
 
-
-#if 0
-static char teststr[] = "Eric Holland\0";
-
-static pbus_boot_metadata_t meta[] = {
-    {
-        .type = AML_TDM_METADATA,
-        .data = teststr,
-        .extra = 0,
-        .len = sizeof(teststr)
-    },
-};
-#endif
-
 static const pbus_gpio_t audio_gpios[] = {
     {
         // AUDIO_SOC_FAULT_L
