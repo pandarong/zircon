@@ -5,7 +5,6 @@
 #include "audio.h"
 #include "aml-audio.h"
 
-
 namespace audio {
 namespace astro {
 /*
@@ -30,15 +29,6 @@ zx_status_t AmlAudioStream::Create(zx_device_t* parent) {
         return ZX_ERR_NO_RESOURCES;
     }
 
-    ddk::I2cChannel i2c;
-    i2c = pdev->GetI2cChan(0);
-    if (!i2c.is_valid()) {
-        zxlogf(ERROR,"%s failed to init i2c\n", __func__);
-        return ZX_ERR_NO_RESOURCES;
-    } else {
-        zxlogf(INFO,"i2c created successfully\n");
-    }
-
     stream->audio_fault_ = pdev->GetGpio(0);
     stream->audio_en_ = pdev->GetGpio(1);
     if (!(stream->audio_fault_.is_valid() && stream->audio_en_.is_valid())) {
@@ -46,9 +36,19 @@ zx_status_t AmlAudioStream::Create(zx_device_t* parent) {
         return ZX_ERR_NO_RESOURCES;
     }
 
+    stream->codec_ = Tas27xx::Create(pdev->GetI2cChan(0).release());
+    if (!stream->codec_) {
+        zxlogf(ERROR,"%s could not get tas27xx\n", __func__);
+        return ZX_ERR_NO_RESOURCES;
+    }
+
+    for (uint8_t i = 0; i<20; i++) {
+        zxlogf(INFO,"TAS reg%02x = %02x\n", i, stream->codec_->ReadReg(i));
+    }
+
     stream->tdm_ = AmlTdmDevice::Create(mmio.release());
     if (stream->tdm_ == nullptr) {
-        zxlogf(ERROR,"%s failed to create tdm device\n",__func__);
+        zxlogf(ERROR,"%s failed to create tdm device\n", __func__);
         return ZX_ERR_NO_MEMORY;
     }
 

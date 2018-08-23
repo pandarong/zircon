@@ -12,7 +12,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/binding.c \
     $(LOCAL_DIR)/audio.cpp \
     $(LOCAL_DIR)/aml-tdm.cpp \
-
+    $(LOCAL_DIR)/tas27xx.cpp \
 
 MODULE_LIBS := \
   system/ulib/c \

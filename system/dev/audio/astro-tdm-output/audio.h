@@ -22,6 +22,7 @@
 #include <dispatcher-pool/dispatcher-timer.h>
 
 #include "aml-tdm.h"
+#include "tas27xx.h"
 
 namespace audio {
 namespace astro {
@@ -61,6 +62,8 @@ private:
         : AmlAudioStreamBase(parent) { }
 
     platform_device_protocol_t pdev_;
+
+    fbl::unique_ptr<Tas27xx> codec_;
 
     fbl::unique_ptr<AmlTdmDevice> tdm_;
     ddk::GpioPin audio_en_;
