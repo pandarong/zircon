@@ -18,8 +18,12 @@ enum {
     BTI_DISPLAY,
     BTI_GPU,
     BTI_SDHCI,
-
 };
+
+typedef enum {
+    BOARD_IMX8M_EVK,
+    BOARD_MADRONE,
+} imx8_board_t;
 
 typedef struct {
     platform_bus_protocol_t     pbus;
@@ -27,11 +31,12 @@ typedef struct {
     iommu_protocol_t            iommu;
     gpio_protocol_t             gpio;
     zx_handle_t                 bti_handle;
-    uint32_t                    soc_pid;
+    imx8_board_t                board;
 } imx8mevk_bus_t;
 
-
 zx_status_t imx8m_gpio_init(imx8mevk_bus_t* bus);
+zx_status_t imx_usb_phy_init(zx_paddr_t usb_base, size_t usb_length, zx_handle_t bti);
 zx_status_t imx_usb_init(imx8mevk_bus_t* bus);
+zx_status_t madrone_usb_init(imx8mevk_bus_t* bus);
 zx_status_t imx_gpu_init(imx8mevk_bus_t* bus);
 zx_status_t imx8m_sdhci_init(imx8mevk_bus_t* bus);

@@ -121,8 +121,13 @@ static int imx8mevk_start_thread(void* arg) {
         gpio_set_alt_function(&bus->gpio, 0, imx8mevk_pinmux[i]);
     }
 
-    if ((status = imx_usb_init(bus)) != ZX_OK) {
-        zxlogf(ERROR, "%s: failed %d\n", __FUNCTION__, status);
+    if (bus->board == BOARD_MADRONE) {
+        status = madrone_usb_init(bus);
+    } else {
+        status = imx_usb_init(bus);
+    }
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "%s: USB init failed %d\n", __FUNCTION__, status);
         goto fail;
     }
 
@@ -158,6 +163,13 @@ static zx_status_t imx8mevk_bus_bind(void* ctx, zx_device_t* parent) {
     zx_status_t status = device_get_protocol(parent, ZX_PROTOCOL_PLATFORM_BUS, &bus->pbus);
     if (status != ZX_OK) {
         goto fail;
+    }
+
+    const char* board_name = pbus_get_board_name(&bus->pbus);
+    if (!strcmp(board_name, "madrone")) {
+        bus->board = BOARD_MADRONE;
+    } else {
+        bus->board = BOARD_IMX8M_EVK;
     }
 
     // get default BTI from the dummy IOMMU implementation in the platform bus

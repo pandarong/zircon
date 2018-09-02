@@ -8,22 +8,20 @@ MODULE := $(LOCAL_DIR)
 
 MODULE_TYPE := driver
 
-MODULE_SRCS += \
-    $(LOCAL_DIR)/imx8mevk.c \
-    $(LOCAL_DIR)/imx8mevk-gpio.c \
-    $(LOCAL_DIR)/imx8mevk-gpu.c \
-    $(LOCAL_DIR)/imx8mevk-usb.c \
-    $(LOCAL_DIR)/imx8mevk-sdhci.c \
-    $(LOCAL_DIR)/madrone-usb.c \
+MODULE_SRCS := \
+    $(LOCAL_DIR)/bind.c \
+    $(LOCAL_DIR)/madrone-usb.cpp \
 
 MODULE_STATIC_LIBS := \
-    system/dev/lib/imx8m \
     system/ulib/ddk \
-    system/ulib/sync \
+    system/ulib/ddktl \
+    system/ulib/fbl \
+    system/ulib/zx \
+    system/ulib/zxcpp \
 
 MODULE_LIBS := \
     system/ulib/driver \
+    system/ulib/zircon \
     system/ulib/c \
-    system/ulib/zircon
 
 include make/module.mk

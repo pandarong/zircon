@@ -93,7 +93,7 @@ static const pbus_metadata_t usb2_metadata[] = {
     }
 };
 
-// USB1 is USB-A port, host only
+// USB2 is USB-A port, host only
 static const pbus_dev_t usb2_dev = {
     .name = "dwc3-2",
     .vid = PDEV_VID_GENERIC,
@@ -110,9 +110,31 @@ static const pbus_dev_t usb2_dev = {
 };
 
 zx_status_t imx_usb_phy_init(zx_paddr_t usb_base, size_t usb_length, zx_handle_t bti) {
+    // turn on usb via smc calls
+    zx_smc_parameters_t otg1_en_params = {.func_id = IMX8M_SIP_GPC,
+                                          .arg1 = IMX8M_SIP_CONFIG_GPC_PM_DOMAIN,
+                                          .arg2 = IMX8M_PD_USB_OTG1,
+                                          .arg3 = 1};
+    zx_smc_result_t smc_result;
+    zx_status_t status = zx_smc_call(get_root_resource(), &otg1_en_params, &smc_result);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "%s: SMC call to turn USB on failed %d\n", __FUNCTION__, status);
+        return status;
+    }
+
+    zx_smc_parameters_t otg2_en_params = {.func_id = IMX8M_SIP_GPC,
+                                          .arg1 = IMX8M_SIP_CONFIG_GPC_PM_DOMAIN,
+                                          .arg2 = IMX8M_PD_USB_OTG2,
+                                          .arg3 = 1};
+    status = zx_smc_call(get_root_resource(), &otg2_en_params, &smc_result);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "%s: SMC call to turn USB on failed %d\n", __FUNCTION__, status);
+        return status;
+    }
+
     uint32_t reg;
     io_buffer_t usb_buf;
-    zx_status_t status = io_buffer_init_physical(&usb_buf, bti, usb_base, usb_length,
+    status = io_buffer_init_physical(&usb_buf, bti, usb_base, usb_length,
                                         get_root_resource(), ZX_CACHE_POLICY_UNCACHED_DEVICE);
     if (status != ZX_OK) {
         zxlogf(ERROR, "%s io_buffer_init_physical failed %d\n", __FUNCTION__, status);
@@ -145,28 +167,6 @@ zx_status_t imx_usb_phy_init(zx_paddr_t usb_base, size_t usb_length, zx_handle_t
 zx_status_t imx_usb_init(imx8mevk_bus_t* bus) {
     zx_status_t status;
     zx_handle_t bti;
-
-    // turn on usb via smc calls
-    zx_smc_parameters_t otg1_en_params = {.func_id = IMX8M_SIP_GPC,
-                                          .arg1 = IMX8M_SIP_CONFIG_GPC_PM_DOMAIN,
-                                          .arg2 = IMX8M_PD_USB_OTG1,
-                                          .arg3 = 1};
-    zx_smc_result_t smc_result;
-    status = zx_smc_call(get_root_resource(), &otg1_en_params, &smc_result);
-    if (status != ZX_OK) {
-        zxlogf(ERROR, "%s: SMC call to turn USB on failed %d\n", __FUNCTION__, status);
-        return status;
-    }
-
-    zx_smc_parameters_t otg2_en_params = {.func_id = IMX8M_SIP_GPC,
-                                          .arg1 = IMX8M_SIP_CONFIG_GPC_PM_DOMAIN,
-                                          .arg2 = IMX8M_PD_USB_OTG2,
-                                          .arg3 = 1};
-    status = zx_smc_call(get_root_resource(), &otg2_en_params, &smc_result);
-    if (status != ZX_OK) {
-        zxlogf(ERROR, "%s: SMC call to turn USB on failed %d\n", __FUNCTION__, status);
-        return status;
-    }
 
     status = iommu_get_bti(&bus->iommu, 0, BTI_BOARD, &bti);
     if (status != ZX_OK) {
