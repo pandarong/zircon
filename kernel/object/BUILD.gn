@@ -1,0 +1,67 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("object") {
+  kernel = true
+  sources = [
+    "buffer_chain.cpp",
+    "bus_transaction_initiator_dispatcher.cpp",
+    "channel_dispatcher.cpp",
+    "diagnostics.cpp",
+    "dispatcher.cpp",
+    "event_dispatcher.cpp",
+    "event_pair_dispatcher.cpp",
+    "exception.cpp",
+    "excp_port.cpp",
+    "fifo_dispatcher.cpp",
+    "futex_context.cpp",
+    "futex_node.cpp",
+    "glue.cpp",
+    "guest_dispatcher.cpp",
+    "handle.cpp",
+    "interrupt_dispatcher.cpp",
+    "interrupt_event_dispatcher.cpp",
+    "iommu_dispatcher.cpp",
+    "job_dispatcher.cpp",
+    "log_dispatcher.cpp",
+    "mbuf.cpp",
+    "message_packet.cpp",
+    "pci_device_dispatcher.cpp",
+    "pci_interrupt_dispatcher.cpp",
+    "pinned_memory_token_dispatcher.cpp",
+    "policy_manager.cpp",
+    "port_dispatcher.cpp",
+    "process_dispatcher.cpp",
+    "profile_dispatcher.cpp",
+    "resource.cpp",
+    "resource_dispatcher.cpp",
+    "semaphore.cpp",
+    "socket_dispatcher.cpp",
+    "suspend_token_dispatcher.cpp",
+    "thread_dispatcher.cpp",
+    "timer_dispatcher.cpp",
+    "vcpu_dispatcher.cpp",
+    "virtual_interrupt_dispatcher.cpp",
+    "vm_address_region_dispatcher.cpp",
+    "vm_object_dispatcher.cpp",
+    "wait_state_observer.cpp",
+
+    # Tests.
+    "buffer_chain_tests.cpp",
+    "mbuf_tests.cpp",
+    "message_packet_tests.cpp",
+    "state_tracker_tests.cpp",
+  ]
+  deps = [
+    "$zx/kernel/dev/interrupt",
+    "$zx/kernel/dev/udisplay",
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/hypervisor",
+    "$zx/kernel/lib/oom",
+    "$zx/kernel/lib/pretty",
+    "$zx/kernel/lib/region-alloc",
+  ]
+}

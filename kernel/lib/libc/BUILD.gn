@@ -1,0 +1,29 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("libc") {
+  kernel = true
+  sources = [
+    "atexit.c",
+    "atoi.c",
+    "bsearch.c",
+    "ctype.c",
+    "cxa_atexit.cpp",
+    "eabi.c",
+    "errno.c",
+    "printf.c",
+    "qsort.c",
+    "rand.c",
+    "stdio.c",
+    "strtol.c",
+    "strtoll.c",
+  ]
+  deps = [
+    ":string",
+    "$zx/kernel/lib/heap",
+    "$zx/kernel/lib/io",
+  ]
+}

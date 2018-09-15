@@ -1,0 +1,90 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/kernel/params.gni")
+
+config("kernel") {
+  cflags = [
+    "-mno-red-zone",
+
+    # Hard disable floating point in the kernel.
+    "-msoft-float",
+    "-mno-mmx",
+    "-mno-sse",
+    "-mno-sse2",
+    "-mno-3dnow",
+    "-mno-avx",
+    "-mno-avx2",
+  ]
+
+  if (is_gcc) {
+    cflags += [
+      "-falign-jumps=1",
+      "-falign-loops=1",
+      "-falign-functions=4",
+
+      # Optimization: Since FPU is disabled, do not pass flag in %rax to
+      # varargs routines that floating point args are in use.
+      "-mskip-rax-setup",
+    ]
+  } else {
+    # Clang needs -mcmodel=kernel to tell it to use the right safe-stack
+    # ABI for the kernel.
+    cflags += [ "-mcmodel=kernel" ]
+  }
+
+  defines = [ "ARCH_X86" ]
+}
+
+library("arm64") {
+  sources = [
+    "acpi.S",
+    "arch.cpp",
+    "asm.S",
+    "bp_percpu.c",
+    "cache.cpp",
+    "cpu_topology.cpp",
+    "debugger.cpp",
+    "descriptor.cpp",
+    "exceptions.S",
+    "faults.cpp",
+    "feature.cpp",
+    "gdt.S",
+    "hwp.cpp",
+    "idt.cpp",
+    "ioapic.cpp",
+    "ioport.cpp",
+    "lapic.cpp",
+    "mexec.S",
+    "mmu.cpp",
+    "mmu_mem_types.cpp",
+    "mmu_tests.cpp",
+    "mp.cpp",
+    "ops.S",
+    "perf_mon.cpp",
+    "proc_trace.cpp",
+    "pvclock.cpp",
+    "registers.cpp",
+    "start.S",
+    "syscall.S",
+    "thread.cpp",
+    "timer_freq.cpp",
+    "tsc.cpp",
+    "user_copy.S",
+    "user_copy.cpp",
+    "uspace_entry.S",
+  ]
+  deps = [
+    "$zx/kernel/dev/iommu/dummy",
+    "$zx/kernel/dev/iommu/intel",
+    "$zx/kernel/lib/bitmap",
+    "$zx/kernel/lib/code_patching",
+    "$zx/kernel/lib/crashlog",
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/object",
+    "page_tables",
+  ]
+}
