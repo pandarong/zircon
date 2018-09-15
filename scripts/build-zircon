@@ -52,4 +52,4 @@ if [[ ! ${ARCH} ]]; then
     HELP
 fi
 
-exec ${DIR}/make-parallel ${ARCH} ${ARGS} "$@"
+exec ${DIR}/make-parallel PROJECT=${ARCH} ${ARGS} "$@"

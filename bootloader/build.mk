@@ -73,6 +73,7 @@ $(EFI_BOOTLOADER): $(EFI_OBJS) $(EFI_LIBS)
 	@$(MKDIR)
 	$(call BUILDECHO,linking $@)
 	$(NOECHO)$(EFI_LD) /out:$@ $(EFI_LDFLAGS) $^
+	$(NOECHO)$(EFI_OBJDUMP) -d $@ > $@.lst
 
 else
 
