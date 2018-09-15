@@ -1,0 +1,21 @@
+declare_args() {
+  # Maximum number of CPUs the kernel will run on (others will be ignored).
+  smp_max_cpus = 16
+
+  if (current_cpu == "arm64") {
+    # Maximum number of CPU clusters the kernel will support.
+    # The kernel will panic at boot on hardware with more clusters.
+    smp_max_clusters = 2
+  }
+
+  # Enable kernel lock dependency tracking.
+  enable_lock_dep = false
+}
+
+declare_args() {
+  # Enable kernel lock dependency tracking tests.  By default this is
+  # enabled when tracking is enabled, but can also be eanbled independently
+  # to assess whether the tests build and *fail correctly* when lockdep is
+  # disabled.
+  enable_lock_dep_tests = enable_lock_dep
+}

@@ -1,0 +1,32 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+source_set("kernel") {
+  sources = [
+    "cmdline.cpp",
+    "debug.cpp",
+    "dpc.cpp",
+    "event.cpp",
+    "init.cpp",
+    "mp.cpp",
+    "mutex.cpp",
+    "percpu.cpp",
+    "sched.cpp",
+    "thread.cpp",
+    "timer.cpp",
+    "wait.cpp",
+  ]
+  deps = [
+    "$zx/kernel/lib/counters",
+    "$zx/kernel/lib/debug",
+    "$zx/kernel/lib/explicit-memory",
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/heap",
+    "$zx/kernel/lib/libc",
+    "$zx/kernel/lib/zircon-internal",
+    "$zx/kernel/vm",
+  ]
+}
