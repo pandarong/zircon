@@ -1,0 +1,246 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+# TODO: $zx/public/gn/image_binary.gni (?)
+template("image_binary") {
+  forward_variables_from(invoker,
+                         [
+                           "deps",
+                           "outputs",
+                           "sources",
+                           "testonly",
+                           "visibility",
+                         ])
+  assert(sources == [ sources[0] ], "sources must have exactly one element")
+  assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
+  script = [ "${clang_tool_prefix}llvm-objcopy" ]
+  args = [
+    "-O",
+    "binary",
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+  ]
+}
+
+import("params.gni")
+
+# These are needed both in kernel sources (pervasively) and in the linker
+# scripts.
+kernel_defines = [
+  # TODO: should not be needed in C, but is in one place now.
+  "KERNEL_BASE=$kernel_base",
+
+  "SMP_MAX_CPUS=$smp_max_cpus",
+]
+
+# This is the top config for all kernel code.
+config("kernel_config") {
+  configs = [
+    "arch/$zircon_cpu:kernel",
+    ":lock_dep",
+  ]
+
+  includes = [ "include" ]
+
+  defines = kernel_defines
+  defines += [
+    "LK=1",
+    "ENABLE_PANIC_SHELL=1",
+    "WITH_DEBUG_LINEBUFFER=1",
+    "WITH_KERNEL_PCIE=1",
+    "ZIRCON_TOOLCHAIN=1",
+    "_KERNEL=1",
+  ]
+
+  cflags = [
+    "-fpie",
+    "-include",
+    rebase_path("include/hidden.h", root_build_dir),
+    "-ffreestanding",
+    "-Wformat=2",
+    "-Wvla",
+
+    "-fno-exceptions",
+
+    # We want `.debug_frame` for the kernel (ZX-62).  And we still want
+    # asynchronous unwind tables.  Alas there's (currently) no way to
+    # achieve this with our GCC.  At the moment we compile with
+    # `-fno-omit-frame-pointer`, which is good because we link with
+    # `--gc-sections`, which means `.eh_frame` gets discarded so GCC-built
+    # kernels don't have any unwind info (except for assembly)!  Assembler
+    # code has its own way of requesting `.debug_frame` vs `.eh_frame` with
+    # the `.cfi_sections` directive.
+    "-fno-unwind-tables",
+  ]
+
+  # GCC supports `-Wformat-signedness` but Clang currently does not.
+  if (is_gcc) {
+    cflags += [ "-Wformat-signedness" ]
+  }
+
+  cflags_c = [ "-Wmissing-prototypes" ]
+}
+
+config("lock_dep") {
+  visibility = [ ":*" ]
+  defines = []
+  if (enable_lock_dep) {
+    defines += [
+      "WITH_LOCK_DEP=1",
+      "LOCK_DEP_ENABLE_VALIDATION=1",
+    ]
+  }
+  if (enable_lock_dep_tests) {
+    defines += [ "WITH_LOCK_DEP_TESTS=1" ]
+  }
+}
+
+# This is the kernel proper, an ELF executable with full symbols.
+# It's the file to use with a debugger, for example.
+executable("zircon") {
+  visibility = [ ":*" ]
+
+  configs += [ ":kernel_defsym" ]
+  ldflags = [ "-Wl,-T," + rebase_path("kernel.ld", root_build_dir) ]
+  inputs = [
+    "kernel.ld",
+  ]
+
+  deps = [
+    ":test",
+    "arch/$zircon_cpu",
+    "lib/userboot",
+    "top",
+  ]
+
+  # TODO: From project/virtual/user.mk
+  maybe_deps = [
+    "lib/debuglog",
+    "lib/ktrace",
+    "lib/mtrace",
+    "lib/userboot",
+    "object",
+    "syscalls",
+  ]
+
+  not_deps = [
+    "kernel",
+    "object",
+    "platform",
+    "syscalls",
+    "target",
+  ]
+
+  if (current_cpu == "arm64") {
+    # TODO: target/arm? boot-shim
+    deps += [ "platform/generic-arm" ]
+  } else if (current_cpu == "x64") {
+    deps += [ "target/pc" ]
+  }
+}
+
+# Output file of that target.
+zircon_elf = "$root_out_dir/zircon"
+
+# These are needed only in image.S and in the linker scripts.
+image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
+
+# This supplies those variables for use in linker scripts.
+config("kernel_defsym") {
+  visibility = [ ":*" ]
+  ldflags = []
+  foreach(assignment, kernel_defines + image_defines) {
+    ldflags += [ "-Wl,-defsym,$assignment" ]
+  }
+}
+
+# TODO: From project/virtual/test.mk
+group("test") {
+  visibility = [ ":*" ]
+  deps = [
+    "lib/debugcommands",
+    "lib/version",
+    "tests",
+  ]
+}
+
+zircon_raw = "$target_out_dir/zircon.bin"
+image_binary("raw") {
+  visibility = [
+    ":fixups",
+    ":image",
+  ]
+  deps = [
+    ":zircon",
+  ]
+  sources = [
+    zircon_elf,
+  ]
+  outputs = [
+    zircon_raw,
+  ]
+}
+
+# Use the --emit-relocs records to extract the fixups needed to relocate
+# the kernel at boot.  This generates the "kernel-fixups.inc" file that's
+# #include'd by "arch/$zircon_cpu/image.S".
+action("fixups") {
+  visibility = [ ":image" ]
+  deps = [
+    ":raw",
+  ]
+  sources = [
+    zircon_raw,
+  ]
+  outputs = [
+    "$target_gen_dir/kernel-fixups.inc",
+  ]
+
+  # TODO(mcgrathr): Move the script to this dir as it's private to this use.
+  script = "$zx/scripts/gen-kaslr-fixups.sh"
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    "${clang_tool_prefix}llvm-readelf",
+    "${clang_tool_prefix}llvm-objdump",
+    rebase_path(outputs[0], root_build_dir),
+  ]
+}
+
+executable("image") {
+  visibility = [ ":kernel" ]
+  deps = [
+    ":fixups",
+    ":zircon_raw",
+  ]
+  configs += [ ":kernel_defsym" ]
+  includes = [ target_gen_dir ]
+  defines = image_defines +
+            [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]
+  sources = [
+    "arch/$zircon_cpu/image.S",
+  ]
+  ldflags = [
+    "-Wl,--build-id=none",
+    "-Wl,-T," + rebase_path("image.ld", root_build_dir),
+    "-Wl,--just-symbols," + rebase_path("$root_out_dir/zircon", root_build_dir),
+  ]
+  inputs = [
+    "image.ld",
+    "$root_out_dir/zircon",
+  ]
+}
+
+image_binary("kernel") {
+  deps = [
+    ":image",
+  ]
+  outputs = [
+    "$root_out_dir/kernel.zbi",
+  ]
+  sources = [
+    "$root_out_dir/image",
+  ]
+}

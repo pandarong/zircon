@@ -1,0 +1,56 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/kernel/params.gni")
+
+config("kernel") {
+  # The kernel does not use FP or vector registers.
+  cflags = [ "-mgeneral-regs-only" ]
+
+  if (!is_gcc) {
+    # Clang needs -mcmodel=kernel to tell it to use the right safe-stack
+    # ABI for the kernel.
+    cflags += [ "-mcmodel=kernel" ]
+  }
+
+  defines = [ "ARCH_ARM64" ]
+}
+
+library("arm64") {
+  defines = [
+    "SMP_CPU_MAX_CLUSTER_CPUS=$smp_max_cpus",
+    "SMP_CPU_MAX_CLUSTERS=$smp_max_clusters",
+  ]
+  sources = [
+    "arch.cpp",
+    "asm.S",
+    "boot-mmu.cpp",
+    "cache-ops.S",
+    "debugger.cpp",
+    "exceptions.S",
+    "exceptions_c.cpp",
+    "feature.cpp",
+    "fpu.cpp",
+    "mexec.S",
+    "mmu.cpp",
+    "mp.cpp",
+    "periphmap.cpp",
+    "smccc.S",
+    "spinlock.cpp",
+    "start.S",
+    "sysreg.cpp",
+    "thread.cpp",
+    "user_copy.S",
+    "user_copy_c.cpp",
+    "uspace_entry.S",
+  ]
+  deps = [
+    "$zx/kernel/dev/iommu/dummy",
+    "$zx/kernel/lib/bitmap",
+    "$zx/kernel/lib/crashlog",
+    "$zx/kernel/object",
+  ]
+}
