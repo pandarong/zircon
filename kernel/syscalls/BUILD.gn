@@ -1,0 +1,51 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+if (current_cpu == "x64") {
+  zircon_cpu = "x86"
+} else {
+  zircon_cpu = current_cpu
+}
+
+source_set("syscalls") {
+  sources = [
+    "channel.cpp",
+    "ddk.cpp",
+    "ddk_${zircon_cpu}.cpp",
+    "ddk_pci.cpp",
+    "debug.cpp",
+    "exceptions.cpp",
+    "fifo.cpp",
+    "futex.cpp",
+    "handle_ops.cpp",
+    "hypervisor.cpp",
+    "object.cpp",
+    "object_wait.cpp",
+    "port.cpp",
+    "profile.cpp",
+    "resource.cpp",
+    "socket.cpp",
+    "syscalls.cpp",
+    "system.cpp",
+    "system_${zircon_cpu}.cpp",
+    "task.cpp",
+    "test.cpp",
+    "timer.cpp",
+    "vmar.cpp",
+    "vmo.cpp",
+    "zircon.cpp",
+  ]
+  deps = [
+    ":generate-vdso-valid-sysret",
+    "$zx/kernel/lib/console",
+    "$zx/kernel/lib/crypto",
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/pci",
+    "$zx/kernel/lib/user_copy",
+    "$zx/kernel/lib/vdso",
+    "$zx/kernel/object",
+  ]
+}

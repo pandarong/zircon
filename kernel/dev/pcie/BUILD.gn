@@ -1,0 +1,30 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("pcie") {
+  kernel = true
+  sources = [
+    "debug.cpp",
+    "pci_config.cpp",
+    "pcie_bridge.cpp",
+    "pcie_bus_driver.cpp",
+    "pcie_caps.cpp",
+    "pcie_device.cpp",
+    "pcie_irqs.cpp",
+    "pcie_quirks.cpp",
+    "pcie_root.cpp",
+    "pcie_upstream_node.cpp",
+  ]
+  deps = [
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/pci",
+    "$zx/kernel/lib/region-alloc",
+    "$zx/kernel/lib/zxcpp",
+  ]
+
+  # TODO(mcgrathr): Say why this is needed.
+  cflags_cc = [ "-Wno-invalid-offsetof" ]
+}
