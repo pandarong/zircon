@@ -13,63 +13,21 @@
 
 #define LOCAL_TRACE 1
 
-// ACPI structures
-struct acpi_rsdp {
-    uint8_t sig[8];
-    uint8_t checksum;
-    uint8_t oemid[6];
-    uint8_t revision;
-    uint32_t rsdt_address;
-
-    // rev 2+
-    uint32_t length;
-    uint64_t xsdt_address;
-    uint8_t extended_checksum;
-    uint8_t reserved[3];
-} __PACKED;
-
-#define ACPI_RSDP_SIG "RSD PTR "
-
-struct acpi_sdt_header {
-    uint8_t sig[4];
-    uint32_t length;
-    uint8_t revision;
-    uint8_t checksum;
-    uint8_t oemid[6];
-    uint8_t oem_table_id[8];
-    uint32_t oem_revision;
-    uint32_t creator_id;
-    uint32_t creator_revision;
-} __PACKED;
-static_assert(sizeof(acpi_sdt_header) == 36);
-
-struct acpi_rsdt_xsdt {
-    acpi_sdt_header header;
-
-    // array of uint32s or uint64 addresses are placed immediately afterwards
-    union {
-        uint32_t addr32[0];
-        uint64_t addr64[0];
-    };
-} __PACKED;
-
-#define ACPI_RSDT_SIG "RSDT"
-#define ACPI_XSDT_SIG "XSDT"
-
-struct acpi_table_header {
-
-
-};
 
 // global state of the acpi lite library
 struct acpi_lite_state {
     const acpi_rsdp *rsdp;
     const acpi_rsdt_xsdt *sdt;
     size_t num_tables; // number of top level tables
+    bool xsdt; // are the pointers 64 or 32bit?
 } acpi;
 
 static inline const void *phys_to_ptr(uintptr_t pa) {
     if (!is_physmap_phys_addr(pa)) {
+        return nullptr;
+    }
+    // consider 0 to be invalid
+    if (pa == 0) {
         return nullptr;
     }
 
@@ -129,15 +87,14 @@ static zx_paddr_t find_rsdp_pc() {
     return 0;
 }
 
-static bool validate_sdt(const acpi_rsdt_xsdt *sdt, size_t *num_tables) {
+static bool validate_sdt(const acpi_rsdt_xsdt *sdt, size_t *num_tables, bool *xsdt) {
     LTRACEF("%p\n", sdt);
 
     // check the signature and see if it's a rsdt or xsdt
-    bool xsdt;
     if (!memcmp(sdt->header.sig, "XSDT", 4)) {
-        xsdt = true;
+        *xsdt = true;
     } else if (!memcmp(sdt->header.sig, "RSDT", 4)) {
-        xsdt = false;
+        *xsdt = false;
     } else {
         return false;
     }
@@ -159,24 +116,45 @@ static bool validate_sdt(const acpi_rsdt_xsdt *sdt, size_t *num_tables) {
     }
 
     // compute the number of pointers to tables we have
-    *num_tables = (sdt->header.length - 36u) / (xsdt ? 8u : 4u);
+    *num_tables = (sdt->header.length - 36u) / (*xsdt ? 8u : 4u);
 
     // looks okay
     return true;
 }
 
+const acpi_sdt_header *acpi_get_table_at_index(size_t index) {
+    if (index >= acpi.num_tables) {
+        return nullptr;
+    }
 
+    zx_paddr_t pa;
+    if (acpi.xsdt) {
+        pa = acpi.sdt->addr64[index];
+    } else {
+        pa = acpi.sdt->addr32[index];
+    }
+
+    return static_cast<const acpi_sdt_header *>(phys_to_ptr(pa));
+}
 
 void acpi_lite_dump_tables() {
     if (!acpi.sdt) {
         return;
     }
 
+    printf("root table:\n");
     hexdump(acpi.sdt, acpi.sdt->header.length);
 
     // walk the table list
+    for (size_t i = 0; i < acpi.num_tables; i++) {
+        const auto header = acpi_get_table_at_index(i);
+        if (!header) {
+            continue;
+        }
 
-
+        printf("table %zu:\n", i);
+        hexdump(header, header->length);
+    }
 }
 
 zx_status_t acpi_lite_init(zx_paddr_t rsdp_pa) {
@@ -226,7 +204,7 @@ zx_status_t acpi_lite_init(zx_paddr_t rsdp_pa) {
         }
     }
 
-    if (!validate_sdt(acpi.sdt, &acpi.num_tables)) {
+    if (!validate_sdt(acpi.sdt, &acpi.num_tables, &acpi.xsdt)) {
         dprintf(INFO, "ACPI LITE: RSDT/XSDT structure does not check out\n");
         return ZX_ERR_NOT_FOUND;
     }
@@ -237,4 +215,3 @@ zx_status_t acpi_lite_init(zx_paddr_t rsdp_pa) {
 
     return ZX_OK;
 }
-
