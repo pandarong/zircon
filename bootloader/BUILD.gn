@@ -1,0 +1,55 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+# Gigaboot gets its own toolchains to build EFI code.
+if (toolchain.environment == "efi") {
+  # This is the top config for all code in the efi_toolchain.
+  config("efi_config") {
+    configs = [
+      "$zx/kernel:standalone",
+      "$zx/kernel:warnings",
+    ]
+    cflags = [
+      "-std=c99",
+      "-fshort-wchar",
+      "-fno-stack-protector",
+    ]
+    if (current_cpu == "x64") {
+      cflags += [ "-mno-red-zone" ]
+    }
+  }
+
+  executable("bootloader") {
+    deps = [
+      ":lib",
+      ":src",
+    ]
+    ldflags = [
+      "/subsystem:efi_application",
+      "/entry:efi_main",
+    ]
+  }
+} else {
+  # In any other toolchain, just redirect to the proper toolchain.
+  group("bootloader") {
+    public_deps = [
+      ":bootloader($efi_toolchain)",
+    ]
+  }
+
+  # Define the special toolchain itself only in the default toolchain.
+  if (current_toolchain == default_toolchain) {
+    define_environment("efi") {
+      cpu = "x64"
+      os = "win"
+      configs += [ ":efi_config" ]
+      globals = {
+        is_kernel = true
+      }
+      targets = [ ":bootloader" ]
+    }
+  }
+}
