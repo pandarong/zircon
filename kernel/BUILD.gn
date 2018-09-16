@@ -41,6 +41,8 @@ config("kernel_config") {
   configs = [
     "arch/$zircon_cpu:kernel",
     ":lock_dep",
+    ":warnings",
+    ":standalone",
   ]
 
   includes = [ "include" ]
@@ -55,13 +57,15 @@ config("kernel_config") {
     "_KERNEL=1",
   ]
 
+  cflags = [ "-fpie" ]
+}
+
+# For any standalone static binary.
+config("standalone") {
   cflags = [
-    "-fpie",
+    "-ffreestanding",
     "-include",
     rebase_path("include/hidden.h", root_build_dir),
-    "-ffreestanding",
-    "-Wformat=2",
-    "-Wvla",
 
     "-fno-exceptions",
 
@@ -74,6 +78,13 @@ config("kernel_config") {
     # code has its own way of requesting `.debug_frame` vs `.eh_frame` with
     # the `.cfi_sections` directive.
     "-fno-unwind-tables",
+  ]
+}
+
+config("warnings") {
+  cflags = [
+    "-Wformat=2",
+    "-Wvla",
   ]
 
   # GCC supports `-Wformat-signedness` but Clang currently does not.
