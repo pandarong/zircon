@@ -137,24 +137,20 @@ const acpi_sdt_header *acpi_get_table_at_index(size_t index) {
     return static_cast<const acpi_sdt_header *>(phys_to_ptr(pa));
 }
 
-void acpi_lite_dump_tables() {
-    if (!acpi.sdt) {
-        return;
-    }
-
-    printf("root table:\n");
-    hexdump(acpi.sdt, acpi.sdt->header.length);
-
-    // walk the table list
+const acpi_sdt_header *acpi_get_table_by_sig(const char *sig) {
+    // walk the list of tables
     for (size_t i = 0; i < acpi.num_tables; i++) {
         const auto header = acpi_get_table_at_index(i);
         if (!header) {
             continue;
         }
 
-        printf("table %zu:\n", i);
-        hexdump(header, header->length);
+        if (!memcmp(sig, header->sig, 4)) {
+            return header;
+        }
     }
+
+    return nullptr;
 }
 
 zx_status_t acpi_lite_init(zx_paddr_t rsdp_pa) {
@@ -215,3 +211,24 @@ zx_status_t acpi_lite_init(zx_paddr_t rsdp_pa) {
 
     return ZX_OK;
 }
+
+void acpi_lite_dump_tables() {
+    if (!acpi.sdt) {
+        return;
+    }
+
+    printf("root table:\n");
+    hexdump(acpi.sdt, acpi.sdt->header.length);
+
+    // walk the table list
+    for (size_t i = 0; i < acpi.num_tables; i++) {
+        const auto header = acpi_get_table_at_index(i);
+        if (!header) {
+            continue;
+        }
+
+        printf("table %zu:\n", i);
+        hexdump(header, header->length);
+    }
+}
+
