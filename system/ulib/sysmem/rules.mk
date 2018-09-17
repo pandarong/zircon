@@ -19,7 +19,10 @@ MODULE_HEADER_DEPS := \
 
 MODULE_STATIC_LIBS := \
     system/ulib/async \
+    system/ulib/ddk \
     system/ulib/fidl \
+    system/ulib/fbl \
+    system/ulib/zx \
 
 MODULE_LIBS := \
     system/ulib/fdio \

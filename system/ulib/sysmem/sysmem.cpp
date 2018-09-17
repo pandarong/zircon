@@ -4,10 +4,21 @@
 
 #include <lib/sysmem/sysmem.h>
 
+#include <fbl/algorithm.h>
 #include <fuchsia/sysmem/c/fidl.h>
 #include <lib/fidl/bind.h>
+#include <ddk/debug.h>
+#include <lib/zx/vmo.h>
 #include <string.h>
+#include <zircon/assert.h>
 #include <zircon/syscalls.h>
+
+// This should be called with a fully specified BufferFormat, after the allocator has
+// decided what format to use:
+size_t GetBufferSize(const fuchsia_sysmem_BufferFormat& format) {
+    // Simple GetBufferSize.  Only valid for simple formats:
+    return fbl::round_up(format.image.height * format.image.planes[0].bytes_per_row, ZX_PAGE_SIZE);
+}
 
 static zx_status_t Allocator_AllocateCollection(void* ctx,
                                                 uint32_t buffer_count,
@@ -16,7 +27,32 @@ static zx_status_t Allocator_AllocateCollection(void* ctx,
                                                 fidl_txn_t* txn) {
     fuchsia_sysmem_BufferCollectionInfo info;
     memset(&info, 0, sizeof(info));
-    return fuchsia_sysmem_AllocatorAllocateCollection_reply(txn, ZX_ERR_NOT_SUPPORTED, &info);
+    // Most basic usage of the allocator: create vmos with no special vendor format:
+    // 1) Pick which format gets used.  For the simple case, just use whatever format was given.
+    //    We also assume here that the format is an ImageFormat
+    ZX_ASSERT(info.format.tag == fuchsia_sysmem_BufferFormatTagimage);
+    info.format = *format;
+
+    // 2) Determine the size of the buffer from the format.
+    info.vmo_size = GetBufferSize(info.format);
+
+    // 3) Allocate the buffers.  This will be specialized for different formats.
+    info.buffer_count = buffer_count;
+    zx_status_t status;
+    for (uint32_t i = 0; i < buffer_count; ++i) {
+        status = zx_vmo_create(info.vmo_size, 0, &info.vmos[i]);
+        if (status != ZX_OK) {
+            // Close the handles we created already.  We do not support partial allocations.
+            for (uint32_t j = 0; j < i; ++j) {
+                zx_handle_close(info.vmos[j]);
+            }
+            info.buffer_count = 0;
+            zxlogf(ERROR, "Failed to allocate Buffer Collection\n");
+            return fuchsia_sysmem_AllocatorAllocateCollection_reply(txn, ZX_ERR_NO_MEMORY, &info);
+        }
+    }
+    // If everything is happy and allocated, can give ZX_OK:
+    return fuchsia_sysmem_AllocatorAllocateCollection_reply(txn, ZX_OK, &info);
 }
 
 static zx_status_t Allocator_AllocateSharedCollection(void* ctx,
