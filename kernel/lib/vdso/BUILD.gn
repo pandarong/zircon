@@ -1,0 +1,39 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("vdso") {
+  kernel = true
+  sources = [
+    "rodso.cpp",
+    "vdso-image.S",
+    "vdso.cpp",
+  ]
+
+  # vdso-image.S includes the vDSO (aka libzircon.so) contents and so must
+  # be reassembled when that changes.  But listing $zx/system/ulib/zircon
+  # in deps here will make GN try to link libzircon.so into the kernel.
+  # Fortunately, vdso-image.S also includes the "vdso-code.h" header file
+  # and normal depfile magic will discover that.  This header file is
+  # generated (below) from libzircon.so itself, so it will always be
+  # touched when libzircon.so has been touched and thus ensure vdso-image.S
+  # is reassembled with the new vDSO contents.
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-vdso-code-header",
+    "$zx/system/ulib/fbl",
+  ]
+}
+
+# This generated header file tells the vdso.cpp code
+# where the segment boundaries and entry points are.
+rodso_code_header("gen-vdso-code-header") {
+  outputs = [
+    "$target_gen_dir/vdso-code.h",
+  ]
+  deps = [
+    "$zx/system/ulib/zircon",
+  ]
+}

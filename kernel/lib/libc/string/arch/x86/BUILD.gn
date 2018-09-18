@@ -9,10 +9,20 @@ source_set("x86") {
     "memcpy.S",
     "memset.S",
     "selector.cpp",
+  ]
+  deps = [
+    ":tests",
+    "$zx/kernel/lib/code_patching",
+  ]
+}
+
+source_set("tests") {
+  # TODO(mcgrathr): Make this optional somehow and enable testonly taint.
+  #testonly = true
+  sources = [
     "tests.cpp",
   ]
   deps = [
-    "$zx/kernel/lib/code_patching",
     "$zx/kernel/lib/unittest",
   ]
 }

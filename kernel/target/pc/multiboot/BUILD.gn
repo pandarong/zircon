@@ -24,9 +24,9 @@ if (current_toolchain == multiboot_toolchain) {
   }
 
   # We could make a Multiboot image meant to be loaded without ELF headers
-  # and do `objcopy -O binary` here.  But there's no reason to, and having an
-  # ELF binary to look at is nicer.  To remove the ELF headers instead, the
-  # linker script would need to remove `+ SIZEOF_HEADERS` and then the
+  # and do `objcopy -O binary` here.  But there's no reason to, and having
+  # an ELF binary to look at is nicer.  To remove the ELF headers instead,
+  # the linker script would need to remove `+ SIZEOF_HEADERS` and then the
   # multiboot header would be first thing in the raw binary.  The toolchain
   # implicitly strips executables, so `multiboot.bin` is a lean, fully
   # stripped ELF/Multiboot image.
