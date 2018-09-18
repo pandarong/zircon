@@ -1,0 +1,68 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+source_set("userboot") {
+  sources = [
+    "userboot-image.S",
+    "userboot.cpp",
+  ]
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-userboot-code-header",
+    "$zx/kernel/lib/vdso",
+    "$zx/system/core/userboot",
+  ]
+  inputs = [
+    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
+  ]
+}
+
+template("rodso_code_header") {
+  outputs = invoker.outputs
+  assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
+
+  deps = invoker.deps
+  sources = [
+    get_metadata(deps, [ "gen_rodso_code_inputs" ]),
+  ]
+  script = "$zx/scripts/gen-rodso-code.sh"
+  inputs = toolchain.inputs_nm + toolchain.inputs_readelf
+  args = [
+    toolchain.nm,
+    toolchain.readelf,
+    rebase_path(outputs[0], root_build_dir),
+    get_metadata(deps, [ "gen_rodso_code_args" ]),
+  ]
+}
+
+# The userboot-code.h generated header file tells the userboot.cpp code
+# where the segment boundaries and entry points are.
+action("gen-userboot-code-header") {
+  outputs = [
+    "$target_gen_dir/userboot-code.h",
+  ]
+  deps = [
+    "$zx/system/core/userboot",
+  ]
+
+  # TODO(mcgrathr): future
+  #sources = get_metadata(deps, [ "runtime_outputs" ], [ "redirect" ])
+  userboot_out_dir = get_label_info(":_($userboot_toolchain)", "root_out_dir")
+  sources = [
+    "$userboot_out_dir/userboot.so",
+  ]
+
+  script = "$zx/scripts/gen-rodso-code.sh"
+
+  inputs = toolchain.inputs_nm + toolchain.inputs_readelf
+  args = [
+    toolchain.nm,
+    toolchain.readelf,
+    rebase_path(outputs[0], root_build_dir),
+    "USERBOOT",
+    rebase_path(sources[0], root_build_dir),
+  ]
+}

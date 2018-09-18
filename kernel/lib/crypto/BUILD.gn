@@ -1,0 +1,21 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("crypto") {
+  sources = [
+    "global_prng.cpp",
+    "global_prng_unittest.cpp",
+    "prng.cpp",
+    "prng_unittest.cpp",
+  ]
+  deps = [
+    "$zx/kernel/lib/explicit-memory",
+    "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/unittest",
+    "$zx/third_party/lib/uboringssl",
+    "entropy",
+  ]
+}
