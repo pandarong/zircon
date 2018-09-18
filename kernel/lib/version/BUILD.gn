@@ -1,0 +1,43 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+declare_args() {
+  # Version string embedded in the kernel for `zx_system_get_version`.
+  # If set to the default "", a string is generated based on the
+  # Zircon git revision of the checkout.
+  kernel_version_string = ""
+}
+
+library("version") {
+  kernel = true
+  sources = [
+    "version.cpp",
+  ]
+  includes = [ target_gen_dir ]
+  deps = [
+    ":gen-config-buildid-header",
+  ]
+  if (kernel_version_string != "") {
+    defines = [ "BUILDID='\"$kernel_version_string\"'" ]
+  }
+}
+
+action("gen-config-buildid-header") {
+  visibility = [ ":*" ]
+  outputs = [
+    "$target_gen_dir/config-buildid.h",
+  ]
+  if (kernel_version_string != "") {
+    script = "/usr/bin/touch"
+  } else {
+    sources = [
+      "$zx/.git/HEAD",
+      "$zx/.git/index",
+    ]
+    script = "buildid.sh"
+  }
+  args = rebase_path(outputs, root_build_dir)
+}
