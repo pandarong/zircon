@@ -303,7 +303,7 @@ static void usb_composite_remove_interfaces(usb_composite_t* comp) {
     mtx_unlock(&comp->interface_mutex);
 }
 
-zx_status_t usb_composite_claim_interface(usb_composite_t* comp, uint8_t interface_id) {
+zx_status_t usb_composite_do_claim_interface(usb_composite_t* comp, uint8_t interface_id) {
     mtx_lock(&comp->interface_mutex);
 
     interface_status_t status = comp->interface_statuses[interface_id];
