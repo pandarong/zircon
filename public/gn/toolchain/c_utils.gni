@@ -1,0 +1,115 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+toolchain = {
+  tool_dir = ""
+  tool_prefix = ""
+}
+
+# Like action() but using utility binaries from the C/C++ toolchain.
+# This is the way to use `nm`, `objcopy`, etc.
+#
+# Parameters
+#
+#   utils (required)
+#     [list of strings] Utilities to use, e.g. "nm", "objcopy", "objdump".
+#
+#   script (optional)
+#     [string] Same as for action().  The script receives an implicit
+#     argument for each element in |utils| giving the command to run.
+#     If omitted, then |utils| must have only one element and that command
+#     itself will be run with |args| just as given.
+#
+#   args (required)
+#     [list of strings] Same as for action().  If there is a |script|,
+#     the implicit |utils| arguments precede |args|.
+#
+#   deps, inputs, outputs, sources, testonly, visibility
+#      Same as for action().
+#
+template("toolchain_utils_action") {
+  assert(defined(invoker.utils))
+  forward_variables_from(invoker, [ "script" ])
+
+  utils_inputs = []
+  utils_paths = []
+  if (toolchain.tool_dir != "") {
+    # The toolchain binaries are in a specified location (e.g. a prebuilt).
+    foreach(util, invoker.utils) {
+      util = "${toolchain.tool_dir}/${toolchain.tool_prefix}${util}"
+      utils_inputs += [ util ]
+      utils_paths += [ rebase_path(util, root_build_dir) ]
+    }
+  } else {
+    # The toolchain binaries are just found in the system PATH.
+    # They won't be used as dependencies.
+    if (!defined(script)) {
+      # If there's no script, utils_paths[0] will become the script.
+      # But the script has to be a known location that's a dependency.
+      # So use a dummy wrapper as the script.
+      script = "/usr/bin/env"
+    }
+    foreach(util, invoker.utils) {
+      utils_paths += [ "${toolchain.tool_prefix}${util}" ]
+    }
+  }
+
+  action(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "args",
+                             "script",
+                             "utils",
+                           ])
+    if (!defined(inputs)) {
+      inputs = []
+    }
+    inputs += utils_inputs
+    if (defined(script)) {
+      args = utils_paths + invoker.args
+    } else {
+      assert(
+          utils_paths == [ utils_paths[0] ],
+          "toolchain_utils_action(\"$target_name\") without script must have exactly one element in utils")
+      script = utils_paths[0]
+      args = invoker.args
+    }
+  }
+}
+
+# Define an action to convert an ELF file to a raw binary image file.
+#
+# Parameters
+#
+#   sources (required)
+#     [list of one string] Input file.
+#
+#   outputs (required)
+#     [list of one string] Output file.
+#
+#   deps, testonly, visibility
+#     Same as for action().
+#
+template("image_binary") {
+  toolchain_utils_action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "outputs",
+                             "sources",
+                             "testonly",
+                             "visibility",
+                           ])
+    assert(sources == [ sources[0] ], "sources must have exactly one element")
+    assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
+    utils = [ "objcopy" ]
+    args = [
+      "-O",
+      "binary",
+      rebase_path(sources[0], root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+    ]
+  }
+}
