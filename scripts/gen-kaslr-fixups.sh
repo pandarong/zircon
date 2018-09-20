@@ -25,25 +25,32 @@
 # each run of adjustments, and then #include's the output of this script.
 
 usage() {
-  echo >&2 "Usage: $0 [--pure] KERNEL READELF OBJDUMP OUTFILE"
+  echo >&2 "Usage: $0 READELF OBJDUMP [--pure] KERNEL OUTFILE"
   exit 2
 }
 
+if [ $# -lt 2 ]; then
+  usage
+fi
+
+READELF="$1"
+shift
+OBJDUMP="$1"
+shift
+
 PURE=0
-if [ $# -eq 5 -a "$1" = --pure ]; then
+if [ $# -gt 1 -a "$1" = --pure ]; then
   PURE=1
   shift
 fi
 
-if [ $# -ne 4 ]; then
+if [ $# -ne 2 ]; then
   usage
 fi
 
 AWK=awk
 KERNEL="$1"
-READELF="$2"
-OBJDUMP="$3"
-OUTFILE="$4"
+OUTFILE="$2"
 
 grok_fixups() {
   "$AWK" -v kernel="$KERNEL" -v objdump="$OBJDUMP" -v pure=$PURE '

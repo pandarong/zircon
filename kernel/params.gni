@@ -8,6 +8,18 @@ declare_args() {
     smp_max_clusters = 2
   }
 
+  # Virtual address where the kernel is mapped statically.  This is the
+  # base of addresses that appear in the kernel symbol table.  At runtime
+  # KASLR relocation processing adjusts addresses in memory from this base
+  # to the actual runtime virtual address.
+  if (current_cpu == "x64") {
+    kernel_base = "0xffffffff80100000"
+  } else if (current_cpu == "x64") {
+    kernel_base = "0xffffffff00000000"
+  } else {
+    kernel_base = "???"
+  }
+
   # Enable kernel lock dependency tracking.
   enable_lock_dep = false
 }
@@ -18,4 +30,12 @@ declare_args() {
   # to assess whether the tests build and *fail correctly* when lockdep is
   # disabled.
   enable_lock_dep_tests = enable_lock_dep
+}
+
+if (current_cpu == "arm64") {
+  boot_header_size = "0x50"
+} else if (current_cpu == "x64") {
+  boot_header_size = "0x70"
+} else {
+  boot_header_size = "???"
 }
