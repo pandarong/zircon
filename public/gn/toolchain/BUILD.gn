@@ -1,0 +1,12 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("toolchain.gni")
+
+# The stub toolchain is default_toolchain set by //gn/BUILDCONFIG.gn.  It
+# has nothing but the standard stamp and copy tools, so it can only be used
+# for action and copy rules.
+define_toolchain("stub") {
+  tools = []
+}
