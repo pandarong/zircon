@@ -13,6 +13,41 @@
 #include <zircon/assert.h>
 #include <zircon/syscalls.h>
 
+
+zx_status_t PickImageFormat(const fuchsia_sysmem_BufferSpec &spec,
+                                           fuchsia_sysmem_ImageFormat *format,
+                                           size_t *buffer_size) {
+
+    // For the simple case, just use whatever format was given.
+    *format_out = {
+        .width = spec.image.min_width;
+        .height = spec.image.min_height;
+        .layers = spec.image.layers;
+        .pixel_format = spec.image.pixel_format;
+        .color_space = spec.image.color_space;
+    }
+    // Need to choose bytes_per_row, which depends on pixel_format:
+    // (More generally, it also depends on color space and BufferUsage,
+    // but this is a simplified version.)
+    switch (spec.image.pixel_format) {
+        case fuchsia_sysmem_PixelFormatType_R8G8B8A8:
+        case fuchsia_sysmem_PixelFormatType_BGRA32:
+            format->layers[0].bytes_per_row = 4 * format->width;
+            *buffer_size = fbl::round_up(format->image.height * format->image.planes[0].bytes_per_row, ZX_PAGE_SIZE);
+            break;
+        case fuchsia_sysmem_PixelFormatType_I420: // An NxN Y plane and (N/2)x(N/2) U and V planes.
+            format->layers[0].bytes_per_row = format->width;
+            format->layers[1].bytes_per_row = format->width / 2;
+            format->layers[1].byte_offset = format->layers[0].bytes_per_row * format->height;
+            format->layers[2].bytes_per_row = format->width / 2;
+            format->layers[2].byte_offset = format->layers[1].byte_offset + format->layers[1].bytes_per_row * format->height / 2;
+            *buffer_size = fbl::round_up(ormat->layers[2].byte_offset + format->layers[2].bytes_per_row * format->height / 2, ZX_PAGE_SIZE);
+            break;
+
+}
+
+
+
 // This should be called with a fully specified BufferFormat, after the allocator has
 // decided what format to use:
 size_t GetBufferSize(const fuchsia_sysmem_BufferFormat& format) {
