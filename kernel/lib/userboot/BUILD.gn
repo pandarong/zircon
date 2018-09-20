@@ -9,17 +9,25 @@ source_set("userboot") {
     "userboot-image.S",
     "userboot.cpp",
   ]
+  # userboot-image.S includes the userboot contents and so must be
+  # reassembled when that changes.  But listing $zx/system/core/userboot in
+  # deps here will make GN try to link userboot into the kernel.
+  # Fortunately, userboot-image.S also includes the "userboot-code.h"
+  # header file and normal depfile magic will discover that.  This header
+  # file is generated (below) from userboot itself, so it will always be
+  # touched when userboot has been touched and thus ensure userboot-image.S
+  # is reassembled with the new userboot contents.
   include_dirs = [ target_gen_dir ]
   deps = [
-    ":gen-userboot-code-header",
+#    ":gen-userboot-code-header",
     "$zx/kernel/lib/vdso",
-    "$zx/system/core/userboot",
   ]
-  inputs = [
-    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
-  ]
+#  inputs = [
+#    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
+#  ]
 }
 
+if (false) {
 template("rodso_code_header") {
   outputs = invoker.outputs
   assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
@@ -65,4 +73,5 @@ action("gen-userboot-code-header") {
     "USERBOOT",
     rebase_path(sources[0], root_build_dir),
   ]
+}
 }

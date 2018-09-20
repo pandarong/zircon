@@ -20,6 +20,7 @@ config("kernel") {
 }
 
 library("arm64") {
+  kernel = true
   defines = [
     "SMP_CPU_MAX_CLUSTER_CPUS=$smp_max_cpus",
     "SMP_CPU_MAX_CLUSTERS=$smp_max_clusters",
@@ -49,8 +50,8 @@ library("arm64") {
   ]
   deps = [
     "$zx/kernel/dev/iommu/dummy",
-    "$zx/kernel/lib/bitmap",
     "$zx/kernel/lib/crashlog",
     "$zx/kernel/object",
+    "$zx/system/ulib/bitmap",
   ]
 }

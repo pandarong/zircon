@@ -1,0 +1,18 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+source_set("hypervisor") {
+  sources = [
+    "el2.S",
+    "el2_cpu_state.cpp",
+    "gic/el2.S",
+    "gic/gicv2.cpp",
+    "gic/gicv3.cpp",
+    "guest.cpp",
+    "vcpu.cpp",
+    "vmexit.cpp",
+  ]
+}

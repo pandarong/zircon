@@ -21,8 +21,8 @@ library("pcie") {
   deps = [
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/pci",
-    "$zx/kernel/lib/region-alloc",
-    "$zx/kernel/lib/zxcpp",
+    "$zx/system/ulib/region-alloc",
+    "$zx/system/ulib/zxcpp",
   ]
 
   # TODO(mcgrathr): Say why this is needed.
