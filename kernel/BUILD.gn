@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-import("$zx/public/gn/toolchain/c_utils.gni")
 import("params.gni")
 
 # These are needed both in kernel sources (pervasively) and in the linker
@@ -142,6 +141,11 @@ group("test") {
   ]
 }
 
+if (true) {
+  not_needed(["zircon_elf"])
+} else {
+import("$zx/public/gn/toolchain/c_utils.gni")
+
 zircon_raw = "$target_out_dir/zircon.bin"
 image_binary("raw") {
   visibility = [
@@ -220,4 +224,5 @@ image_binary("kernel") {
   sources = [
     "$root_out_dir/image",
   ]
+}
 }

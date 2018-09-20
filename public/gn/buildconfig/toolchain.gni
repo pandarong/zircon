@@ -11,3 +11,5 @@ declare_args() {
     }
   }
 }
+
+forward_variables_from(toolchain.globals, "*")

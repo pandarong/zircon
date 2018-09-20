@@ -16,7 +16,7 @@ library("version") {
   sources = [
     "version.cpp",
   ]
-  includes = [ target_gen_dir ]
+  include_dirs = [ target_gen_dir ]
   deps = [
     ":gen-config-buildid-header",
   ]

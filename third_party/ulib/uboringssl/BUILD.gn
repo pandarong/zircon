@@ -1,0 +1,20 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("uboringssl") {
+  kernel = true
+  sources = [
+    "crypto/chacha/chacha.c",
+    "crypto/fipsmodule/sha/sha256.c",
+    "crypto/fipsmodule/sha/sha512.c",
+  ]
+
+  # TODO(mcgrathr): needs comment
+  defines = [ "OPENSSL_NO_ASM" ]
+  if (!is_kernel) {
+    # TODO(mcgrathr): Add the rest.
+  }
+}

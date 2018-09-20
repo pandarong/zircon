@@ -28,8 +28,8 @@ library("vm") {
   ]
   deps = [
     "$zx/kernel/lib/fbl",
-    "$zx/kernel/lib/pretty",
     "$zx/kernel/lib/user_copy",
-    "$zx/third_party/lib/cryptolib",
+    "$zx/system/ulib/pretty",
+    "$zx/third_party/ulib/cryptolib",
   ]
 }
