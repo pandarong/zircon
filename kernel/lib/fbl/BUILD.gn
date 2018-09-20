@@ -1,0 +1,27 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("fbl") {
+  kernel = true
+  sources = [
+    "arena.cpp",
+  ]
+  deps = [
+    ":tests",
+  ]
+  public_deps = [
+    "$zx/system/ulib/fbl",
+  ]
+}
+
+source_set("tests") {
+  visibility = [ ":*" ]
+  sources = [
+    "arena_tests.cpp",
+    "inline_array_tests.cpp",
+    "name_tests.cpp",
+  ]
+}

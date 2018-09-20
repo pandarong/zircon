@@ -22,11 +22,12 @@ library("vdso") {
   # is reassembled with the new vDSO contents.
   include_dirs = [ target_gen_dir ]
   deps = [
-    ":gen-vdso-code-header",
+    #":gen-vdso-code-header",
     "$zx/system/ulib/fbl",
   ]
 }
 
+if (false) {
 # This generated header file tells the vdso.cpp code
 # where the segment boundaries and entry points are.
 rodso_code_header("gen-vdso-code-header") {
@@ -36,4 +37,5 @@ rodso_code_header("gen-vdso-code-header") {
   deps = [
     "$zx/system/ulib/zircon",
   ]
+}
 }
