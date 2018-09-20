@@ -1,0 +1,19 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("pretty") {
+  kernel = true
+  sources = [
+    "hexdump.c",
+    "sizes.c",
+  ]
+  if (!is_kernel) {
+    deps = [
+      "$system/ulib/c",
+      "$system/ulib/fdio",
+    ]
+  }
+}

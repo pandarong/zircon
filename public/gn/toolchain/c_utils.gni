@@ -2,11 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-toolchain = {
-  tool_dir = ""
-  tool_prefix = ""
-}
-
 # Like action() but using utility binaries from the C/C++ toolchain.
 # This is the way to use `nm`, `objcopy`, etc.
 #

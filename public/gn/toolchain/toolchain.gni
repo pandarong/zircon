@@ -1,0 +1,52 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Define a toolchain.
+#
+# Parameters
+#
+#   tools (required)
+#     [list of scopes] List of tools to define.  Each scope in the list
+#     must define `name` and everything used by `tool(name)` inside a
+#     toolchain() definition.  The "stamp" and "copy" tools are always
+#     defined and should not be included here.
+#
+#   deps (optional)
+#   toolchain_args (optional)
+#     Same as for toolchain().
+template("define_toolchain") {
+  assert(current_toolchain == default_toolchain,
+         "define_toolchain(\"$target_name\") evaluated" +
+             " outside default toolchain $default_toolchain")
+  assert(defined(invoker.tools),
+         "define_toolchain(\"$target_name\") must set tools")
+
+  toolchain(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "toolchain_args",
+                           ])
+
+    # Define each tool specified by the invoker.
+    foreach(tool, invoker.tools) {
+      tool(tool.name) {
+        forward_variables_from(tool, "*", [ "name" ])
+      }
+    }
+
+    # Every toolchain needs the standard stamp and copy tools.
+    tool("stamp") {
+      command = "touch {{output}}"
+      description = "STAMP {{output}}"
+    }
+
+    tool("copy") {
+      # We use link instead of copy; the way "copy" tool is being used is
+      # compatible with links since Ninja is tracking changes to the source.
+      command = "ln -f {{source}} {{output}}"
+      description = "COPY {{source}} {{output}}"
+    }
+  }
+}

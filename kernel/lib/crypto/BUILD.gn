@@ -5,6 +5,7 @@
 # https://opensource.org/licenses/MIT
 
 library("crypto") {
+  kernel = true
   sources = [
     "global_prng.cpp",
     "global_prng_unittest.cpp",
@@ -12,10 +13,10 @@ library("crypto") {
     "prng_unittest.cpp",
   ]
   deps = [
-    "$zx/kernel/lib/explicit-memory",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/unittest",
-    "$zx/third_party/lib/uboringssl",
+    "$zx/system/ulib/explicit-memory",
+    "$zx/third_party/ulib/uboringssl",
     "entropy",
   ]
 }
