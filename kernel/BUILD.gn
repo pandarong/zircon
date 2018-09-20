@@ -4,27 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-# TODO: $zx/public/gn/image_binary.gni (?)
-template("image_binary") {
-  forward_variables_from(invoker,
-                         [
-                           "deps",
-                           "outputs",
-                           "sources",
-                           "testonly",
-                           "visibility",
-                         ])
-  assert(sources == [ sources[0] ], "sources must have exactly one element")
-  assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
-  script = [ "${clang_tool_prefix}llvm-objcopy" ]
-  args = [
-    "-O",
-    "binary",
-    rebase_path(sources[0], root_build_dir),
-    rebase_path(outputs[0], root_build_dir),
-  ]
-}
-
+import("$zx/public/gn/toolchain/c_utils.gni")
 import("params.gni")
 
 # These are needed both in kernel sources (pervasively) and in the linker
@@ -45,7 +25,7 @@ config("kernel_config") {
     ":standalone",
   ]
 
-  includes = [ "include" ]
+  include_dirs = [ "include" ]
 
   defines = kernel_defines
   defines += [
@@ -123,26 +103,10 @@ executable("zircon") {
   deps = [
     ":test",
     "arch/$zircon_cpu",
-    "lib/userboot",
-    "top",
-  ]
-
-  # TODO: From project/virtual/user.mk
-  maybe_deps = [
-    "lib/debuglog",
     "lib/ktrace",
-    "lib/mtrace",
     "lib/userboot",
-    "object",
     "syscalls",
-  ]
-
-  not_deps = [
-    "kernel",
-    "object",
-    "platform",
-    "syscalls",
-    "target",
+    "top",
   ]
 
   if (current_cpu == "arm64") {
@@ -198,7 +162,7 @@ image_binary("raw") {
 # Use the --emit-relocs records to extract the fixups needed to relocate
 # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
 # #include'd by "arch/$zircon_cpu/image.S".
-action("fixups") {
+toolchain_utils_action("fixups") {
   visibility = [ ":image" ]
   deps = [
     ":raw",
@@ -212,10 +176,12 @@ action("fixups") {
 
   # TODO(mcgrathr): Move the script to this dir as it's private to this use.
   script = "$zx/scripts/gen-kaslr-fixups.sh"
+  utils = [
+    "readelf",
+    "objdump",
+  ]
   args = [
     rebase_path(sources[0], root_build_dir),
-    "${clang_tool_prefix}llvm-readelf",
-    "${clang_tool_prefix}llvm-objdump",
     rebase_path(outputs[0], root_build_dir),
   ]
 }
@@ -227,7 +193,7 @@ executable("image") {
     ":zircon_raw",
   ]
   configs += [ ":kernel_defsym" ]
-  includes = [ target_gen_dir ]
+  include_dirs = [ target_gen_dir ]
   defines = image_defines +
             [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]
   sources = [
