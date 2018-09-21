@@ -28,12 +28,12 @@ config("kernel_config") {
 
   defines = kernel_defines
   defines += [
+    "_KERNEL=1",
     "LK=1",
     "ENABLE_PANIC_SHELL=1",
     "WITH_DEBUG_LINEBUFFER=1",
     "WITH_KERNEL_PCIE=1",
     "ZIRCON_TOOLCHAIN=1",
-    "_KERNEL=1",
   ]
 
   cflags = [ "-fpie" ]

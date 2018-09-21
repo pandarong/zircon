@@ -27,6 +27,7 @@ if (current_cpu == "x64") {
 }
 
 is_kernel = true
+is_host = false
 
 if (!defined(is_gcc)) {
   is_gcc = false
@@ -40,8 +41,138 @@ set_defaults("executable") {
 }
 
 template("library") {
-  assert(invoker.kernel)
-  source_set(target_name) {
-    forward_variables_from(invoker, "*", ["kernel"])
+  host = defined(invoker.host) && invoker.host
+  kernel = defined(invoker.kernel) && invoker.kernel
+  shared = defined(invoker.shared) && invoker.shared
+  if (defined(invoker.static)) {
+    static = invoker.static
+  } else {
+    static = !kernel
+  }
+  _library_params = [
+    "kernel",
+    "host",
+    "shared",
+    "static",
+  ]
+  # Not all of these will be referenced in all toolchains.
+  not_needed(_library_params)
+
+  _library_name = target_name
+
+  config("${_library_name}.config") {
+    visibility = [ ":${_library_name}.headers" ]
+    include_dirs = [ "include" ]
+  }
+  source_set("${_library_name}.headers") {
+    public_configs = [ ":${_library_name}.config" ]
+  }
+
+  if (is_kernel) {
+    if (kernel) {
+      source_set(_library_name) {
+        forward_variables_from(invoker, "*", _library_params)
+      }
+    }
+  } else if (is_host) {
+    if (host) {
+      static_library(_library_name) {
+        forward_variables_from(invoker, "*", _library_params)
+      }
+    }
+  } else if (static || shared) {
+    source_set("${_library_name}._sources") {
+      visibility = [
+        "${_library_name}.static",
+        "${_library_name}.shared",
+      ]
+      forward_variables_from(invoker, "*", _library_params)
+    }
+    if (static) {
+      static_library("${_library_name}.static") {
+        forward_variables_from(invoker,
+                               [
+                                 "public_configs",
+                                 "public_deps",
+                                 "testonly",
+                                 "visibility",
+                               ])
+        deps = [
+          ":${_library_name}._sources",
+        ]
+      }
+    }
+    if (shared) {
+      shared_library("${_library_name}.shared") {
+        forward_variables_from(invoker,
+                               [
+                                 "public_configs",
+                                 "public_deps",
+                                 "testonly",
+                                 "visibility",
+                               ])
+        deps = [
+          ":${_library_name}._sources",
+        ]
+      }
+    }
+    group(_library_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      if (shared) {
+        public_deps = [
+          ":${_library_name}.shared",
+        ]
+      } else {
+        public_deps = [
+          ":${_library_name}.static",
+        ]
+      }
+    }
+  }
+
+  # If this library is the main target for the directory, then give its
+  # auxiliary targets aliases.
+  if (get_label_info(":$_library_name", "name") ==
+      get_path_info(get_label_info(":$_library_name", "dir"), "file")) {
+    group("headers") {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      public_deps = [
+        ":${_library_name}.headers",
+      ]
+    }
+    if (!is_kernel) {
+      if (static) {
+        group("static") {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          public_deps = [
+            ":${_library_name}.static",
+          ]
+        }
+      }
+      if (shared) {
+        group("shared") {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          public_deps = [
+            ":${_library_name}.shared",
+          ]
+        }
+      }
+    }
   }
 }
