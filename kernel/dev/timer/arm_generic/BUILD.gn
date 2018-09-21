@@ -7,7 +7,7 @@
 library("arm_generic") {
   kernel = true
   sources = [
-    "arm_generic_timer.c",
+    "arm_generic_timer.cpp",
   ]
   deps = [
     "$zx/kernel/lib/fixed_point",

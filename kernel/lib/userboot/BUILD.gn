@@ -17,6 +17,7 @@ source_set("userboot") {
   # file is generated (below) from userboot itself, so it will always be
   # touched when userboot has been touched and thus ensure userboot-image.S
   # is reassembled with the new userboot contents.
+  #inputs = [ get_metadata(["$zx/system/core/userboot"],["link_output"]) ]
   include_dirs = [ target_gen_dir ]
   deps = [
 #    ":gen-userboot-code-header",

@@ -12,19 +12,20 @@
 #
 #   script (optional)
 #     [string] Same as for action().  The script receives an implicit
-#     argument for each element in |utils| giving the command to run.
-#     If omitted, then |utils| must have only one element and that command
-#     itself will be run with |args| just as given.
+#     argument for each element in $utils giving the command to run.
+#     If omitted, then $utils must have only one element and that command
+#     itself will be run with $args just as given.
 #
 #   args (required)
-#     [list of strings] Same as for action().  If there is a |script|,
-#     the implicit |utils| arguments precede |args|.
+#     [list of strings] Same as for action().  If there is a $script,
+#     the implicit $utils arguments precede $args.
 #
 #   deps, inputs, outputs, sources, testonly, visibility
 #      Same as for action().
 #
 template("toolchain_utils_action") {
-  assert(defined(invoker.utils))
+  assert(defined(invoker.utils),
+         "toolchain_utils_action(\"$target_name\") requires `utils`")
   forward_variables_from(invoker, [ "script" ])
 
   utils_inputs = []
@@ -65,10 +66,10 @@ template("toolchain_utils_action") {
     if (defined(script)) {
       args = utils_paths + invoker.args
     } else {
-      assert(
-          utils_paths == [ utils_paths[0] ],
-          "toolchain_utils_action(\"$target_name\") without script must have exactly one element in utils")
       script = utils_paths[0]
+      assert(
+        utils_paths == [ script ],
+        "toolchain_utils_action(\"$target_name\") without `script` must have exactly one element in `utils`")
       args = invoker.args
     }
   }

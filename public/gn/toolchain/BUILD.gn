@@ -4,9 +4,9 @@
 
 import("toolchain.gni")
 
-# The stub toolchain is default_toolchain set by //gn/BUILDCONFIG.gn.  It
-# has nothing but the standard stamp and copy tools, so it can only be used
-# for action and copy rules.
+# The stub toolchain is the $default_toolchain set by //gn/BUILDCONFIG.gn.
+# It has nothing but the standard stamp and copy tools, so it can only be
+# used for action and copy rules.
 define_toolchain("stub") {
   tools = []
 }
