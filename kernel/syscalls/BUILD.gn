@@ -39,7 +39,7 @@ source_set("syscalls") {
     "zircon.cpp",
   ]
   deps = [
-    ":generate-vdso-valid-sysret",
+    #":generate-vdso-valid-sysret",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
