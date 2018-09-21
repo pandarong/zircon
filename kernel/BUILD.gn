@@ -115,6 +115,12 @@ executable("zircon") {
     deps += [ "target/pc" ]
   }
 }
+# XXX just for deps resolution for now
+group("kernel") {
+  deps = [
+    ":zircon",
+  ]
+}
 
 # Output file of that target.
 zircon_elf = "$root_out_dir/zircon"
@@ -142,87 +148,88 @@ group("test") {
 }
 
 if (true) {
-  not_needed(["zircon_elf"])
+  not_needed([ "zircon_elf" ])
 } else {
-import("$zx/public/gn/toolchain/c_utils.gni")
+  import("$zx/public/gn/toolchain/c_utils.gni")
 
-zircon_raw = "$target_out_dir/zircon.bin"
-image_binary("raw") {
-  visibility = [
-    ":fixups",
-    ":image",
-  ]
-  deps = [
-    ":zircon",
-  ]
-  sources = [
-    zircon_elf,
-  ]
-  outputs = [
-    zircon_raw,
-  ]
-}
+  zircon_raw = "$target_out_dir/zircon.bin"
+  image_binary("raw") {
+    visibility = [
+      ":fixups",
+      ":image",
+    ]
+    deps = [
+      ":zircon",
+    ]
+    sources = [
+      zircon_elf,
+    ]
+    outputs = [
+      zircon_raw,
+    ]
+  }
 
-# Use the --emit-relocs records to extract the fixups needed to relocate
-# the kernel at boot.  This generates the "kernel-fixups.inc" file that's
-# #include'd by "arch/$zircon_cpu/image.S".
-toolchain_utils_action("fixups") {
-  visibility = [ ":image" ]
-  deps = [
-    ":raw",
-  ]
-  sources = [
-    zircon_raw,
-  ]
-  outputs = [
-    "$target_gen_dir/kernel-fixups.inc",
-  ]
+  # Use the --emit-relocs records to extract the fixups needed to relocate
+  # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
+  # #include'd by "arch/$zircon_cpu/image.S".
+  toolchain_utils_action("fixups") {
+    visibility = [ ":image" ]
+    deps = [
+      ":raw",
+    ]
+    sources = [
+      zircon_raw,
+    ]
+    outputs = [
+      "$target_gen_dir/kernel-fixups.inc",
+    ]
 
-  # TODO(mcgrathr): Move the script to this dir as it's private to this use.
-  script = "$zx/scripts/gen-kaslr-fixups.sh"
-  utils = [
-    "readelf",
-    "objdump",
-  ]
-  args = [
-    rebase_path(sources[0], root_build_dir),
-    rebase_path(outputs[0], root_build_dir),
-  ]
-}
+    # TODO(mcgrathr): Move the script to this dir as it's private to this use.
+    script = "$zx/scripts/gen-kaslr-fixups.sh"
+    utils = [
+      "readelf",
+      "objdump",
+    ]
+    args = [
+      rebase_path(sources[0], root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+    ]
+  }
 
-executable("image") {
-  visibility = [ ":kernel" ]
-  deps = [
-    ":fixups",
-    ":zircon_raw",
-  ]
-  configs += [ ":kernel_defsym" ]
-  include_dirs = [ target_gen_dir ]
-  defines = image_defines +
-            [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]
-  sources = [
-    "arch/$zircon_cpu/image.S",
-  ]
-  ldflags = [
-    "-Wl,--build-id=none",
-    "-Wl,-T," + rebase_path("image.ld", root_build_dir),
-    "-Wl,--just-symbols," + rebase_path("$root_out_dir/zircon", root_build_dir),
-  ]
-  inputs = [
-    "image.ld",
-    "$root_out_dir/zircon",
-  ]
-}
+  executable("image") {
+    visibility = [ ":kernel" ]
+    deps = [
+      ":fixups",
+      ":zircon_raw",
+    ]
+    configs += [ ":kernel_defsym" ]
+    include_dirs = [ target_gen_dir ]
+    defines = image_defines +
+              [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]
+    sources = [
+      "arch/$zircon_cpu/image.S",
+    ]
+    ldflags = [
+      "-Wl,--build-id=none",
+      "-Wl,-T," + rebase_path("image.ld", root_build_dir),
+      "-Wl,--just-symbols," +
+          rebase_path("$root_out_dir/zircon", root_build_dir),
+    ]
+    inputs = [
+      "image.ld",
+      "$root_out_dir/zircon",
+    ]
+  }
 
-image_binary("kernel") {
-  deps = [
-    ":image",
-  ]
-  outputs = [
-    "$root_out_dir/kernel.zbi",
-  ]
-  sources = [
-    "$root_out_dir/image",
-  ]
-}
+  image_binary("kernel") {
+    deps = [
+      ":image",
+    ]
+    outputs = [
+      "$root_out_dir/kernel.zbi",
+    ]
+    sources = [
+      "$root_out_dir/image",
+    ]
+  }
 }

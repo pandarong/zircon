@@ -7,6 +7,6 @@
 library("fixed_point") {
   kernel = true
   sources = [
-    "fixed_point.c",
+    "fixed_point.cpp",
   ]
 }

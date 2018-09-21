@@ -7,6 +7,6 @@
 library("hw_rng") {
   kernel = true
   sources = [
-    "debug.c",
+    "debug.cpp",
   ]
 }

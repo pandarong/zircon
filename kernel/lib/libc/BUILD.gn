@@ -22,8 +22,8 @@ library("libc") {
     "strtoll.c",
   ]
   deps = [
-    ":string",
     "$zx/kernel/lib/heap",
     "$zx/kernel/lib/io",
+    "string",
   ]
 }
