@@ -6,7 +6,7 @@
 
 source_set("hw_rng") {
   sources = [
-    "intel-rng.c",
+    "intel-rng.cpp",
   ]
   deps = [
     "$zx/kernel/dev/hw_rng",

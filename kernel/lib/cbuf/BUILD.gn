@@ -7,6 +7,6 @@
 library("cbuf") {
   kernel = true
   sources = [
-    "cbuf.c",
+    "cbuf.cpp",
   ]
 }
