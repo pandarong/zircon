@@ -7,7 +7,6 @@
 library("vdso") {
   kernel = true
   sources = [
-    "rodso.cpp",
     "vdso-image.S",
     "vdso.cpp",
   ]
@@ -20,10 +19,18 @@ library("vdso") {
   # generated (below) from libzircon.so itself, so it will always be
   # touched when libzircon.so has been touched and thus ensure vdso-image.S
   # is reassembled with the new vDSO contents.
+  #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
   include_dirs = [ target_gen_dir ]
   deps = [
     #":gen-vdso-code-header",
+    ":rodso",
     "$zx/system/ulib/fbl",
+  ]
+}
+
+source_set("rodso") {
+  sources = [
+    "rodso.cpp",
   ]
 }
 
