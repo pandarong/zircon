@@ -16,12 +16,15 @@ kernel_defines = [
 ]
 
 # This is the top config for all kernel code.
-config("kernel_config") {
-  configs = [
-    "arch/$zircon_cpu:kernel",
+config_group("kernel_config") {
+  public_deps = [
     ":lock_dep",
-    ":warnings",
     ":standalone",
+    ":warnings",
+    "arch/$zircon_cpu:kernel",
+
+    # include/lib/counters.h and kernel.ld depend on -fdata-sections.
+    "$zx/public/gn/config:data_sections",
   ]
 
   include_dirs = [ "include" ]
@@ -40,7 +43,7 @@ config("kernel_config") {
 }
 
 # For any standalone static binary.
-config("standalone") {
+config_group("standalone") {
   cflags = [
     "-ffreestanding",
     "-include",
@@ -60,7 +63,7 @@ config("standalone") {
   ]
 }
 
-config("warnings") {
+config_group("warnings") {
   cflags = [
     "-Wformat=2",
     "-Wvla",
@@ -74,7 +77,7 @@ config("warnings") {
   cflags_c = [ "-Wmissing-prototypes" ]
 }
 
-config("lock_dep") {
+config_group("lock_dep") {
   visibility = [ ":*" ]
   defines = []
   if (enable_lock_dep) {
@@ -93,13 +96,13 @@ config("lock_dep") {
 executable("zircon") {
   visibility = [ ":*" ]
 
-  configs += [ ":kernel_defsym" ]
   ldflags = [ "-Wl,-T," + rebase_path("kernel.ld", root_build_dir) ]
   inputs = [
     "kernel.ld",
   ]
 
-  deps = [
+  deps += [
+    ":kernel_defsym",
     ":test",
     "arch/$zircon_cpu",
     "lib/ktrace",
@@ -115,6 +118,7 @@ executable("zircon") {
     deps += [ "target/pc" ]
   }
 }
+
 # XXX just for deps resolution for now
 group("kernel") {
   deps = [
@@ -129,7 +133,7 @@ zircon_elf = "$root_out_dir/zircon"
 image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
 
 # This supplies those variables for use in linker scripts.
-config("kernel_defsym") {
+config_group("kernel_defsym") {
   visibility = [ ":*" ]
   ldflags = []
   foreach(assignment, kernel_defines + image_defines) {
@@ -198,11 +202,11 @@ if (true) {
 
   executable("image") {
     visibility = [ ":kernel" ]
-    deps = [
+    deps += [
       ":fixups",
+      ":kernel_defsym",
       ":zircon_raw",
     ]
-    configs += [ ":kernel_defsym" ]
     include_dirs = [ target_gen_dir ]
     defines = image_defines +
               [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]

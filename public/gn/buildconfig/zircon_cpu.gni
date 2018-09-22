@@ -4,11 +4,10 @@
 
 assert(!defined(current_toolchain), "only for buildconfig context")
 
-zx = "/"
-zircon_standalone = true
+assert(current_cpu != "", "should not be imported into stub toolchains")
 
-import("$zx/public/gn/buildconfig/toolchain.gni")
-
-foreach(file, toolchain.imports) {
-  import(file)
+# This is the name for $current_cpu that's used in Zircon file names.
+zircon_cpu = current_cpu
+if (current_cpu == "x64") {
+  zircon_cpu = "x86"
 }

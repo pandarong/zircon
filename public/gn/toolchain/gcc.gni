@@ -10,6 +10,10 @@ declare_args() {
 
   # Directory where the GCC toolchain binaries ("gcc", "nm", etc.) are
   # found.  If this is "", then the behavior depends on $use_prebuilt_gcc.
+  # This directory is expected to contain `aarch64-elf-*` and `x86_64-elf-*`
+  # tools used to build for the Fuchsia targets.  This directory will not
+  # be used for host tools; if GCC is selected for host builds, only the
+  # system-installed tools found by the shell via `PATH` will be used.
   gcc_tool_dir = ""
 }
 
