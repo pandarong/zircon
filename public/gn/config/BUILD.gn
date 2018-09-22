@@ -2,7 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-config("compiler") {
+config_group("compiler") {
+  # For GCC, the compiler command implies the target.
+  # For Clang, there's a single compiler command that takes `--target`.
+  if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
+    compiler_flags = [ "--target=${toolchain.target}" ]
+  }
+
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
     # Nothing uses this define, but its presence on compilation command
     # lines ensures that Ninja will rebuild things when a new compiler
@@ -10,25 +16,28 @@ config("compiler") {
     defines = [ "TOOLCHAIN_VERSION=${toolchain.version_string}" ]
   }
 
+  # This is the default already on Fuchsia and maybe others, but never hurts.
   cflags = [ "-fno-common" ]
 
-  cflags += [ "--target=${toolchain.target}" ]
+  public_deps = [
+    ":color_diagnostics",
+    # TODO: "$current_os:compiler",
+  ]
+}
 
+config_group("color_diagnostics") {
+  # GCC correctly defaults this from the terminal, so leave it alone.
   if (!is_gcc) {
-    cflags += [ "-fcolor-diagnostics" ]
-    asmflags = cflags
-    ldflags = cflags
+    compiler_flags = [ "-fcolor-diagnostics" ]
 
     # The macOS linker does not support `--color-diagnostics`.
     if (current_os != "mac") {
       ldflags += [ "-Wl,--color-diagnostics" ]
     }
   }
-
-  #configs = [ "$current_os:compiler" ]
 }
 
-config("relative_paths") {
+config_group("relative_paths") {
   # Make builds independent of absolute file path.  The file names embedded
   # in debugging information will be expressed as relative to the build
   # directory, e.g. "../.." for an "out/subdir" under //.  This is
@@ -45,7 +54,7 @@ config("relative_paths") {
   # directory while running the compiler, which is the basis for all
   # relative source file names in the DWARF info) is represented as
   # relative to //.
-  cflags = [ "-fdebug-prefix-map=$absolute_path=$relative_path" ]
+  compiler_flags = [ "-fdebug-prefix-map=$absolute_path=$relative_path" ]
   if (!is_gcc) {
     # This makes sure that include directories in the toolchain are
     # represented as relative to the build directory (because that's how we
@@ -56,18 +65,17 @@ config("relative_paths") {
     # hence be mapped to `relative_path` in the debugging information, so
     # this should actually be superfluous for purposes of the debugging
     # information.
-    cflags += [ "-no-canonical-prefixes" ]
+    compiler_flags += [ "-no-canonical-prefixes" ]
   }
-
-  asmflags = cflags
-  ldflags = cflags
 }
 
-config("linker_gc") {
-  cflags = [
-    "-fdata-sections",
-    "-ffunction-sections",
-  ]
+config_group("data_sections") {
+  cflags = [ "-fdata-sections" ]
+}
+
+config_group("linker_gc") {
+  public_deps = [ ":data_sections" ]
+  cflags = [ "-ffunction-sections" ]
   ldflags = cflags
   if (current_os == "mac") {
     ldflags += [ "-Wl,-dead_strip" ]
@@ -76,7 +84,7 @@ config("linker_gc") {
   }
 }
 
-config("assert_level") {
+config_group("assert_level") {
   assert(assert_level >= 0)
   defines = [
     "LK_DEBUGLEVEL=$assert_level",
@@ -87,35 +95,46 @@ config("assert_level") {
   }
 }
 
-config("opt_level") {
+config_group("opt_level") {
   if (opt_level == -1) {
-    cflags = [ "-O0" ]
+    compiler_flags = [ "-O0" ]
   } else {
     assert(opt_level >= 0)
     if (opt_level == 0) {
       if (is_gcc) {
-        cflags = [ "-O0" ]
+        compiler_flags = [ "-O0" ]
       } else {
-        cflags = [ "-Og" ]
+        compiler_flags = [ "-Og" ]
       }
     } else if (opt_level == 4) {
       if (is_gcc) {
-        cflags = [ "-Os" ]
+        compiler_flags = [ "-Os" ]
       } else {
-        cflags = [ "-Oz" ]
+        compiler_flags = [ "-Oz" ]
       }
     } else {
-      cflags = [ "-O$opt_level" ]
+      compiler_flags = [ "-O$opt_level" ]
     }
   }
-  if (opt_level > 0) {
-    cflags += [ "-finline-functions" ]
-    configs = [ ":linker_gc" ]
+
+  public_deps = []
+  if (opt_level > 1) {
+    public_deps += [ ":icf" ]
   }
-  ldflags = cflags
+
+  # TODO(mcgrathr): Kernel can't be built without --gc-sections.
+  if (opt_level > 0 || is_kernel) {
+    cflags += [ "-finline-functions" ]
+    public_deps += [ ":linker_gc" ]
+  }
+
+  if (opt_level > 2) {
+    # Enable optimal string merging.
+    ldflags = [ "-Wl,-O2" ]
+  }
 }
 
-config("symbol_level") {
+config_group("symbol_level") {
   assert(symbol_level >= 0 && symbol_level <= 2)
   if (symbol_level == 0) {
     cflags = [ "-g0" ]
@@ -126,4 +145,93 @@ config("symbol_level") {
   }
   asmflags = cflags
   ldflags = cflags
+}
+
+config_group("werror") {
+  cflags = [
+    "-Werror",
+
+    # Declarations marked as deprecated should not cause build failures.
+    # Rather they should emit warnings to notify developers about the use
+    # of deprecated interfaces.
+    "-Wno-error=deprecated-declarations",
+
+    # Do not add additional `-Wno-error=...` switches to this config!
+  ]
+}
+
+config_group("icf") {
+  # This changes C/C++ semantics and might be incompatible with third-party
+  # code that relies on function pointers comparison.
+  ldflags = [ "-Wl,--icf=all" ]
+}
+
+config_group("exceptions") {
+  cflags_cc = [ "-fexceptions" ]
+  cflags_objcc = cflags_cc
+}
+
+config_group("no_exceptions") {
+  cflags_cc = [ "-fno-exceptions" ]
+  cflags_objcc = cflags_cc
+}
+
+config_group("rtti") {
+  cflags_cc = [ "-frtti" ]
+  cflags_objcc = cflags_cc
+}
+
+config_group("no_rtti") {
+  cflags_cc = [ "-fno-rtti" ]
+  cflags_objcc = cflags_cc
+}
+
+config_group("default_include_dirs") {
+  include_dirs = [
+    "$zx/system/public",
+    "$zx/system/private",
+  ]
+}
+
+config_group("default_frame_pointers") {
+  if (opt_level < 2) {
+    public_deps = [ ":frame_pointers" ]
+  } else {
+    public_deps = [ ":no_frame_pointers" ]
+  }
+}
+
+config_group("frame_pointers") {
+  cflags = [ "-fno-omit-frame-pointer" ]
+}
+
+config_group("no_frame_pointers") {
+  cflags = [ "-fomit-frame-pointer" ]
+}
+
+config_group("thread_safety_annotations") {
+  if (!is_gcc) {
+    cflags = [ "-Wthread-safety" ]
+    defines = [ "_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS=1" ]
+  }
+}
+
+# Compile code appropriately to be linked into a shared library.
+config_group("shared_library_config") {
+  if (current_os != "mac") {
+    cflags = [ "-fPIC" ]
+
+    # Assembly code can use `#ifdef __PIC__`.
+    asmflags = cflags
+  }
+}
+
+# Don't allow dangling undefined references in shared libraries.
+# All references should be satisfied by link-time library dependencies.
+config_group("no_undefined_symbols") {
+  if (current_os == "mac") {
+    ldflags = [ "-Wl,-undefined,error" ]
+  } else {
+    ldflags = [ "-Wl,-z,defs" ]
+  }
 }
