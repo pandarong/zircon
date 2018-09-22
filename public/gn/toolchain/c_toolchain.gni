@@ -1,0 +1,172 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("ccache.gni")
+import("clang.gni")
+import("goma.gni")
+import("toolchain.gni")
+
+template("define_c_toolchain") {
+  compiler_prefix = ""
+  if (defined(invoker.use_goma)) {
+    use_goma = invoker.use_goma
+  }
+  if (use_goma) {
+    compiler_prefix = "$goma_dir/gomacc "
+  } else {
+    if (defined(invoker.use_ccache)) {
+      use_ccache = invoker.use_ccache
+    }
+    if (use_ccache) {
+      compiler_prefix = "ccache "
+    }
+  }
+
+  use_gcc = defined(invoker.gcc) && invoker.gcc
+  if (use_gcc) {
+    if (defined(invoker.host) && invoker.host) {
+      # Using host vanilla GCC.
+      assert(invoker.cpu == host_cpu)
+      assert(invoker.os == host_os)
+      tc = {
+        tool_dir = ""
+        tool_prefix = ""
+      }
+      cc = "gcc"
+      cxx = "g++"
+    } else {
+      tc = {
+        tool_dir = gcc_tool_dir
+        tool_prefix = "${invoker.cpu}-elf-"
+      }
+      cc = "${invoker.cpu}-elf-gcc"
+      cxx = "${invoker.cpu}-elf-g++"
+    }
+  } else {
+    tc = {
+      tool_dir = clang_tool_dir
+      tool_prefix = "llvm-"
+    }
+    cc = "clang"
+    cxx = "clang++"
+  }
+
+  if (tc.tool_dir == "") {
+    dir_prefix = ""
+  } else {
+    dir_prefix = "${tc.tool_dir}/"
+  }
+
+  cc = "$compiler_prefix$dir_prefix$cc"
+  cxx = "$compiler_prefix$dir_prefix$cxx"
+  ld = cxx
+  ar = "$dir_prefix${tc.tool_prefix}ar"
+
+  _compile_common = {
+    outputs = [
+      "{{source_out_dir}}/{{target_output_name}}.{{source_file_part}}.o",
+    ]
+    depfile = "{{output}}.d"
+    depsformat = "gcc"
+    switches = "-MD -MF $depfile -o {{output}} {{defines}} {{include_dirs}}"
+  }
+
+  _link_common = {
+    default_output_dir = "{{target_out_dir}}"
+    outfile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
+    outputs = [
+      outfile,
+    ]
+    rspfile = "${outfile}.rsp"
+    switches = "{{ldflags}}"
+    if (invoker.os == "mac") {
+      rspfile_content = "{{inputs_newline}}"
+      link_inputs = "-Wl,-filelist,'$rspfile'"
+      link_libs = "{{libs}} {{solibs}}"
+    } else {
+      rspfile_content = "{{inputs}}"
+      link_inputs = "@'$rspfile'"
+      link_libs = "-Wl,--start-group {{libs}} -Wl,--end-group {{solibs}}"
+      mapfile = "${outfile}.map"
+      outputs += [ mapfile ]
+      switches += " -Wl,-Map,$mapfile"
+    }
+
+    # TODO: strip
+  }
+
+  define_toolchain(target_name) {
+    tools = [
+      {
+        name = "asm"
+        description = "ASM {{output}}"
+        forward_variables_from(_compile_common, "*")
+        command = "$cc $switches {{asmflags}} -c {{source}}"
+      },
+
+      {
+        name = "cc"
+        description = "CC {{output}}"
+        forward_variables_from(_compile_common, "*")
+        command = "$cc $switches {{cflags}} {{cflags_c}} -c {{source}}"
+      },
+
+      {
+        name = "cxx"
+        description = "CXX {{output}}"
+        forward_variables_from(_compile_common, "*")
+        command = "$cxx $switches {{cflags}} {{cflags_cc}} -c {{source}}"
+      },
+
+      {
+        name = "objc"
+        description = "OBJC {{output}}"
+        forward_variables_from(_compile_common, "*")
+        command = "$cc $switches {{cflags}} {{cflags_c}} {{cflags_objc}} -c {{source}}"
+      },
+
+      {
+        name = "objcxx"
+        description = "OBJCXX {{output}}"
+        forward_variables_from(_compile_common, "*")
+        command = "$cxx $switches {{cflags}} {{cflags_cc}} {{cflags_objcc}} -c {{source}}"
+      },
+
+      {
+        name = "alink"
+        description = "AR {{output}}"
+        rspfile = "{{output}}.rsp"
+        command =
+            "rm -f {{output}} && $ar {{arflags}} cqsD {{output}} '@$rspfile'"
+        rspfile_contents = "{{inputs}}"
+        default_output_dir = "{{target_out_dir}}"
+        default_output_extension = ".a"
+        output_prefix = "lib"
+      },
+
+      {
+        name = "link"
+        description = "LINK {{output}}"
+        forward_variables_from(_link_common, "*")
+        command = "$ld $switches $link_inputs $link_libs"
+      },
+    ]
+
+    forward_variables_from(invoker, [ "deps" ])
+
+    toolchain_args = {
+      current_cpu = invoker.cpu
+      current_os = invoker.os
+      if (defined(invoker.toolchain_args)) {
+        forward_variables_from(invoker.toolchain_args,
+                               "*",
+                               [
+                                 "current_cpu",
+                                 "current_os",
+                                 "toolchain",
+                               ])
+      }
+    }
+  }
+}
