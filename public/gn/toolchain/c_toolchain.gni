@@ -4,10 +4,28 @@
 
 import("ccache.gni")
 import("clang.gni")
+import("gcc.gni")
 import("goma.gni")
 import("toolchain.gni")
 
 template("define_c_toolchain") {
+  # Translate GN cpu/os to GNU config tuple.
+  if (invoker.cpu == "arm64") {
+    tc_target = "aarch64"
+  } else if (invoker.cpu == "x64") {
+    tc_target = "x86_64"
+  } else {
+    tc_target = invoker.cpu
+  }
+  if (invoker.os == "mac") {
+    tc_target += "-darwin"
+  } else if (invoker.os == "win") {
+    tc_target += "-windows"
+  } else {
+    tc_target += "-${invoker.os}"
+  }
+
+  # Cached and distributed wrappers just go on the front of compiler commands.
   compiler_prefix = ""
   if (defined(invoker.use_goma)) {
     use_goma = invoker.use_goma
@@ -24,30 +42,39 @@ template("define_c_toolchain") {
   }
 
   use_gcc = defined(invoker.gcc) && invoker.gcc
-  if (use_gcc) {
+
+  # If either is supplied both must be supplied.
+  if (defined(invoker.tool_dir) || defined(invoker.tool_prefix)) {
+    tc = {
+      tool_dir = invoker.tool_dir
+      tool_prefix = invoker.tool_prefix
+    }
+  } else if (use_gcc) {
     if (defined(invoker.host) && invoker.host) {
-      # Using host vanilla GCC.
+      # Using host vanilla GCC, so this can't be cross-compiling.
       assert(invoker.cpu == host_cpu)
       assert(invoker.os == host_os)
       tc = {
         tool_dir = ""
         tool_prefix = ""
       }
-      cc = "gcc"
-      cxx = "g++"
     } else {
       tc = {
         tool_dir = gcc_tool_dir
         tool_prefix = "${invoker.cpu}-elf-"
       }
-      cc = "${invoker.cpu}-elf-gcc"
-      cxx = "${invoker.cpu}-elf-g++"
     }
   } else {
     tc = {
       tool_dir = clang_tool_dir
       tool_prefix = "llvm-"
     }
+  }
+
+  if (use_gcc) {
+    cc = "${tc.tool_prefix}gcc"
+    cxx = "${tc.tool_prefix}g++"
+  } else {
     cc = "clang"
     cxx = "clang++"
   }

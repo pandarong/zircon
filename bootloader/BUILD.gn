@@ -7,8 +7,8 @@
 # Gigaboot gets its own toolchains to build EFI code.
 if (toolchain.environment == "efi") {
   # This is the top config for all code in the efi_toolchain.
-  config("efi_config") {
-    configs = [
+  config_group("efi_config") {
+    public_deps = [
       "$zx/kernel:standalone",
       "$zx/kernel:warnings",
     ]
@@ -45,7 +45,7 @@ if (toolchain.environment == "efi") {
     define_environment("efi") {
       cpu = "x64"
       os = "win"
-      configs += [ ":efi_config" ]
+      public_deps += [ ":efi_config" ]
       globals = {
         is_kernel = true
       }

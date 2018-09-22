@@ -1,0 +1,38 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Universal configs apply to all code in the build.
+standard_configs = [
+  "$zx/public/gn/config:compiler",
+  "$zx/public/gn/config:relative_paths",
+  "$zx/public/gn/config:assert_level",
+  "$zx/public/gn/config:opt_level",
+  "$zx/public/gn/config:symbol_level",
+  "$zx/public/gn/config:default_warnings",
+  "$zx/public/gn/config:default_include_dirs",
+  "$zx/public/gn/config:default_frame_pointers",
+  "$zx/public/gn/config:no_exceptions",
+  "$zx/public/gn/config:no_rtti",
+  "$zx/public/gn/config:thread_safety_annotations",
+
+  # TODO: "$zx/public/gn/config:symbol_visibility_hidden",
+]
+
+# Additional configs apply to code built for Fuchsia but not to host code.
+standard_fuchsia_configs = [ "$zx/public/gn/config:werror" ]
+
+# Additional configs apply only to code built into shared libraries.
+standard_shlib_configs = [
+  "$zx/public/gn/config:shared_library_config",
+  "$zx/public/gn/config:no_undefined_symbols",
+]
+
+# These `.gni` files are imported into the global environment in all
+# code-building toolchains to define the pervasive globals, templates,
+# and default parameters.
+standard_imports = [
+  "$zx/public/gn/buildconfig/is.gni",
+  "$zx/public/gn/buildconfig/targets.gni",
+  "$zx/public/gn/buildconfig/zircon_cpu.gni",
+]

@@ -3,6 +3,10 @@
 # found in the LICENSE file.
 
 declare_args() {
+  
+}
+
+declare_args() {
   # If $clang_tool_dir is "", then this controls how the Clang toolchain
   # binaries are found.  If true, then the standard prebuilt is used.
   # Otherwise the tools are just expected to be found by the shell via `PATH`.
