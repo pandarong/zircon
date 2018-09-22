@@ -6,7 +6,7 @@
 
 import("$zx/kernel/params.gni")
 
-config("kernel") {
+config_group("kernel") {
   cflags = [
     "-mno-red-zone",
 

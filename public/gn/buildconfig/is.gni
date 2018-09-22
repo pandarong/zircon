@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+assert(!defined(current_toolchain), "only for buildconfig context")
+
+# Shorthand for `current_os == "fuchsia".
+is_fuchsia = current_os == "fuchsia"
+# Shorthand for `current_os == "linux".
+is_linux = current_os == "linux"
+# Shorthand for `current_os == "mac".
+is_mac = current_os == "mac"
+
+if (!defined(is_gcc)) {
+  # True iff $current_toolchain builds with GCC rather than Clang.
+  is_gcc = false
+}
+
+if (!defined(is_host)) {
+  # True iff $current_toolchain builds for a host platform rather than for
+  # the Fuchsia system being built.  This doesn't mean that it builds for
+  # $host_cpu and $host_os--it could be a cross-compilation toolchain for
+  # building host tools for a different host.
+  is_host = false
+}

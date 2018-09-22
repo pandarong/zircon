@@ -2,13 +2,25 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-config("fidl_config") {
-  include_dirs = [ "include" ]
+if (defined(zx)) {
+  _config_group = "config_group"
+} else {
+  _config_group = "config"
+}
+
+target(_config_group, "fidl_config") {
   visibility = [ ":*" ]
+  include_dirs = [ "include" ]
 }
 
 source_set("compiler") {
-  public_configs = [ ":fidl_config" ]
+  if (defined(zx)) {
+    public_deps = [
+      ":fidl_config",
+    ]
+  } else {
+    public_configs = [ ":fidl_config" ]
+  }
   sources = [
     "lib/attributes.cpp",
     "lib/c_generator.cpp",

@@ -9,8 +9,8 @@ multiboot_toolchain = get_label_info(":x64-multiboot", "label_no_toolchain")
 
 if (current_toolchain == multiboot_toolchain) {
   # This is the top config for all code in the multiboot_toolchain.
-  config("multiboot_config") {
-    configs = [
+  config_group("multiboot_config") {
+    public_deps = [
       "$zx/kernel:standalone",
       "$zx/kernel:warnings",
     ]
@@ -72,7 +72,7 @@ if (current_toolchain == multiboot_toolchain) {
     define_environment("multiboot") {
       cpu = "x64"
       os = "multiboot"
-      configs += [ ":multiboot_config" ]
+      public_deps += [ ":multiboot_config" ]
       globals = {
         is_kernel = true
       }

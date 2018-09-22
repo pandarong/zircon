@@ -4,7 +4,13 @@
 
 assert(!defined(current_toolchain), "only for buildconfig context")
 
+# $zx is not available in this context, but this needs a source-absolute label.
+_public_gn = get_label_info("..", "dir")
+set_default_toolchain("$_public_gn/toolchain:stub")
+
 declare_args() {
+  # *This must never be set as a build argument.*
+  # It exists only to be set via define_toolchain().
   toolchain = {
     imports = []
     globals = {

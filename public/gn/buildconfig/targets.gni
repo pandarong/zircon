@@ -1,0 +1,295 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+assert(!defined(current_toolchain), "only for buildconfig context")
+import("toolchain.gni")
+
+# Propagate switch settings and dependencies to dependents.
+#
+# config_group() replaces GN's built-in config() with enhanced and
+# simplified semantics.  A config_group() is a target that acts like a
+# group() target in all respects.  But it can also set all the switches and
+# have `inputs` and `libs` like config().  Instead of referring to a
+# config() with `configs` or `public_configs`, refer to a config_group()
+# with `deps` to take on its switches et al or with `public_deps` to
+# propagate its effects to your direct dependents.
+#
+# Parameters
+#
+#   compiler_flags
+#     Optional: This is appended to all of $asmflags, $cflags, and $ldflags.
+#     It's a convenient shorthand for flags that the compiler driver treats
+#     the same way for assembling, compiling, and linking tasks.
+#
+#   data_deps
+#   deps
+#     Optional: As for group().  This is *not* the way to refer to another
+#     config_group() so as to propagate its switch settings; instead use
+#     `public_deps` for that.  Note that potentially each individual file
+#     compiled with the switches of this config_group() will also have a
+#     Ninja dependency arc to each target in `data_deps` or `deps`.  Hence
+#     this should be used sparingly.
+#
+#   public_deps
+#     Optional: As for group().  This is the way to refer to other
+#     config_group() targets.  Every dependent of this target will also use
+#     the switches of theconfig_group() targets in `public_deps`.
+#
+template("config_group") {
+  _config_name = target_name
+  _config_label = get_label_info(":$target_name", "label_no_toolchain")
+
+  # The old ways are now taboo.
+  assert(!defined(invoker.configs),
+         "use public_deps instead of configs in $_config_label config_group()")
+
+  # The underlying config() holds everything but the deps.
+  config("_config.$_config_name") {
+    visibility = [ ":$_config_name" ]
+    asmflags = []
+    cflags = []
+    ldflags = []
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "data_deps",
+                             "deps",
+                             "public_deps",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (defined(invoker.compiler_flags)) {
+      asmflags += invoker.compiler_flags
+      cflags += invoker.compiler_flags
+      ldflags += invoker.compiler_flags
+    }
+  }
+
+  group(_config_name) {
+    forward_variables_from(invoker,
+                           [
+                             "data_deps",
+                             "deps",
+                             "public_deps",
+                             "testonly",
+                             "visibility",
+                           ])
+    public_configs = [ "_config.$_config_name" ]
+  }
+}
+
+# The primitive GN feature should never be used directly in this build.
+# Use config_group() instead.
+template("config") {
+  _config_label = get_label_info(":$target_name", "label_no_toolchain")
+  assert(false, "use config_group() instead of config() for $_config_label")
+}
+
+template("_assert_no_legacy_configs") {
+  label = get_label_info(":$target_name", "label_no_toolchain")
+  target_invoker = invoker.invoker
+  type = invoker.type
+  assert(!defined(target_invoker.all_dependent_configs),
+         "all_dependent_configs is not supported in this build")
+  assert(!defined(target_invoker.configs),
+         "use deps instead of configs in $label $type()")
+  assert(!defined(target_invoker.public_configs),
+         "use public_deps instead of public_configs in $label $type()")
+}
+
+# Generic grouping target, built-in group() without primitive GN configs.
+#
+# Parameters
+#
+#   data_deps, deps, public_deps, testonly, visibility
+#   Optional: See `gn help group`.
+#   Use `public_deps` in place of `public_configs`.
+#
+template("group") {
+  _assert_no_legacy_configs(target_name) {
+    type = "group"
+  }
+  group(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "data_deps",
+                             "deps",
+                             "public_deps",
+                             "testonly",
+                             "visibility",
+                           ])
+  }
+}
+
+template("shared_library") {
+  _assert_no_legacy_configs(target_name) {
+    type = "group"
+  }
+  assert(defined(toolchain.shlib),
+         "shared_library(\"$target_name\") not allowed in $current_toolchain")
+  if (current_toolchain == toolchain.shlib) {
+    # This is the toolchain that actually builds the libraries.
+    shared_library(target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+    }
+  } else {
+    # In the main toolchain, just redirect to the shlib toolchain.
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      not_needed(invoker, "*")
+      public_deps = [
+        ":$target_name(${toolchain.shlib})",
+      ]
+    }
+  }
+}
+
+template("library") {
+  _library_name = target_name
+  host = defined(invoker.host) && invoker.host
+  kernel = defined(invoker.kernel) && invoker.kernel
+  shared = defined(invoker.shared) && invoker.shared
+  if (defined(invoker.static)) {
+    static = invoker.static
+  } else {
+    static = !kernel
+  }
+  _library_params = [
+    "kernel",
+    "host",
+    "shared",
+    "static",
+  ]
+  # Not all of these will be referenced in all toolchains.
+  not_needed(_library_params)
+
+  config_group("${_library_name}.headers") {
+    include_dirs = [ "include" ]
+  }
+
+  if (is_kernel) {
+    if (kernel) {
+      source_set(_library_name) {
+        forward_variables_from(invoker, "*", _library_params)
+      }
+    }
+  } else if (is_host) {
+    if (host) {
+      static_library(_library_name) {
+        forward_variables_from(invoker, "*", _library_params)
+      }
+    }
+  } else if (static || shared) {
+    source_set("${_library_name}._sources") {
+      visibility = [
+        "${_library_name}.static",
+        "${_library_name}.shared",
+      ]
+      forward_variables_from(invoker, "*", _library_params)
+    }
+    if (static) {
+      static_library("${_library_name}.static") {
+        forward_variables_from(invoker,
+                               [
+                                 "public_deps",
+                                 "testonly",
+                                 "visibility",
+                               ])
+        deps = [
+          ":${_library_name}._sources",
+        ]
+      }
+    }
+    if (shared) {
+      shared_library("${_library_name}.shared") {
+        forward_variables_from(invoker,
+                               [
+                                 "public_deps",
+                                 "testonly",
+                                 "visibility",
+                               ])
+        deps = [
+          ":${_library_name}._sources",
+        ]
+      }
+    }
+    group(_library_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      if (shared) {
+        public_deps = [
+          ":${_library_name}.shared",
+        ]
+      } else {
+        public_deps = [
+          ":${_library_name}.static",
+        ]
+      }
+    }
+  }
+
+  # If this library is the main target for the directory, then give its
+  # auxiliary targets aliases `dir:headers`, `dir:static`, `dir:shared`.
+  if (get_label_info(":$_library_name", "name") ==
+      get_path_info(get_label_info(":$_library_name", "dir"), "file")) {
+    group("headers") {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      public_deps = [
+        ":${_library_name}.headers",
+      ]
+    }
+    if (!is_kernel) {
+      if (static) {
+        group("static") {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          public_deps = [
+            ":${_library_name}.static",
+          ]
+        }
+      }
+      if (shared) {
+        group("shared") {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          public_deps = [
+            ":${_library_name}.shared",
+          ]
+        }
+      }
+    }
+  }
+}
+
+foreach(target_type,
+        [
+          "executable",
+          "library",
+          "loadable_module",
+          "shared_library",
+          "source_set",
+          "static_library",
+        ]) {
+  set_defaults(target_type) {
+    deps = toolchain.public_deps
+  }
+}
