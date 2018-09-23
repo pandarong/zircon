@@ -1,0 +1,110 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/config/standard.gni")
+import("c_toolchain.gni")
+
+# Define toolchains for a compilation environment.
+#
+# A compilation environment is the combination of a particular CPU, OS, and
+# "execution environment".  The $target_name in define_environment() is the
+# name of the execution environment, which identifies the circumstances in
+# which code built with these toolchains runs.  Examples are:
+#  * `host` for programs run during the build or by developers in an SDK
+#  * `kernel` for the Zircon kernel
+#  * `user` for user-mode programs running on top of Zircon/Fuchsia
+# Additional environments are defined for more specialized purposes.
+#
+template("define_environment") {
+  # These are seen by define_c_toolchain, below.
+  environment = target_name
+  environment_label = get_label_info(":$target_name", "label_no_toolchain")
+
+  # For "host.fuzz", the base is "host".
+  base_environment = get_path_info(environment, "name")
+
+  # Name construction logic must match select_toolchain.gni.
+  toolchain_base_name = "${environment}-${invoker.cpu}"
+
+  # For host environments include the OS to distinguish one from another.
+  # For other environments, the OS is implicit (i.e. "fuchsia" modulo EFI).
+  if (base_environment == "host") {
+    toolchain_base_name += "-${invoker.os}"
+  }
+
+  # TODO: real variants.  For now, the only variant is "clang".
+  live_variants = [ "clang" ]
+
+  # Define a primary toolchain, and possibly also a shlib toolchain,
+  # for each variant.  If there are two, both toolchains get a
+  # ${toolchain.shlib} value pointing to the shlib toolchain.  The
+  # shlib toolchain has additional ${toolchain.public_deps} appended
+  # from $shlib_public_deps and then shared_library() in the primary
+  # toolchain redirects to the shlib toolchain.
+  foreach(variant, live_variants) {
+    toolchains = []  # Clear from previous iteration.
+
+    toolchains = [
+      {
+        name = "${toolchain_base_name}-${variant}"
+        public_deps = invoker.public_deps
+      },
+    ]
+    if (defined(invoker.shlib) && invoker.shlib) {
+      # This will be seen by define_c_toolchain, below.
+      shlib = "${toolchains[0]}-shlib"
+      toolchains += [
+        {
+          name = shlib
+          public_deps = invoker.public_deps + invoker.shlib_public_deps
+        },
+      ]
+    }
+
+    foreach(tc, toolchains) {
+      define_c_toolchain(tc.name) {
+        cpu = invoker.cpu
+        if (defined(invoker.os)) {
+          os = invoker.os
+        } else {
+          os = "fuchsia"
+        }
+        forward_variables_from(invoker, [ "toolchain_args" ])
+        toolchain_vars = {
+          # ${toolchain.environment} and ${toolchain.environment_label}
+          # will identify the environment within its own toolchains.
+          environment = environment
+          environment_label = environment_label
+
+          forward_variables_from(invoker, [ "imports" ])
+
+          # This is used by $zx/public/gn/buildconfig/targets.gni.  The
+          # labels must be absolute since they will be used all over in the
+          # new toolchain, not just where the define_environment() is.
+          public_deps = []
+          foreach(label, tc.public_deps) {
+            public_deps += [ get_label_info(label, "label_no_toolchain") ]
+          }
+          if (defined(invoker.toolchain_vars)) {
+            forward_variables_from(invoker.toolchain_vars,
+                                   "*",
+                                   [
+                                     "environment",
+                                     "environment_label",
+                                     "imports",
+                                     "public_deps",
+                                     "shlib",
+                                   ])
+          }
+        }
+      }
+    }
+  }
+}
+
+set_defaults("define_environment") {
+  imports = standard_imports
+  public_deps = standard_configs
+  shlib_public_deps = standard_shlib_configs
+}

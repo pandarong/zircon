@@ -5,10 +5,19 @@
 assert(!defined(current_toolchain), "only for buildconfig context")
 
 zx = "/"
+
+# TODO: This distinguishes a standalone Zircon build (where $zx/ is //)
+# from an integrated build (where $zx/ is //zircon).  When the
+# integrated build is fully cleaned up, this should not matter.
 zircon_standalone = true
 
 import("$zx/public/gn/buildconfig/toolchain.gni")
 
-foreach(file, toolchain.imports) {
-  import(file)
+if (toolchain != false) {
+  print("XXX BUILDCONFIG.gn ${toolchain.label}")
+  foreach(file, toolchain.imports) {
+    print("XXX ${toolchain.name} import $file")
+    import(file)
+  }
+  print("XXX ${toolchain.name} imports done")
 }

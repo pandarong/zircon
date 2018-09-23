@@ -4,236 +4,255 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/public/gn/toolchain/c_utils.gni")
+import("$zx/public/gn/toolchain/environment.gni")
+
+# TODO: can't iwyu because environment.gni does and {}!={}
+# import("$zx/public/gn/toolchain/standard.gni")
 import("params.gni")
 
-# These are needed both in kernel sources (pervasively) and in the linker
-# scripts.
-kernel_defines = [
-  # TODO: should not be needed in C, but is in one place now.
-  "KERNEL_BASE=$kernel_base",
-
-  "SMP_MAX_CPUS=$smp_max_cpus",
-]
-
-# This is the top config for all kernel code.
-config_group("kernel_config") {
-  public_deps = [
-    ":lock_dep",
-    ":standalone",
-    ":warnings",
-    "arch/$zircon_cpu:kernel",
-
-    # include/lib/counters.h and kernel.ld depend on -fdata-sections.
-    "$zx/public/gn/config:data_sections",
-  ]
-
-  include_dirs = [ "include" ]
-
-  defines = kernel_defines
-  defines += [
-    "_KERNEL=1",
-    "LK=1",
-    "ENABLE_PANIC_SHELL=1",
-    "WITH_DEBUG_LINEBUFFER=1",
-    "WITH_KERNEL_PCIE=1",
-    "ZIRCON_TOOLCHAIN=1",
-  ]
-
-  cflags = [ "-fpie" ]
-}
-
-# For any standalone static binary.
-config_group("standalone") {
-  cflags = [
-    "-ffreestanding",
-    "-include",
-    rebase_path("include/hidden.h", root_build_dir),
-
-    "-fno-exceptions",
-
-    # We want `.debug_frame` for the kernel (ZX-62).  And we still want
-    # asynchronous unwind tables.  Alas there's (currently) no way to
-    # achieve this with our GCC.  At the moment we compile with
-    # `-fno-omit-frame-pointer`, which is good because we link with
-    # `--gc-sections`, which means `.eh_frame` gets discarded so GCC-built
-    # kernels don't have any unwind info (except for assembly)!  Assembler
-    # code has its own way of requesting `.debug_frame` vs `.eh_frame` with
-    # the `.cfi_sections` directive.
-    "-fno-unwind-tables",
-  ]
-}
-
-config_group("warnings") {
-  cflags = [
-    "-Wformat=2",
-    "-Wvla",
-  ]
-
-  # GCC supports `-Wformat-signedness` but Clang currently does not.
-  if (is_gcc) {
-    cflags += [ "-Wformat-signedness" ]
+if (current_toolchain == default_toolchain) {
+  # In the default toolchain, just define the kernel toolchains.
+  foreach(cpu, standard_fuchsia_cpus) {
+    define_environment("kernel") {
+      public_deps += [ ":kernel_config" ]
+    }
   }
-
-  cflags_c = [ "-Wmissing-prototypes" ]
-}
-
-config_group("lock_dep") {
-  visibility = [ ":*" ]
-  defines = []
-  if (enable_lock_dep) {
-    defines += [
-      "WITH_LOCK_DEP=1",
-      "LOCK_DEP_ENABLE_VALIDATION=1",
-    ]
-  }
-  if (enable_lock_dep_tests) {
-    defines += [ "WITH_LOCK_DEP_TESTS=1" ]
-  }
-}
-
-# This is the kernel proper, an ELF executable with full symbols.
-# It's the file to use with a debugger, for example.
-executable("zircon") {
-  visibility = [ ":*" ]
-
-  ldflags = [ "-Wl,-T," + rebase_path("kernel.ld", root_build_dir) ]
-  inputs = [
-    "kernel.ld",
-  ]
-
-  deps += [
-    ":kernel_defsym",
-    ":test",
-    "arch/$zircon_cpu",
-    "lib/ktrace",
-    "lib/userboot",
-    "syscalls",
-    "top",
-  ]
-
-  if (current_cpu == "arm64") {
-    # TODO: target/arm? boot-shim
-    deps += [ "platform/generic-arm" ]
-  } else if (current_cpu == "x64") {
-    deps += [ "target/pc" ]
-  }
-}
-
-# XXX just for deps resolution for now
-group("kernel") {
-  deps = [
-    ":zircon",
-  ]
-}
-
-# Output file of that target.
-zircon_elf = "$root_out_dir/zircon"
-
-# These are needed only in image.S and in the linker scripts.
-image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
-
-# This supplies those variables for use in linker scripts.
-config_group("kernel_defsym") {
-  visibility = [ ":*" ]
-  ldflags = []
-  foreach(assignment, kernel_defines + image_defines) {
-    ldflags += [ "-Wl,-defsym,$assignment" ]
-  }
-}
-
-# TODO: From project/virtual/test.mk
-group("test") {
-  visibility = [ ":*" ]
-  deps = [
-    "lib/debugcommands",
-    "lib/version",
-    "tests",
-  ]
-}
-
-if (true) {
-  not_needed([ "zircon_elf" ])
 } else {
-  import("$zx/public/gn/toolchain/c_utils.gni")
+  # These are needed both in kernel sources (pervasively) and in the linker
+  # scripts.
+  kernel_defines = [
+    # TODO: should not be needed in C, but is in one place now.
+    "KERNEL_BASE=$kernel_base",
 
-  zircon_raw = "$target_out_dir/zircon.bin"
-  image_binary("raw") {
-    visibility = [
-      ":fixups",
-      ":image",
+    "SMP_MAX_CPUS=$smp_max_cpus",
+  ]
+
+  # This is the top config for all kernel code.
+  config_group("kernel_config") {
+    public_deps = [
+      ":lock_dep",
+      ":standalone",
+      ":warnings",
+      "arch/$zircon_cpu:kernel",
+
+      # include/lib/counters.h and kernel.ld depend on -fdata-sections.
+      "$zx/public/gn/config:data_sections",
     ]
+
+    include_dirs = [ "include" ]
+
+    defines = kernel_defines
+    defines += [
+      "_KERNEL=1",
+      "LK=1",
+      "ENABLE_PANIC_SHELL=1",
+      "WITH_DEBUG_LINEBUFFER=1",
+      "WITH_KERNEL_PCIE=1",
+      "ZIRCON_TOOLCHAIN=1",
+    ]
+
+    cflags = [ "-fpie" ]
+  }
+
+  # For any standalone static binary.
+  config_group("standalone") {
+    cflags = [
+      "-ffreestanding",
+      "-include",
+      rebase_path("include/hidden.h", root_build_dir),
+
+      "-fno-exceptions",
+
+      # We want `.debug_frame` for the kernel (ZX-62).  And we still want
+      # asynchronous unwind tables.  Alas there's (currently) no way to
+      # achieve this with our GCC.  At the moment we compile with
+      # `-fno-omit-frame-pointer`, which is good because we link with
+      # `--gc-sections`, which means `.eh_frame` gets discarded so GCC-built
+      # kernels don't have any unwind info (except for assembly)!  Assembler
+      # code has its own way of requesting `.debug_frame` vs `.eh_frame` with
+      # the `.cfi_sections` directive.
+      "-fno-unwind-tables",
+    ]
+  }
+
+  config_group("warnings") {
+    cflags = [
+      "-Wformat=2",
+      "-Wvla",
+    ]
+
+    # GCC supports `-Wformat-signedness` but Clang currently does not.
+    if (is_gcc) {
+      cflags += [ "-Wformat-signedness" ]
+    }
+
+    cflags_c = [ "-Wmissing-prototypes" ]
+  }
+
+  config_group("lock_dep") {
+    visibility = [ ":*" ]
+    defines = []
+    if (enable_lock_dep) {
+      defines += [
+        "WITH_LOCK_DEP=1",
+        "LOCK_DEP_ENABLE_VALIDATION=1",
+      ]
+    }
+    if (enable_lock_dep_tests) {
+      defines += [ "WITH_LOCK_DEP_TESTS=1" ]
+    }
+  }
+
+  # This is the kernel proper, an ELF executable with full symbols.
+  # It's the file to use with a debugger, for example.
+  executable("zircon") {
+    visibility = [ ":*" ]
+
+    # $zx/scripts/zircon.elf-gdb.py expects kernel symbols in "zircon.elf".
+    output_extension = "elf"
+
+    ldflags = [ "-Wl,-T," + rebase_path("kernel.ld", root_build_dir) ]
+    inputs = [
+      "kernel.ld",
+    ]
+
+    deps += [
+      ":kernel_defsym",
+      ":test",
+      "arch/$zircon_cpu",
+      "lib/ktrace",
+      "lib/userboot",
+      "syscalls",
+      "top",
+    ]
+
+    if (current_cpu == "arm64") {
+      # TODO: target/arm? boot-shim
+      deps += [ "platform/generic-arm" ]
+    } else if (current_cpu == "x64") {
+      deps += [ "target/pc" ]
+    }
+  }
+
+  # XXX just for deps resolution for now
+  group("kernel") {
     deps = [
       ":zircon",
     ]
-    sources = [
-      zircon_elf,
-    ]
-    outputs = [
-      zircon_raw,
-    ]
   }
 
-  # Use the --emit-relocs records to extract the fixups needed to relocate
-  # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
-  # #include'd by "arch/$zircon_cpu/image.S".
-  toolchain_utils_action("fixups") {
-    visibility = [ ":image" ]
+  # Output file of that target.
+  # TODO: zircon_elf = get_metadata([":zircon"], ["runtime_outputs"], [])
+  # zircon_elf_arg = get_metadata([":zircon"], ["runtime_outputs_args"], [])
+  zircon_elf = "$root_out_dir/zircon.elf"
+  zircon_elf_arg = rebase_path(zircon_elf, root_build_dir)
+
+  # These are needed only in image.S and in the linker scripts.
+  image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
+
+  # This supplies those variables for use in linker scripts.
+  config_group("kernel_defsym") {
+    visibility = [ ":*" ]
+    ldflags = []
+    foreach(assignment, kernel_defines + image_defines) {
+      ldflags += [ "-Wl,-defsym,$assignment" ]
+    }
+  }
+
+  # TODO: From project/virtual/test.mk
+  group("test") {
+    visibility = [ ":*" ]
     deps = [
-      ":raw",
-    ]
-    sources = [
-      zircon_raw,
-    ]
-    outputs = [
-      "$target_gen_dir/kernel-fixups.inc",
-    ]
-
-    # TODO(mcgrathr): Move the script to this dir as it's private to this use.
-    script = "$zx/scripts/gen-kaslr-fixups.sh"
-    utils = [
-      "readelf",
-      "objdump",
-    ]
-    args = [
-      rebase_path(sources[0], root_build_dir),
-      rebase_path(outputs[0], root_build_dir),
+      "lib/debugcommands",
+      "lib/version",
+      "tests",
     ]
   }
 
-  executable("image") {
-    visibility = [ ":kernel" ]
-    deps += [
-      ":fixups",
-      ":kernel_defsym",
-      ":zircon_raw",
-    ]
-    include_dirs = [ target_gen_dir ]
-    defines = image_defines +
-              [ "KERNEL_IMAGE=" + rebase_path(zircon_elf, target_gen_dir) ]
-    sources = [
-      "arch/$zircon_cpu/image.S",
-    ]
-    ldflags = [
-      "-Wl,--build-id=none",
-      "-Wl,-T," + rebase_path("image.ld", root_build_dir),
-      "-Wl,--just-symbols," +
-          rebase_path("$root_out_dir/zircon", root_build_dir),
-    ]
-    inputs = [
-      "image.ld",
-      "$root_out_dir/zircon",
-    ]
-  }
+  if (true) {
+    not_needed([ "zircon_elf" ])
+  } else {
+    zircon_raw = "$target_out_dir/zircon.bin"
+    image_binary("raw") {
+      visibility = [
+        ":fixups",
+        ":image",
+      ]
+      deps = [
+        ":zircon",
+      ]
+      sources = [
+        zircon_elf,
+      ]
+      outputs = [
+        zircon_raw,
+      ]
+    }
 
-  image_binary("kernel") {
-    deps = [
-      ":image",
-    ]
-    outputs = [
-      "$root_out_dir/kernel.zbi",
-    ]
-    sources = [
-      "$root_out_dir/image",
-    ]
+    # Use the --emit-relocs records to extract the fixups needed to relocate
+    # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
+    # #include'd by "arch/$zircon_cpu/image.S".
+    toolchain_utils_action("fixups") {
+      visibility = [ ":image" ]
+      deps = [
+        ":raw",
+      ]
+      sources = [
+        zircon_raw,
+      ]
+      outputs = [
+        "$target_gen_dir/kernel-fixups.inc",
+      ]
+
+      # TODO(mcgrathr): Move the script to this dir as it's private to this use.
+      script = "$zx/scripts/gen-kaslr-fixups.sh"
+      utils = [
+        "readelf",
+        "objdump",
+      ]
+      args = [
+        rebase_path(sources[0], root_build_dir),
+        rebase_path(outputs[0], root_build_dir),
+      ]
+    }
+
+    executable("image") {
+      visibility = [ ":kernel" ]
+      deps += [
+        ":fixups",
+        ":kernel_defsym",
+        ":zircon_raw",
+      ]
+      include_dirs = [ target_gen_dir ]
+      defines = image_defines + [ "KERNEL_IMAGE=$zircon_elf_arg" ]
+      sources = [
+        "arch/$zircon_cpu/image.S",
+      ]
+      ldflags = [
+        "-Wl,--build-id=none",
+        "-Wl,-T," + rebase_path("image.ld", root_build_dir),
+        "-Wl,--just-symbols," +
+            rebase_path("$root_out_dir/zircon", root_build_dir),
+      ]
+      inputs = [
+        "image.ld",
+        "$root_out_dir/zircon",
+      ]
+    }
+
+    image_binary("kernel") {
+      deps = [
+        ":image",
+      ]
+      outputs = [
+        "$root_out_dir/kernel.zbi",
+      ]
+      sources = [
+        "$root_out_dir/image",
+      ]
+    }
   }
 }
+
+print("XXX end of //kernel/BUILD.gn($current_toolchain)")

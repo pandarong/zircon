@@ -11,11 +11,9 @@ set_default_toolchain("$_public_gn/toolchain:stub")
 declare_args() {
   # *This must never be set as a build argument.*
   # It exists only to be set via define_toolchain().
-  toolchain = {
-    imports = []
-    globals = {
-    }
-  }
+  toolchain = false
 }
 
-forward_variables_from(toolchain.globals, "*")
+if (toolchain != false) {
+  forward_variables_from(toolchain.globals, "*")
+}

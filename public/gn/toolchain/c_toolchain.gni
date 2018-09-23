@@ -166,10 +166,13 @@ template("define_c_toolchain") {
         rspfile = "{{output}}.rsp"
         command =
             "rm -f {{output}} && $ar {{arflags}} cqsD {{output}} '@$rspfile'"
-        rspfile_contents = "{{inputs}}"
+        rspfile_content = "{{inputs}}"
         default_output_dir = "{{target_out_dir}}"
         default_output_extension = ".a"
         output_prefix = "lib"
+        outputs = [
+          "{{output_dir}}/{{target_output_name}}{{output_extension}}",
+        ]
       },
 
       {
@@ -185,6 +188,8 @@ template("define_c_toolchain") {
     toolchain_args = {
       current_cpu = invoker.cpu
       current_os = invoker.os
+      target_tuple = tc_target
+
       if (defined(invoker.toolchain_args)) {
         forward_variables_from(invoker.toolchain_args,
                                "*",
@@ -193,6 +198,27 @@ template("define_c_toolchain") {
                                  "current_os",
                                  "toolchain",
                                ])
+      }
+
+      # This shadows the global and so has to be cleared first.
+      toolchain = {
+      }
+      toolchain = {
+        name = target_name
+        label = get_label_info(":$target_name", "label_no_toolchain")
+
+        # These are provided by $zx/public/gn/buildconfig/toolchain.gni so
+        # they are expected in every toolchain.
+        globals = {
+        }
+        imports = []
+
+        # This gets `tool_dir` et al as expected by c_utils.gni (set above).
+        forward_variables_from(tc, "*")
+
+        if (defined(invoker.toolchain_vars)) {
+          forward_variables_from(invoker.toolchain_vars, "*")
+        }
       }
     }
   }

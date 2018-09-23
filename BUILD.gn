@@ -2,6 +2,45 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/config/standard.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
 group("default") {
-  deps = [ "kernel" ]
+  deps = [
+    ":tools",
+
+    # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?
+    # Add a buildarg to build multiple variants into complete ZBIs.
+    ":x64",
+  ]
 }
+
+# Build the native host tools intended for developer use.
+select_toolchain("host_dev_tools") {
+  environment_label = "$zx/public/gn/toolchain:host"
+  deps = [
+    # TODO: "$zx/system/host:tools"
+  ]
+}
+
+# Install the host developer tools for the running host platform in the
+# "$root_build_dir/tools/" directory.
+copy("tools") {
+  sources = [
+    # TODO: get_metadata([ ":host_dev_tools" ], [ "tool_executables" ]),
+    "/dev/null",
+  ]
+  outputs = [
+    "$root_build_dir/tools/{{source_file_part}}",
+  ]
+}
+
+foreach(cpu, standard_fuchsia_cpus) {
+  group(cpu) {
+    deps = [
+      "$zx/public/kernel:$cpu",
+    ]
+  }
+}
+
+print("XXX end of //BUILD.gn($current_toolchain)")
