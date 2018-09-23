@@ -1,0 +1,131 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Redirect dependents to dependencies in another toolchain.
+#
+# Use cases:
+#
+#  * Pick a kernel (or whatever target, group):
+#
+#     Use variant selection logic as it would apply to the given environment,
+#     cpu, os, for a target whose name, dir, label, etc. match all the
+#     constraints of the first selector seen.
+#
+#  * TODO: build specific variant(s) of shlib for prebuilt export
+#    works in any vanilla variant toolchain.shlib because shared_library
+#    doesn't redirect
+#
+#  * TODO: fuzzer binaries for a package: specific set of variants
+#    (multiply deps by all variants) regardless of variants buildarg
+#    matching.  Needs either fuzzer toolchains defined so their fuzzer
+#    executables don't redirect, or maybe secret alternate target name
+#    for non-redirect in all redirecting toolchains?
+#
+#  Parameters
+#
+#    cpu
+#      Optional: Required if $current_cpu is "" (default toolchain).
+#      Defaults to $host_cpu in "host" or "host.*" environments.
+#
+#    os
+#      Optional: Required if $current_os is "" (default toolchain).
+#      Defaults to $host_os in "host" or "host.*" environments.
+#
+#    environment_label
+#      Optional: Required if ${toolchain.environment_label} is undefined
+#      (default toolchain).  Defaults to ${toolchain.environment_label}.
+#
+#    deps
+#      Required: These must be labels without toolchain suffix.  The
+#      select_toolchain() target redirects its dependents to instead depend
+#      on this list of labels, but in the toolchain selected by the other
+#      parameters.
+#
+template("select_toolchain") {
+  forward_variables_from(invoker,
+                         [
+                           "cpu",
+                           "environment_label",
+                           "os",
+                         ])
+  if (!defined(environment_label)) {
+    assert(
+      defined(toolchain.environment_label),
+      "select_toolchain() needs `environment_label` in $current_toolchain")
+    environment_label = toolchain.environment_label
+  }
+
+  environment_label = get_label_info(environment_label, "label_no_toolchain")
+  environment = get_label_info(environment_label, "name")
+
+  # For "host.fuzz", the base is "host".
+  base_environment = get_path_info(environment, "name")
+
+  if (defined(cpu)) {
+    assert(cpu != "", "empty `cpu` in select_toolchain()")
+  } else {
+    if (base_environment == "host") {
+      assert(host_cpu != "", "empty `host_cpu` in select_toolchain()")
+      cpu = host_cpu
+    } else {
+      assert(current_cpu != "", "empty `current_cpu` in select_toolchain()")
+      cpu = current_cpu
+    }
+  }
+
+  if (defined(os)) {
+    assert(os != "", "empty `os` in select_toolchain()")
+  } else {
+    if (base_environment == "host") {
+      assert(host_os != "", "empty `host_os` in select_toolchain()")
+      os = host_os
+    } else {
+      os = "fuchsia"
+    }
+  }
+
+  # Name construction logic must match environment.gni.
+  toolchain_base_name = "${environment_label}-${cpu}"
+
+  # For host environments include the OS to distinguish one from another.
+  # For other environments, the OS is implicit (i.e. "fuchsia" modulo EFI).
+  if (base_environment == "host") {
+    toolchain_base_name += "-${os}"
+  } else {
+    not_needed([ "os" ])
+  }
+
+  # If the caller didn't request a specific variant, then use the default most
+  # likely to be selected for an arbitrary target in the selected environment.
+  if (!defined(variant)) {
+    # TODO: real variants.  For now, the only variant is "clang".
+    variant = "clang"
+  }
+
+  toolchain_name = "${toolchain_base_name}-${variant}"
+
+  group_deps = []
+  foreach(label, invoker.deps) {
+    # The original string should not contain a "(toolchain)" suffix.  We can't
+    # easily tell if it does, but we can tell if it has any suffix other than
+    # the expansion of "($current_toolchain)".
+    full_label = get_label_info(label, "label_with_toolchain")
+    bare_label = get_label_info(label, "label_no_toolchain")
+    assert(full_label == "$bare_label($current_toolchain)",
+           "select_toolchain() `deps` cannot have toolchain suffix")
+    group_deps += [ "$label($toolchain_name)" ]
+  }
+  if (group_deps == []) {
+    not_needed([ "toolchain_name" ])
+  }
+
+  group(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
+                             "visibility",
+                           ])
+    public_deps = group_deps
+  }
+}

@@ -23,6 +23,8 @@ standard_configs = [
 standard_fuchsia_configs = [ "$zx/public/gn/config:werror" ]
 
 # Additional configs apply only to code built into shared libraries.
+# This means everything in a ${toolchain.shlib} toolchain, not just code
+# directly in the `sources of a shared_library() or library() target.
 standard_shlib_configs = [
   "$zx/public/gn/config:shared_library_config",
   "$zx/public/gn/config:no_undefined_symbols",
@@ -35,4 +37,26 @@ standard_imports = [
   "$zx/public/gn/buildconfig/is.gni",
   "$zx/public/gn/buildconfig/targets.gni",
   "$zx/public/gn/buildconfig/zircon_cpu.gni",
+]
+
+# All the $current_cpu values that `current_os == "fuchsia"` supports.
+standard_fuchsia_cpus = [
+  "arm64",
+  "x64",
+]
+
+# All the {cpu, os} combinations supported as build or SDK hosts.
+standard_build_hosts = [
+  {
+    cpu = "arm64"
+    os = "linux"
+  },
+  {
+    cpu = "x64"
+    os = "linux"
+  },
+  {
+    cpu = "x64"
+    os = "mac"
+  },
 ]

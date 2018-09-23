@@ -1,0 +1,18 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/config/standard.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+# $zx/public/kernel:$cpu is a target to build the standard kernel for $cpu.
+# Build configuration will select the variant to use for the kernel.
+foreach(cpu, standard_fuchsia_cpus) {
+  select_toolchain(cpu) {
+    cpu = target_name
+    environment_label = "$zx/kernel"
+    deps = [
+      "$zx/kernel",
+    ]
+  }
+}

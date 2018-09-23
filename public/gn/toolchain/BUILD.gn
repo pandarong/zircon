@@ -2,11 +2,34 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO: can't iwyu because environment.gni does and {}!={}
+# import("$zx/public/gn/toolchain/standard.gni")
+import("environment.gni")
 import("toolchain.gni")
+
+assert(current_toolchain == default_toolchain,
+       "Define toolchains only in $default_toolchain")
 
 # The stub toolchain is the $default_toolchain set by //gn/BUILDCONFIG.gn.
 # It has nothing but the standard stamp and copy tools, so it can only be
 # used for action and copy rules.
 define_toolchain("stub") {
   tools = []
+}
+
+standard_host = false
+foreach(host, standard_build_hosts) {
+  define_environment("host") {
+    cpu = host.cpu
+    os = host.os
+  }
+  if (host.cpu == host_cpu && host.os == host_os) {
+    standard_host = true
+  }
+}
+
+if (!standard_host && (clang_tool_dir != "" || gcc_tool_dir != "")) {
+  print("NOTE: $host_cpu-$host_os is not a standard build host for Fuchsia")
+  print("NOTE: Prebuilt tools may not be available.")
+  print("NOTE: Set `gcc_tool_dir`/`clang_tool_dir` globally or in `variants`.")
 }
