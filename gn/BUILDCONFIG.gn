@@ -13,6 +13,15 @@ zircon_standalone = true
 
 import("$zx/public/gn/buildconfig/toolchain.gni")
 
+template("raw_executable") {
+  print("XXX$current_toolchain in raw_executable($target_name) $invoker")
+  executable(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+
+
 if (toolchain != false) {
   print("XXX BUILDCONFIG.gn ${toolchain.label}")
   foreach(file, toolchain.imports) {

@@ -3,12 +3,8 @@
 # found in the LICENSE file.
 
 assert(!defined(current_toolchain), "only for buildconfig context")
-assert({
-       } !=
-       {
-       })
 
-# TODO: can't iywu because {} != {}
+# TODO(crbug.com/gn/11): can't IYWU because {} != {}
 # import("toolchain.gni")
 assert(defined(toolchain))
 
@@ -25,6 +21,8 @@ assert(defined(toolchain))
 #     Required: The name of the template().
 #
 template("assert_no_legacy_configs") {
+  print(
+      "XXX$current_toolchain expanding assert_no_legacy_configs($target_name) $invoker")
   label = get_label_info(":$target_name", "label_no_toolchain")
   target_invoker = invoker.invoker
   type = invoker.type
@@ -35,6 +33,20 @@ template("assert_no_legacy_configs") {
   assert(!defined(target_invoker.public_configs),
          "use public_deps instead of public_configs in $label $type()")
   not_needed([ "target_invoker" ])
+}
+
+if (false) {
+  template("config") {
+    _config_label = get_label_info(":$target_name", "label_no_toolchain")
+    assert(false, "use config_group() instead of config() for $_config_label")
+  }
+
+  # The primitive GN feature should never be used directly in this build.
+  # Use config_group() instead.
+  template("config") {
+    _config_label = get_label_info(":$target_name", "label_no_toolchain")
+    assert(false, "use config_group() instead of config() for $_config_label")
+  }
 }
 
 # Propagate switch settings and dependencies to dependents.
@@ -274,6 +286,20 @@ template("library") {
   }
 }
 
+template("_target_no_legacy_configs") {
+  print(
+      "XXX$current_toolchain expanding _target_no_legacy_configs($target_name) $invoker")
+  assert_no_legacy_configs(target_name) {
+    type = invoker.type
+  }
+  print(
+      "XXX$current_toolchain after assert -> target(${invoker.type},$target_name) ${invoker.invoker}")
+  target(invoker.type, target_name) {
+    forward_variables_from(invoker.invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker.invoker, [ "visibility" ])
+  }
+}
+
 # Just wrap these to inject assert_no_legacy_configs().
 foreach(target_type,
         [
@@ -281,12 +307,9 @@ foreach(target_type,
           "static_library",
         ]) {
   template(target_type) {
-    assert_no_legacy_configs(target_name) {
+    print("XXX$current_toolchain expanding $target_type($target_name) $invoker")
+    _target_no_legacy_configs(target_name) {
       type = target_type
-    }
-    target(target_type, target_name) {
-      forward_variables_from(invoker, "*", [ "visibility" ])
-      forward_variables_from(invoker, [ "visibility" ])
     }
   }
 }
@@ -301,10 +324,18 @@ foreach(target_type,
 _terminal_target_types = [
   # TODO: "driver",
   "loadable_module",
-  "executable",
+
+  #  "executable",
 
   # TODO: "tool",
 ]
+
+template("executable") {
+  print("XXX$current_toolchain in executable($target_name) $invoker")
+  _target_no_legacy_configs(target_name) {
+    type = "raw_executable"
+  }
+}
 
 # TODO: variants
 # Probably want this to be a private template a la _variant_target
@@ -312,12 +343,8 @@ _terminal_target_types = [
 # to do it in separate templates than in an if nest inside this foreach.
 foreach(target_type, _terminal_target_types) {
   template(target_type) {
-    assert_no_legacy_configs(target_name) {
+    _target_no_legacy_configs(target_name) {
       type = target_type
-    }
-    target(target_type, target_name) {
-      forward_variables_from(invoker, "*", [ "visibility" ])
-      forward_variables_from(invoker, [ "visibility" ])
     }
   }
 }
