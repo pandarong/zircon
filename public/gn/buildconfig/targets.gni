@@ -3,7 +3,39 @@
 # found in the LICENSE file.
 
 assert(!defined(current_toolchain), "only for buildconfig context")
-import("toolchain.gni")
+assert({
+       } !=
+       {
+       })
+
+# TODO: can't iywu because {} != {}
+# import("toolchain.gni")
+assert(defined(toolchain))
+
+# Assert in a template that its invoker doesn't use legacy configs.
+#
+# Always invoked: `assert_no_legacy_configs(target_name) { target_type = ... }`
+#
+# Parameters
+#
+#   invoker
+#     Required: Implicitly set in every template() scope.
+#
+#   target_type
+#     Required: The name of the template().
+#
+template("assert_no_legacy_configs") {
+  label = get_label_info(":$target_name", "label_no_toolchain")
+  target_invoker = invoker.invoker
+  type = invoker.type
+  assert(!defined(target_invoker.all_dependent_configs),
+         "all_dependent_configs is not supported in this build")
+  assert(!defined(target_invoker.configs),
+         "use deps instead of configs in $label $type()")
+  assert(!defined(target_invoker.public_configs),
+         "use public_deps instead of public_configs in $label $type()")
+  not_needed([ "target_invoker" ])
+}
 
 # Propagate switch settings and dependencies to dependents.
 #
@@ -79,52 +111,9 @@ template("config_group") {
   }
 }
 
-# The primitive GN feature should never be used directly in this build.
-# Use config_group() instead.
-template("config") {
-  _config_label = get_label_info(":$target_name", "label_no_toolchain")
-  assert(false, "use config_group() instead of config() for $_config_label")
-}
-
-template("_assert_no_legacy_configs") {
-  label = get_label_info(":$target_name", "label_no_toolchain")
-  target_invoker = invoker.invoker
-  type = invoker.type
-  assert(!defined(target_invoker.all_dependent_configs),
-         "all_dependent_configs is not supported in this build")
-  assert(!defined(target_invoker.configs),
-         "use deps instead of configs in $label $type()")
-  assert(!defined(target_invoker.public_configs),
-         "use public_deps instead of public_configs in $label $type()")
-}
-
-# Generic grouping target, built-in group() without primitive GN configs.
-#
-# Parameters
-#
-#   data_deps, deps, public_deps, testonly, visibility
-#   Optional: See `gn help group`.
-#   Use `public_deps` in place of `public_configs`.
-#
-template("group") {
-  _assert_no_legacy_configs(target_name) {
-    type = "group"
-  }
-  group(target_name) {
-    forward_variables_from(invoker,
-                           [
-                             "data_deps",
-                             "deps",
-                             "public_deps",
-                             "testonly",
-                             "visibility",
-                           ])
-  }
-}
-
 template("shared_library") {
-  _assert_no_legacy_configs(target_name) {
-    type = "group"
+  assert_no_legacy_configs(target_name) {
+    type = "shared_library"
   }
   assert(defined(toolchain.shlib),
          "shared_library(\"$target_name\") not allowed in $current_toolchain")
@@ -133,6 +122,10 @@ template("shared_library") {
     shared_library(target_name) {
       forward_variables_from(invoker, "*", [ "visibility" ])
       forward_variables_from(invoker, [ "visibility" ])
+      if (defined(visibility)) {
+        # Make sure we're visible to the redirector groups defined below.
+        visibility += [ ":$target_name" ]
+      }
     }
   } else {
     # In the main toolchain, just redirect to the shlib toolchain.
@@ -166,6 +159,7 @@ template("library") {
     "shared",
     "static",
   ]
+
   # Not all of these will be referenced in all toolchains.
   not_needed(_library_params)
 
@@ -280,15 +274,76 @@ template("library") {
   }
 }
 
+# Just wrap these to inject assert_no_legacy_configs().
 foreach(target_type,
         [
-          "executable",
-          "library",
-          "loadable_module",
-          "shared_library",
           "source_set",
           "static_library",
         ]) {
+  template(target_type) {
+    assert_no_legacy_configs(target_name) {
+      type = target_type
+    }
+    target(target_type, target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+    }
+  }
+}
+
+# These are what we call the "terminal" target types: they are linked
+# artifacts that get explicitly installed on a device (or run on a host).
+# static_library() and source_set() aren't terminal because they don't link.
+# shared_library() isn't terminal because it gets installed only implicitly as
+# a dependency of another target (either another library or a terminal
+# target).  So these are the base target types that participate directly in
+# variant selection.
+_terminal_target_types = [
+  # TODO: "driver",
+  "loadable_module",
+  "executable",
+
+  # TODO: "tool",
+]
+
+# TODO: variants
+# Probably want this to be a private template a la _variant_target
+# instead of foreach.  driver/tool need more magic and it seems cleaner
+# to do it in separate templates than in an if nest inside this foreach.
+foreach(target_type, _terminal_target_types) {
+  template(target_type) {
+    assert_no_legacy_configs(target_name) {
+      type = target_type
+    }
+    target(target_type, target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+    }
+  }
+}
+
+# These are all the target types (both stock GN and Fuchsia templates) that
+# compile `sources` with the $current_toolchain tools.  All these get a
+# default `deps` below, so their targets use `deps += ...` normally.
+_compile_target_types = [
+  # TODO: "driver",
+  "executable",
+  "library",
+  "loadable_module",
+  "shared_library",
+  "source_set",
+  "static_library",
+
+  # TODO: "tool",
+]
+
+# ${toolchain.public_deps} gives the initial `deps` set for every compile
+# target in this toolchain.  This is how `configs` is used traditionally in
+# GN: targets use `+=` rather than `=` unless they are explicitly doing `= []`
+# to remove all the toolchain defaults; they can use `-=` to remove specific
+# members from the default set.  In the Fuchsia build, `deps` is used in lieu
+# of `configs`; see config_group(), which replaces config().
+foreach(target_type, _compile_target_types) {
   set_defaults(target_type) {
     deps = toolchain.public_deps
   }
