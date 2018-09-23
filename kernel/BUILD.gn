@@ -171,7 +171,10 @@ if (current_toolchain == default_toolchain) {
   }
 
   if (true) {
-    not_needed([ "zircon_elf" ])
+    not_needed([
+                 "zircon_elf",
+                 "zircon_elf_arg",
+               ])
   } else {
     zircon_raw = "$target_out_dir/zircon.bin"
     image_binary("raw") {
