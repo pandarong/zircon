@@ -10,6 +10,7 @@
 #include <ddk/protocol/pci.h>
 #include <ddk/protocol/i2c-impl.h>
 #include <ddktl/protocol/display-controller.h>
+#include <ddktl/protocol/empty-protocol.h>
 
 #include <fbl/unique_ptr.h>
 #include <fbl/vector.h>
@@ -57,7 +58,9 @@ class Controller;
 using DeviceType = ddk::Device<Controller, ddk::Unbindable,
                                ddk::Suspendable, ddk::Resumable, ddk::GetProtocolable>;
 
-class Controller : public DeviceType, public ddk::DisplayControllerProtocol<Controller> {
+class Controller : public DeviceType,
+                   public ddk::DisplayControllerProtocol<Controller>,
+                   public ddk::EmptyProtocol<ZX_PROTOCOL_DISPLAY_CONTROLLER_IMPL> {
 public:
     Controller(zx_device_t* parent);
     ~Controller();
@@ -73,15 +76,16 @@ public:
     zx_status_t Bind(fbl::unique_ptr<i915::Controller>* controller_ptr);
 
     // display controller protocol ops
-    void SetDisplayControllerCb(void* cb_ctx, display_controller_cb_t* cb);
-    zx_status_t ImportVmoImage(image_t* image, const zx::vmo& vmo, size_t offset);
-    void ReleaseImage(image_t* image);
-    void CheckConfiguration(const display_config_t** display_config,
-                            uint32_t* display_cfg_result, uint32_t** layer_cfg_result,
-                            uint32_t display_count);
-    void ApplyConfiguration(const display_config_t** display_config, uint32_t display_count);
-    uint32_t ComputeLinearStride(uint32_t width, zx_pixel_format_t format);
-    zx_status_t AllocateVmo(uint64_t size, zx_handle_t* vmo_out);
+    void DisplayControllerSetDisplayControllerInterface(const display_controller_interface* intf);
+    zx_status_t DisplayControllerImportVmoImage(image_t* image, zx_handle_t vmo, size_t offset);
+    void DisplayControllerReleaseImage(image_t* image);
+    uint32_t DisplayControllerCheckConfiguration(const display_config_t** display_config,
+                                                 size_t display_count, uint32_t** layer_cfg_result,
+                                                 size_t* layer_cfg_result_count);
+    void DisplayControllerApplyConfiguration(const display_config_t** display_config,
+                                             size_t display_count);
+    uint32_t DisplayControllerComputeLinearStride(uint32_t width, zx_pixel_format_t format);
+    zx_status_t DisplayControllerAllocateVmo(uint64_t size, zx_handle_t* vmo_out);
 
     // gpu core ops
     zx_status_t ReadPciConfig16(uint16_t addr, uint16_t* value_out);
@@ -185,8 +189,7 @@ private:
     bool gpu_released_ = false;
     bool display_released_ = false;
 
-    void* dc_cb_ctx_ __TA_GUARDED(display_lock_);
-    display_controller_cb_t* dc_cb_ __TA_GUARDED(display_lock_) = nullptr;
+    ddk::DisplayControllerInterfaceProxy dc_intf_ __TA_GUARDED(display_lock_) = nullptr;
     bool ready_for_callback_ __TA_GUARDED(display_lock_) = false;
 
     Gtt gtt_ __TA_GUARDED(gtt_lock_);

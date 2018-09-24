@@ -1,0 +1,81 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.usb_function;
+
+using ddk.protocol.usb;
+using ddk.phys_iter;
+using zircon.hw.usb;
+using zx;
+
+/// This protocol is used for USB peripheral function functions.
+/// Callbacks implemented by the function driver.
+[Layout="ddk-interface"]
+interface UsbFunctionInterface {
+    /// Callback for handling ep0 control requests.
+    /// Return the descriptor list for the function. Callee retains ownership of descriptors.
+    // TODO(voydanoff) - descriptors will likely vary (different max packet sizes, etc)
+    // depending on whether we are in low/full, high or super speed mode.
+    // We will need to add a usb_speed_t argument to this callback.
+    1: GetDescriptors() -> (vector<zircon.hw.usb.UsbDescriptorHeader>? descriptor);
+
+    /// Callback for handling ep0 control requests.
+    2: Control(zircon.hw.usb.UsbSetup setup) -> (zx.status s, vector<void> buffer, usize actual);
+
+    /// Called to inform the function driver when the USB device configured state changes.
+    /// Called with configured == true in response to a SET_CONFIGURATION control request
+    /// that selects a configuration that contains this function. In this case, the function driver
+    /// should call usb_function_config_ep() to configure its endpoints.
+    /// Called with configured == false when configuration is disabled or USB is disconnected.
+    /// The function driver should then call usb_function_disable_ep() to disable its endpoints.
+    3: SetConfigured(bool configured, zircon.hw.usb.UsbSpeed speed) -> (zx.status s);
+
+    /// Called to set an alternate setting for an interface due to a SET_INTERFACE control request.
+    /// The function driver should call usb_function_config_ep() and/or usb_function_config_ep()
+    /// to configure or disable the interface's endpoints as appropriate.
+    4: SetInterface(uint64 @interface, uint64 alt_setting) -> (zx.status s);
+};
+
+[Layout="ddk-protocol"]
+interface UsbDciInterface {
+    1: ReqAlloc(uint64 data_size, uint8 ep_address) -> (zx.status s, ddk.protocol.usb.UsbRequest? req);
+    2: ReqAllocVmo(handle<vmo> vmo, uint64 vmo_offset, uint64 length,
+                   uint8 ep_address) -> (zx.status s, ddk.protocol.usb.UsbRequest? req);
+    3: ReqInit(ddk.protocol.usb.UsbRequest? req, handle<vmo> vmo, uint64 vmo_offset, uint64 length,
+               uint8 ep_address) -> (zx.status s);
+    4: ReqCopyFrom(ddk.protocol.usb.UsbRequest? req, usize offset) -> (vector<void> data);
+    5: ReqCopyTo(ddk.protocol.usb.UsbRequest req, vector<void> data, usize offset) -> (isize len);
+    6: ReqMmap(ddk.protocol.usb.UsbRequest? req) -> (zx.status s, vector<void>? data);
+    7: ReqCacheop(ddk.protocol.usb.UsbRequest? req, uint32 op, usize offset, usize length) -> (zx.status s);
+    8: ReqCacheFlush(ddk.protocol.usb.UsbRequest? req, usize offset, usize length) -> (zx.status s);
+    9: ReqCacheFlushInvalidate(ddk.protocol.usb.UsbRequest? req, usize offset, usize length) -> (zx.status s);
+    10: ReqPhysmap(ddk.protocol.usb.UsbRequest? req) -> (zx.status s);
+    11: ReqRelease(ddk.protocol.usb.UsbRequest? req) -> ();
+    12: ReqComplete(ddk.protocol.usb.UsbRequest? req, zx.status status, usize actual) -> ();
+    13: ReqPhysIterInit(ddk.protocol.usb.UsbRequest? req, usize actual, usize max_length)
+            -> (ddk.phys_iter.PhysIter iter);
+    /// Registers the function driver's callback interface.
+    14: RegisterFunc(UsbFunctionInterface intf) -> (zx.status s);
+    /// Allocates a unique interface descriptor number.
+    15: AllocInterface() -> (zx.status s, uint8 intf_num);
+    /// Allocates a unique endpoint descriptor number.
+    /// Direction should be either `USB_DIR_OUT` or `USB_DIR_IN`.
+    16: AllocEp(uint8 direction) -> (zx.status s, uint8 address);
+    /// Configures an endpoint based on the provided usb_endpoint_descriptor_t and
+    /// usb_ss_ep_comp_descriptor_t descriptors.
+    17: ConfigEp(zircon.hw.usb.UsbEndpointDescriptor? ep_desc,
+                 zircon.hw.usb.UsbSsEpCompDescriptor? ss_comp_desc) -> (zx.status s);
+    /// Disables an endpoint. called when the device is no longer configured or an alternate interface
+    /// is selected.
+    18: DisableEp(uint8 ep_addr) -> (zx.status s);
+    /// Adds a string descriptor to the device configuration.
+    19: AllocStringDesc(string @string) -> (zx.status s, uint8 index);
+    /// Helper for queueing a usb request on an endpoint.
+    20: Queue(ddk.protocol.usb.UsbRequest? req) -> ();
+    /// Stalls an endpoint.
+    21: EpSetStall(uint8 ep_address) -> (zx.status s);
+    /// Clears endpoint stall state.
+    22: EpClearStall(uint8 ep_address) -> (zx.status s);
+};
+

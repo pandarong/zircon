@@ -1,0 +1,34 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.usb_hci;
+
+using ddk.protocol.usb;
+using ddk.protocol.usb_bus;
+using zircon.hw.usb;
+using zircon.hw.usb_hub;
+using zx;
+
+[Layout="ddk-protocol"]
+interface UsbHci {
+    1: RequestQueue(ddk.protocol.usb.UsbRequest? usb_request) -> ();
+    2: SetBusInterface(ddk.protocol.usb_bus.UsbBusInterface bus_intf) -> ();
+    3: GetMaxDeviceCount() -> (usize count);
+    /// Enables or disables an endpoint using parameters derived from |ep_desc|.
+    4: EnableEndpoint(uint32 device_id, zircon.hw.usb.UsbEndpointDescriptor? ep_desc,
+                      zircon.hw.usb.UsbSsEpCompDescriptor? ss_com_desc, bool enable) -> (zx.status s);
+
+    /// Returns the current frame (in milliseconds), used for isochronous transfers.
+    5: GetCurrentFrame() -> (uint64 frame);
+
+    /// Hub support.
+    6: ConfigureHub(uint32 device_id, zircon.hw.usb.UsbSpeed speed,
+                    zircon.hw.usb_hub.UsbHubDescriptor descriptor) -> (zx.status s);
+    7: HubDeviceAdded(uint32 device_id, int64 port, zircon.hw.usb.UsbSpeed speed) -> (zx.status s);
+    8: HubDeviceRemoved(uint32 device_id, int64 port) -> (zx.status s);
+    9: ResetEndpoint(uint32 device_id, uint8 ep_address) -> (zx.status s);
+    10: GetMaxTransferSize(uint32 device_id, uint8 ep_address) -> (usize size);
+    11: CancelAll(uint32 device_id, uint8 ep_address) -> (usize size);
+    12: GetBti() -> (handle<bti> bti);
+};

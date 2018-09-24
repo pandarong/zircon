@@ -21,9 +21,9 @@
 
 // The code in this file is only used for testing, the ioctl() is the entry
 // point into this code, called by the nand driver's unit test.
-static void nandtest_complete(nand_op_t* nand_op, zx_status_t status) {
+static void nandtest_complete(void* cookie, zx_status_t status, nand_operation_t* nand_op) {
     nand_op->command = status;
-    sync_completion_signal((sync_completion_t*)nand_op->cookie);
+    sync_completion_signal((sync_completion_t*)cookie);
 }
 
 static zx_status_t nand_test_get_info(nand_device_t* dev, void* reply, size_t max,
@@ -50,7 +50,7 @@ static zx_status_t nand_test_read(nand_device_t* dev, const void* cmd, size_t cm
     nand_info_t nand_info;
     size_t nand_op_size_out;
     nand_io_t nand_io;
-    nand_op_t* nand_op = &nand_io.nand_op;
+    nand_operation_t* nand_op = &nand_io.nand_op;
     nandtest_rw_page_data_oob_t* cmd_read_page;
     nandtest_resp_t resp_hdr;
     zx_handle_t vmo_data;
@@ -98,11 +98,8 @@ static zx_status_t nand_test_read(nand_device_t* dev, const void* cmd, size_t cm
     nand_op->rw.data_vmo = do_data ? vmo_data : ZX_HANDLE_INVALID;
     nand_op->rw.oob_vmo = do_oob ? vmo_oob : ZX_HANDLE_INVALID;
 
-    nand_op->completion_cb = nandtest_complete;
-    nand_op->cookie = &completion;
-
     // Queue the data read op and wait for response.
-    dev->nand_proto.ops->queue(dev, nand_op);
+    dev->nand_proto.ops->queue(dev, nand_op, nandtest_complete, &completion);
     sync_completion_wait(&completion, ZX_TIME_INFINITE);
 
     resp_hdr.status = nand_op->command; // Status stored here by callback.
@@ -123,7 +120,7 @@ static zx_status_t nand_test_write(nand_device_t* dev, const void* cmd, size_t c
     nand_info_t nand_info;
     size_t nand_op_size_out;
     nand_io_t nand_io;
-    nand_op_t* nand_op = &nand_io.nand_op;
+    nand_operation_t* nand_op = &nand_io.nand_op;
     nandtest_rw_page_data_oob_t* cmd_write_page;
     nandtest_resp_t resp_hdr;
     zx_handle_t vmo_data, vmo_oob;
@@ -176,11 +173,8 @@ static zx_status_t nand_test_write(nand_device_t* dev, const void* cmd, size_t c
     nand_op->rw.data_vmo = do_data ? vmo_data : ZX_HANDLE_INVALID;
     nand_op->rw.oob_vmo = do_oob ? vmo_oob : ZX_HANDLE_INVALID;
 
-    nand_op->completion_cb = nandtest_complete;
-    nand_op->cookie = &completion;
-
     // Queue the data read op and wait for response.
-    dev->nand_proto.ops->queue(dev, nand_op);
+    dev->nand_proto.ops->queue(dev, nand_op, nandtest_complete, &completion);
     sync_completion_wait(&completion, ZX_TIME_INFINITE);
 
     resp_hdr.status = nand_op->command; // Status stored here by callback.
@@ -206,7 +200,7 @@ static zx_status_t nand_test_erase_block(nand_device_t* dev, const void* cmd,
     nand_info_t nand_info;
     size_t nand_op_size_out;
     nand_io_t nand_io;
-    nand_op_t* nand_op = &nand_io.nand_op;
+    nand_operation_t* nand_op = &nand_io.nand_op;
     nandtest_cmd_erase_block_t* cmd_erase_block;
     nandtest_resp_t resp_hdr;
 
@@ -228,11 +222,9 @@ static zx_status_t nand_test_erase_block(nand_device_t* dev, const void* cmd,
     nand_op->command = NAND_OP_ERASE;
     nand_op->erase.first_block = cmd_erase_block->nandblock;
     nand_op->erase.num_blocks = 1;
-    nand_op->completion_cb = nandtest_complete;
-    nand_op->cookie = &completion;
 
     // Queue the data read op and wait for response.
-    dev->nand_proto.ops->queue(dev, nand_op);
+    dev->nand_proto.ops->queue(dev, nand_op, nandtest_complete, &completion);
     sync_completion_wait(&completion, ZX_TIME_INFINITE);
 
     resp_hdr.status = nand_op->command; // Status stored here by callback.

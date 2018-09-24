@@ -20,6 +20,7 @@
 #include <fbl/auto_call.h>
 #include <fbl/auto_lock.h>
 #include <hwreg/mmio.h>
+#include <zircon/device/serial.h>
 #include <zircon/threads.h>
 #include <zircon/types.h>
 
@@ -69,7 +70,7 @@ zx_status_t AmlUart::Create(zx_device_t* parent) {
     constexpr uint32_t kDefaultBaudRate = 115200;
     constexpr uint32_t kDefaultConfig =
         SERIAL_DATA_BITS_8 | SERIAL_STOP_BITS_1 | SERIAL_PARITY_NONE;
-    uart->Config(kDefaultBaudRate, kDefaultConfig);
+    uart->SerialImplConfig(kDefaultBaudRate, kDefaultConfig);
 
     status = uart->DdkAdd("aml-uart");
     if (status != ZX_OK) {
@@ -121,12 +122,12 @@ int AmlUart::IrqThread() {
     return 0;
 }
 
-zx_status_t AmlUart::GetInfo(serial_port_info_t* info) {
+zx_status_t AmlUart::SerialImplGetInfo(serial_port_info_t* info) {
     memcpy(info, &serial_port_info_, sizeof(*info));
     return ZX_OK;
 }
 
-zx_status_t AmlUart::Config(uint32_t baud_rate, uint32_t flags) {
+zx_status_t AmlUart::SerialImplConfig(uint32_t baud_rate, uint32_t flags) {
     hwreg::RegisterIo mmio(io_buffer_virt(&mmio_));
 
     // Control register is determined completely by this logic, so start with a clean slate.
@@ -261,7 +262,7 @@ void AmlUart::EnableLocked(bool enable) {
     }
 }
 
-zx_status_t AmlUart::Enable(bool enable) {
+zx_status_t AmlUart::SerialImplEnable(bool enable) {
     fbl::AutoLock al(&enable_lock_);
 
     if (enable && !enabled_) {
@@ -289,7 +290,7 @@ zx_status_t AmlUart::Enable(bool enable) {
     return ZX_OK;
 }
 
-zx_status_t AmlUart::Read(void* buf, size_t length, size_t* out_actual) {
+zx_status_t AmlUart::SerialImplRead(void* buf, size_t length, size_t* out_actual) {
     hwreg::RegisterIo mmio(io_buffer_virt(&mmio_));
 
     auto* bufptr = static_cast<uint8_t*>(buf);
@@ -307,7 +308,7 @@ zx_status_t AmlUart::Read(void* buf, size_t length, size_t* out_actual) {
     return ZX_OK;
 }
 
-zx_status_t AmlUart::Write(const void* buf, size_t length, size_t* out_actual) {
+zx_status_t AmlUart::SerialImplWrite(const void* buf, size_t length, size_t* out_actual) {
     hwreg::RegisterIo mmio(io_buffer_virt(&mmio_));
 
     const auto* bufptr = static_cast<const uint8_t*>(buf);
@@ -324,7 +325,7 @@ zx_status_t AmlUart::Write(const void* buf, size_t length, size_t* out_actual) {
     return ZX_OK;
 }
 
-zx_status_t AmlUart::SetNotifyCallback(serial_notify_cb cb, void* cookie) {
+zx_status_t AmlUart::SerialImplSetNotifyCallback(const serial_notify_t* cb) {
     {
         fbl::AutoLock al(&enable_lock_);
 
@@ -334,7 +335,8 @@ zx_status_t AmlUart::SetNotifyCallback(serial_notify_cb cb, void* cookie) {
         }
 
         fbl::AutoLock al2(&status_lock_);
-        notify_cb_ = [=](uint32_t state) { cb(state, cookie); };
+        serial_notify_t notify_cb = *cb;
+        notify_cb_ = [=](uint32_t state) { notify_cb.callback(notify_cb.ctx, state); };
     }
 
     // This will trigger notifying current state.

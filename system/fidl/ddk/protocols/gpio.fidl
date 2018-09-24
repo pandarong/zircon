@@ -1,0 +1,45 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.gpio;
+
+using zx;
+
+
+/// Flags for `ConfigIn`.
+const uint32 GPIO_PULL_DOWN = 0x0;
+const uint32 GPIO_PULL_UP = 0x10;
+const uint32 GPIO_NO_PULL = 0x20;
+const uint32 GPIO_PULL_MASK = 0x30;
+
+/// Values for `SetPolarity`.
+enum GpioPolarity : uint32 {
+    LOW = 0x0;
+    HIGH = 0x1;
+};
+
+/// In the functions below, the GPIO index is relative to the list of GPIOs for the device.
+/// For example, the list of GPIOs a platform device has access to would likely be a small
+/// subset of the total number of GPIOs, while a platform bus implementation driver would
+/// have access to the complete set of GPIOs.
+[Layout="ddk-protocol"]
+interface Gpio {
+    /// Configures a GPIO for input.
+    1: ConfigIn(uint32 index, uint32 flags) -> (zx.status s);
+    /// Configures a GPIO for output.
+    2: ConfigOut(uint32 index, uint8 initial_value) -> (zx.status s);
+    /// Configures the GPIO pin for an alternate function (I2C, SPI, etc)
+    /// the interpretation of "function" is platform dependent.
+    3: SetAltFunction(uint32 index, uint64 function) -> (zx.status s);
+    /// Reads the current value of a GPIO (0 or 1).
+    4: Read(uint32 index) -> (zx.status s, uint8 value);
+    /// Sets the current value of the GPIO (any non-zero value maps to 1).
+    5: Write(uint32 index, uint8 value) -> (zx.status s);
+    /// Gets an interrupt object pertaining to a particular GPIO pin.
+    6: GetInterrupt(uint32 index, uint32 flags) -> (zx.status s, handle<interrupt> irq);
+    /// Release the interrupt.
+    7: ReleaseInterrupt(uint32 index) -> (zx.status s);
+    /// Set GPIO polarity.
+    8: SetPolarity(uint32 index, GpioPolarity polarity) -> (zx.status s);
+};

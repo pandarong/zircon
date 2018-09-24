@@ -37,7 +37,6 @@ typedef struct {
     io_buffer_t                         mmio_dc;
     io_buffer_t                         fbuffer;
 
-    display_controller_cb_t*            dc_cb;
-    void*                               dc_cb_ctx;
+    display_controller_interface_t      dc_intf;
     list_node_t                         imported_images;
 } imx8m_display_t;

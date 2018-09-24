@@ -15,6 +15,7 @@
 #include <lib/fzl/vmar-manager.h>
 #include <soc/aml-s912/s912-hw.h>
 #include <zircon/compiler.h>
+#include <zircon/device/ethernet.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -484,14 +485,14 @@ void AmlDWMacDevice::EthmacStop() {
     ethmac_proxy_.reset();
 }
 
-zx_status_t AmlDWMacDevice::EthmacStart(fbl::unique_ptr<ddk::EthmacIfcProxy> proxy) {
+zx_status_t AmlDWMacDevice::EthmacStart(const ethmac_ifc_t* ifc) {
     fbl::AutoLock lock(&lock_);
 
     if (ethmac_proxy_ != nullptr) {
         zxlogf(ERROR, "aml_dwmac:  Already bound!!!");
         return ZX_ERR_ALREADY_BOUND;
     } else {
-        ethmac_proxy_ = fbl::move(proxy);
+        ethmac_proxy_ = fbl::make_unique<ddk::EthmacIfcProxy>(ifc);
         UpdateLinkStatus();
         zxlogf(INFO, "aml_dwmac: Started\n");
     }
@@ -599,7 +600,7 @@ zx_status_t AmlDWMacDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* net
         }
     }
 
-    if (netbuf->len > kTxnBufSize) {
+    if (netbuf->data_size > kTxnBufSize) {
         return ZX_ERR_INVALID_ARGS;
     }
     if (tx_descriptors_[curr_tx_buf_].txrx_status & DESC_TXSTS_OWNBYDMA) {
@@ -608,10 +609,10 @@ zx_status_t AmlDWMacDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* net
     }
     uint8_t* temptr = &tx_buffer_[curr_tx_buf_ * kTxnBufSize];
 
-    memcpy(temptr, netbuf->data, netbuf->len);
+    memcpy(temptr, netbuf->data_buffer, netbuf->data_size);
     hw_mb();
 
-    zx_cache_flush(temptr, netbuf->len, ZX_CACHE_FLUSH_DATA);
+    zx_cache_flush(temptr, netbuf->data_size, ZX_CACHE_FLUSH_DATA);
 
     //Descriptors are pre-iniitialized with the paddr of their corresponding
     // buffers, only need to setup the control and status fields.
@@ -620,7 +621,7 @@ zx_status_t AmlDWMacDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* net
         DESC_TXCTRL_TXLAST |
         DESC_TXCTRL_TXFIRST |
         DESC_TXCTRL_TXCHAIN |
-        (netbuf->len & DESC_TXCTRL_SIZE1MASK);
+        ((uint32_t)netbuf->data_size & DESC_TXCTRL_SIZE1MASK);
 
     tx_descriptors_[curr_tx_buf_].txrx_status = DESC_TXSTS_OWNBYDMA;
     curr_tx_buf_ = (curr_tx_buf_ + 1) % kNumDesc;
@@ -631,7 +632,8 @@ zx_status_t AmlDWMacDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* net
     return ZX_OK;
 }
 
-zx_status_t AmlDWMacDevice::EthmacSetParam(uint32_t param, int32_t value, void* data) {
+zx_status_t AmlDWMacDevice::EthmacSetParam(uint32_t param, int32_t value, const void* data,
+                                           size_t data_size) {
     zxlogf(INFO, "SetParam called  %x  %x\n", param, value);
     return ZX_OK;
 }

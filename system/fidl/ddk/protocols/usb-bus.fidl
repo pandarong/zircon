@@ -1,0 +1,33 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.usb_bus;
+
+using ddk.protocol.usb_hub;
+using zircon.hw.usb;
+using zircon.hw.usb_hub;
+using zx;
+
+// TODO: Not need this anymore.
+[repr="C"]
+struct ZxDevice {};
+
+[Layout="ddk-protocol"]
+interface UsbBus {
+    /// Hub support.
+    1: ConfigureHub(ZxDevice? hub_device, zircon.hw.usb.UsbSpeed speed,
+                    zircon.hw.usb_hub.UsbHubDescriptor descriptor) -> (zx.status s);
+    2: HubDeviceAdded(ZxDevice? hub_device, int64 port, zircon.hw.usb.UsbSpeed speed)
+           -> (zx.status s);
+    3: HubDeviceRemoved(ZxDevice? hub_device, int64 port) -> (zx.status s);
+    4: SetHubInterface(ZxDevice? usb_device, ddk.protocol.usb_hub.UsbHub hub) -> (zx.status s);
+};
+
+/// Interface for use by the HCI controller to use to notify when devices are added and removed.
+[Layout="ddk-interface"]
+interface UsbBusInterface {
+    1: AddDevice(uint32 device_id, uint32 hub_id, zircon.hw.usb.UsbSpeed speed) -> (zx.status s);
+    2: RemoveDevice(uint32 device_id) -> ();
+    3: ResetHubPort(uint32 hub_id, uint32 port) -> ();
+};

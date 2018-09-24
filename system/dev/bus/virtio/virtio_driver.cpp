@@ -16,6 +16,7 @@
 #include <fbl/unique_ptr.h>
 
 #include <zircon/compiler.h>
+#include <zircon/pixelformat.h>
 #include <zircon/types.h>
 
 #include "backends/pci.h"
@@ -53,7 +54,7 @@ extern "C" zx_status_t virtio_pci_bind(void* ctx, zx_device_t* bus_device, void*
     // If no vendor capabilities are found then we will default to the legacy
     // interface.
     fbl::unique_ptr<virtio::Backend> backend = nullptr;
-    if (pci_get_first_capability(&pci, kPciCapIdVendor) != 0) {
+    if (pci_get_first_capability(&pci, PCI_CAP_ID_VENDOR) != 0) {
         zxlogf(SPEW, "virtio %02x:%02x.%1x using modern PCI backend\n", info.bus_id, info.dev_id, info.func_id);
         backend.reset(new virtio::PciModernBackend(pci, info));
     } else {

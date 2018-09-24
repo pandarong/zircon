@@ -37,8 +37,8 @@ struct BlockOperationContext {
 
 // Called when all page reads in a block finish. If another block still needs
 // to be read, it queues it up as another operation.
-void ReadCompletionCallback(nand_op_t* op, zx_status_t status) {
-    auto* ctx = static_cast<BlockOperationContext*>(op->cookie);
+void ReadCompletionCallback(void* cookie, zx_status_t status, nand_operation_t* op) {
+    auto* ctx = static_cast<BlockOperationContext*>(cookie);
     if (status != ZX_OK || ctx->current_block + 1 == ctx->op.block + ctx->op.block_count) {
         ctx->status = status;
         ctx->mark_bad = false;
@@ -57,16 +57,16 @@ void ReadCompletionCallback(nand_op_t* op, zx_status_t status) {
 
     op->rw.offset_nand = ctx->physical_block * ctx->nand_info->pages_per_block;
     op->rw.offset_data_vmo += ctx->nand_info->pages_per_block;
-    ctx->nand->Queue(op);
+    ctx->nand->Queue(op, ReadCompletionCallback, cookie);
     return;
 }
 
-void EraseCompletionCallback(nand_op_t* op, zx_status_t status);
+void EraseCompletionCallback(void* cookie, zx_status_t status, nand_operation_t* op);
 
 // Called when all page writes in a block finish. If another block still needs
 // to be written, it queues up an erase.
-void WriteCompletionCallback(nand_op_t* op, zx_status_t status) {
-    auto* ctx = static_cast<BlockOperationContext*>(op->cookie);
+void WriteCompletionCallback(void* cookie, zx_status_t status, nand_operation_t* op) {
+    auto* ctx = static_cast<BlockOperationContext*>(cookie);
 
     if (status != ZX_OK || ctx->current_block + 1 == ctx->op.block + ctx->op.block_count) {
         ctx->status = status;
@@ -87,15 +87,14 @@ void WriteCompletionCallback(nand_op_t* op, zx_status_t status) {
     op->erase.command = NAND_OP_ERASE;
     op->erase.first_block = ctx->physical_block;
     op->erase.num_blocks = 1;
-    op->completion_cb = EraseCompletionCallback;
-    ctx->nand->Queue(op);
+    ctx->nand->Queue(op, EraseCompletionCallback, cookie);
     return;
 }
 
 // Called when a block erase operation finishes. Subsequently queues up writes
 // to the block.
-void EraseCompletionCallback(nand_op_t* op, zx_status_t status) {
-    auto* ctx = static_cast<BlockOperationContext*>(op->cookie);
+void EraseCompletionCallback(void* cookie, zx_status_t status, nand_operation_t* op) {
+    auto* ctx = static_cast<BlockOperationContext*>(cookie);
 
     if (status != ZX_OK) {
         ctx->status = status;
@@ -109,9 +108,8 @@ void EraseCompletionCallback(nand_op_t* op, zx_status_t status) {
     op->rw.length = ctx->nand_info->pages_per_block;
     op->rw.offset_nand = ctx->physical_block * ctx->nand_info->pages_per_block;
     op->rw.offset_data_vmo = ctx->op.vmo_offset;
-    op->rw.pages = nullptr;
-    op->completion_cb = WriteCompletionCallback;
-    ctx->nand->Queue(op);
+    op->rw.page_list = nullptr;
+    ctx->nand->Queue(op, WriteCompletionCallback, cookie);
     return;
 }
 
@@ -167,7 +165,7 @@ zx_status_t SkipBlockDevice::Create(zx_device_t* parent) {
 }
 
 zx_status_t SkipBlockDevice::GetBadBlockList(fbl::Array<uint32_t>* bad_blocks) {
-    uint32_t bad_block_count;
+    size_t bad_block_count;
     zx_status_t status = bad_block_.GetBadBlockList(nullptr, 0, &bad_block_count);
     if (status != ZX_OK) {
         return status;
@@ -176,7 +174,7 @@ zx_status_t SkipBlockDevice::GetBadBlockList(fbl::Array<uint32_t>* bad_blocks) {
         bad_blocks->reset();
         return ZX_OK;
     }
-    const uint32_t bad_block_list_len = bad_block_count;
+    const size_t bad_block_list_len = bad_block_count;
     fbl::unique_ptr<uint32_t[]> bad_block_list(new uint32_t[bad_block_count]);
     status = bad_block_.GetBadBlockList(bad_block_list.get(), bad_block_list_len, &bad_block_count);
     if (status != ZX_OK) {
@@ -194,9 +192,9 @@ zx_status_t SkipBlockDevice::Bind() {
 
     fbl::AutoLock al(&lock_);
 
-    if (sizeof(nand_op_t) > parent_op_size_) {
+    if (sizeof(nand_operation_t) > parent_op_size_) {
         zxlogf(ERROR, "skip-block: parent op size, %zu, is smaller than minimum op size: %zu\n",
-               sizeof(nand_op_t), parent_op_size_);
+               sizeof(nand_operation_t), parent_op_size_);
         return ZX_ERR_INTERNAL;
     }
 
@@ -276,7 +274,7 @@ zx_status_t SkipBlockDevice::Read(const skip_block_rw_operation_t& op) {
         .mark_bad = false,
     };
 
-    auto* nand_op = reinterpret_cast<nand_op_t*>(nand_op_.get());
+    auto* nand_op = reinterpret_cast<nand_operation_t*>(nand_op_.get());
     nand_op->rw.command = NAND_OP_READ;
     nand_op->rw.data_vmo = op.vmo;
     nand_op->rw.oob_vmo = ZX_HANDLE_INVALID;
@@ -284,9 +282,7 @@ zx_status_t SkipBlockDevice::Read(const skip_block_rw_operation_t& op) {
     nand_op->rw.offset_nand = physical_block * nand_info_.pages_per_block;
     nand_op->rw.offset_data_vmo = op.vmo_offset;
     // The read callback will enqueue subsequent reads.
-    nand_op->completion_cb = ReadCompletionCallback;
-    nand_op->cookie = &op_context;
-    nand_.Queue(nand_op);
+    nand_.Queue(nand_op, ReadCompletionCallback, &op_context);
 
     // Wait on completion.
     sync_completion_wait(&completion, ZX_TIME_INFINITE);
@@ -323,14 +319,12 @@ zx_status_t SkipBlockDevice::Write(const skip_block_rw_operation_t& op, bool* ba
                 .mark_bad = false,
             };
 
-            auto* nand_op = reinterpret_cast<nand_op_t*>(nand_op_.get());
+            auto* nand_op = reinterpret_cast<nand_operation_t*>(nand_op_.get());
             nand_op->erase.command = NAND_OP_ERASE;
             nand_op->erase.first_block = physical_block;
             nand_op->erase.num_blocks = 1;
             // The erase callback will enqueue subsequent writes and erases.
-            nand_op->completion_cb = EraseCompletionCallback;
-            nand_op->cookie = &op_context;
-            nand_.Queue(nand_op);
+            nand_.Queue(nand_op, EraseCompletionCallback, &op_context);
 
             // Wait on completion.
             sync_completion_wait(&completion, ZX_TIME_INFINITE);

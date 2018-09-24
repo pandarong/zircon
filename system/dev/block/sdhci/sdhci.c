@@ -29,6 +29,7 @@
 #include <hw/sdmmc.h>
 
 // Zircon Includes
+#include <zircon/process.h>
 #include <zircon/threads.h>
 #include <zircon/assert.h>
 #include <lib/sync/completion.h>
@@ -76,6 +77,7 @@ typedef struct sdhci_device {
     zx_handle_t irq_handle;
     thrd_t irq_thread;
 
+    zx_handle_t regs_handle;
     volatile sdhci_regs_t* regs;
 
     sdhci_protocol_t sdhci;
@@ -146,7 +148,7 @@ static bool sdmmc_cmd_has_data(uint32_t cmd_flags) {
 
 static bool sdhci_supports_adma2_64bit(sdhci_device_t* dev) {
     return (dev->info.caps & SDMMC_HOST_CAP_ADMA2) &&
-           (dev->info.caps & SDMMC_HOST_CAP_64BIT) &&
+           (dev->info.caps & SDMMC_HOST_CAP_SIXTY_FOUR_BIT) &&
            !(dev->quirks & SDHCI_QUIRK_NO_DMA);
 }
 
@@ -281,7 +283,7 @@ static void sdhci_data_stage_read_ready_locked(sdhci_device_t* dev) {
         // Sequentially read each block.
         for (size_t byteid = 0; byteid < req->blocksize; byteid += 4) {
             const size_t offset = dev->data_blockid * req->blocksize + byteid;
-            uint32_t* wrd = req->virt + offset;
+            uint32_t* wrd = req->virt_buffer + offset;
             *wrd = dev->regs->data;
         }
         dev->data_blockid += 1;
@@ -301,7 +303,7 @@ static void sdhci_data_stage_write_ready_locked(sdhci_device_t* dev) {
     // Sequentially write each block.
     for (size_t byteid = 0; byteid < req->blocksize; byteid += 4) {
         const size_t offset = dev->data_blockid * req->blocksize + byteid;
-        uint32_t* wrd = req->virt + offset;
+        uint32_t* wrd = req->virt_buffer + offset;
         dev->regs->data = *wrd;
     }
     dev->data_blockid += 1;
@@ -614,7 +616,7 @@ static zx_status_t sdhci_set_signal_voltage(void* ctx, sdmmc_voltage_t voltage) 
     mtx_lock(&dev->mtx);
 
     // Validate the controller supports the requested voltage
-    if ((voltage == SDMMC_VOLTAGE_330) && !(dev->info.caps & SDMMC_HOST_CAP_VOLTAGE_330)) {
+    if ((voltage == SDMMC_VOLTAGE_V330) && !(dev->info.caps & SDMMC_HOST_CAP_VOLTAGE_330)) {
         zxlogf(TRACE, "sdhci: 3.3V signal voltage not supported\n");
         st = ZX_ERR_NOT_SUPPORTED;
         goto unlock;
@@ -625,7 +627,7 @@ static zx_status_t sdhci_set_signal_voltage(void* ctx, sdmmc_voltage_t voltage) 
     zx_nanosleep(zx_deadline_after(ZX_MSEC(2)));
 
     switch (voltage) {
-    case SDMMC_VOLTAGE_180: {
+    case SDMMC_VOLTAGE_V180: {
         regs->ctrl2 |= SDHCI_HOSTCTRL2_1P8V_SIGNALLING_ENA;
         // 1.8V regulator out should be stable within 5ms
         zx_nanosleep(zx_deadline_after(ZX_MSEC(5)));
@@ -638,7 +640,7 @@ static zx_status_t sdhci_set_signal_voltage(void* ctx, sdmmc_voltage_t voltage) 
         }
         break;
     }
-    case SDMMC_VOLTAGE_330: {
+    case SDMMC_VOLTAGE_V330: {
         regs->ctrl2 &= ~SDHCI_HOSTCTRL2_1P8V_SIGNALLING_ENA;
         // 3.3V regulator out should be stable within 5ms
         zx_nanosleep(zx_deadline_after(ZX_MSEC(5)));
@@ -658,10 +660,10 @@ static zx_status_t sdhci_set_signal_voltage(void* ctx, sdmmc_voltage_t voltage) 
     // Make sure our changes are acknolwedged.
     uint32_t expected_mask = SDHCI_PWRCTRL_SD_BUS_POWER;
     switch (voltage) {
-    case SDMMC_VOLTAGE_180:
+    case SDMMC_VOLTAGE_V180:
         expected_mask |= SDHCI_PWRCTRL_SD_BUS_VOLTAGE_1P8V;
         break;
-    case SDMMC_VOLTAGE_330:
+    case SDMMC_VOLTAGE_V330:
         expected_mask |= SDHCI_PWRCTRL_SD_BUS_VOLTAGE_3P3V;
         break;
     default:
@@ -685,7 +687,7 @@ unlock:
     return st;
 }
 
-static zx_status_t sdhci_set_bus_width(void* ctx, uint32_t bus_width) {
+static zx_status_t sdhci_set_bus_width(void* ctx, sdmmc_bus_width_t bus_width) {
     if (bus_width >= SDMMC_BUS_WIDTH_MAX) {
         return ZX_ERR_INVALID_ARGS;
     }
@@ -695,22 +697,22 @@ static zx_status_t sdhci_set_bus_width(void* ctx, uint32_t bus_width) {
 
     mtx_lock(&dev->mtx);
 
-    if ((bus_width == SDMMC_BUS_WIDTH_8) && !(dev->info.caps & SDMMC_HOST_CAP_BUS_WIDTH_8)) {
+    if ((bus_width == SDMMC_BUS_WIDTH_EIGHT) && !(dev->info.caps & SDMMC_HOST_CAP_BUS_WIDTH_8)) {
         zxlogf(TRACE, "sdhci: 8-bit bus width not supported\n");
         st =  ZX_ERR_NOT_SUPPORTED;
         goto unlock;
     }
 
     switch (bus_width) {
-    case SDMMC_BUS_WIDTH_1:
+    case SDMMC_BUS_WIDTH_ONE:
         dev->regs->ctrl0 &= ~SDHCI_HOSTCTRL_EXT_DATA_WIDTH;
         dev->regs->ctrl0 &= ~SDHCI_HOSTCTRL_FOUR_BIT_BUS_WIDTH;
         break;
-    case SDMMC_BUS_WIDTH_4:
+    case SDMMC_BUS_WIDTH_FOUR:
         dev->regs->ctrl0 &= ~SDHCI_HOSTCTRL_EXT_DATA_WIDTH;
         dev->regs->ctrl0 |= SDHCI_HOSTCTRL_FOUR_BIT_BUS_WIDTH;
         break;
-    case SDMMC_BUS_WIDTH_8:
+    case SDMMC_BUS_WIDTH_EIGHT:
         dev->regs->ctrl0 |= SDHCI_HOSTCTRL_EXT_DATA_WIDTH;
         break;
     default:
@@ -808,11 +810,11 @@ static zx_status_t sdhci_set_timing(void* ctx, sdmmc_timing_t timing) {
     return st;
 }
 
-static void sdhci_hw_reset(void* ctx) {
+static void sdhci_hw_reset2(void* ctx) {
     sdhci_device_t* dev = ctx;
     mtx_lock(&dev->mtx);
     if (dev->sdhci.ops->hw_reset) {
-        dev->sdhci.ops->hw_reset(dev->sdhci.ctx);
+        sdhci_hw_reset(&dev->sdhci);
     }
     mtx_unlock(&dev->mtx);
 }
@@ -902,7 +904,7 @@ static sdmmc_protocol_ops_t sdmmc_proto = {
     .set_bus_width = sdhci_set_bus_width,
     .set_bus_freq = sdhci_set_bus_freq,
     .set_timing = sdhci_set_timing,
-    .hw_reset = sdhci_hw_reset,
+    .hw_reset = sdhci_hw_reset2,
     .perform_tuning = sdhci_perform_tuning,
     .request = sdhci_request,
 };
@@ -919,6 +921,8 @@ static void sdhci_unbind(void* ctx) {
 
 static void sdhci_release(void* ctx) {
     sdhci_device_t* dev = ctx;
+    zx_vmar_unmap(zx_vmar_root_self(), (uintptr_t)dev->regs, sizeof(dev->regs));
+    zx_handle_close(dev->regs_handle);
     zx_handle_close(dev->irq_handle);
     zx_handle_close(dev->bti_handle);
     zx_handle_close(dev->iobuf.vmo_handle);
@@ -1053,12 +1057,18 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
     }
 
     // Map the Device Registers so that we can perform MMIO against the device.
-    status = dev->sdhci.ops->get_mmio(dev->sdhci.ctx, &dev->regs);
+    status = dev->sdhci.ops->get_mmio(dev->sdhci.ctx, &dev->regs_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "sdhci: error %d in get_mmio\n", status);
         goto fail;
     }
-
+    status = zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0,
+                         dev->regs_handle, 0, ROUNDUP(sizeof(dev->regs), PAGE_SIZE),
+                         (uintptr_t*)&dev->regs);
+    if (status != ZX_OK) {
+        zxlogf(ERROR, "sdhci: error %d in zx_vmar_map\n", status);
+        goto fail;
+    }
     status = dev->sdhci.ops->get_bti(dev->sdhci.ctx, 0, &dev->bti_handle);
     if (status != ZX_OK) {
         zxlogf(ERROR, "sdhci: error %d in get_bti\n", status);
@@ -1108,7 +1118,7 @@ static zx_status_t sdhci_bind(void* ctx, zx_device_t* parent) {
         dev->info.caps |= SDMMC_HOST_CAP_ADMA2;
     }
     if (caps0 & SDHCI_CORECFG_64BIT_SUPPORT) {
-        dev->info.caps |= SDMMC_HOST_CAP_64BIT;
+        dev->info.caps |= SDMMC_HOST_CAP_SIXTY_FOUR_BIT;
     }
     if (caps0 & SDHCI_CORECFG_3P3_VOLT_SUPPORT) {
         dev->info.caps |= SDMMC_HOST_CAP_VOLTAGE_330;

@@ -9,6 +9,7 @@
 #include <fbl/type_support.h>
 #include <pretty/hexdump.h>
 #include <zircon/compiler.h>
+#include <zircon/device/ethernet.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -124,13 +125,13 @@ void TapDevice::EthmacStop() {
     ethmac_proxy_.reset();
 }
 
-zx_status_t TapDevice::EthmacStart(fbl::unique_ptr<ddk::EthmacIfcProxy> proxy) {
+zx_status_t TapDevice::EthmacStart(const ethmac_ifc_t* ifc) {
     ethertap_trace("EthmacStart\n");
     fbl::AutoLock lock(&lock_);
     if (ethmac_proxy_ != nullptr) {
         return ZX_ERR_ALREADY_BOUND;
     } else {
-        ethmac_proxy_.swap(proxy);
+        ethmac_proxy_ = fbl::make_unique<ddk::EthmacIfcProxy>(ifc);
         ethmac_proxy_->Status(online_ ? ETH_STATUS_ONLINE : 0u);
     }
     return ZX_OK;
@@ -144,9 +145,9 @@ zx_status_t TapDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* netbuf) 
     uint8_t temp_buf[ETHERTAP_MAX_MTU + sizeof(ethertap_socket_header_t)];
     auto header = reinterpret_cast<ethertap_socket_header*>(temp_buf);
     uint8_t* data = temp_buf + sizeof(ethertap_socket_header_t);
-    size_t length = netbuf->len;
+    size_t length = netbuf->data_size;
     ZX_DEBUG_ASSERT(length <= mtu_);
-    memcpy(data, netbuf->data, length);
+    memcpy(data, netbuf->data_buffer, length);
     header->type = ETHERTAP_MSG_PACKET;
 
     if (unlikely(options_ & ETHERTAP_OPT_TRACE_PACKETS)) {
@@ -162,7 +163,8 @@ zx_status_t TapDevice::EthmacQueueTx(uint32_t options, ethmac_netbuf_t* netbuf) 
     return status == ZX_ERR_SHOULD_WAIT ? ZX_ERR_UNAVAILABLE : status;
 }
 
-zx_status_t TapDevice::EthmacSetParam(uint32_t param, int32_t value, void* data) {
+zx_status_t TapDevice::EthmacSetParam(uint32_t param, int32_t value, const void* data,
+                                      size_t data_size) {
     fbl::AutoLock lock(&lock_);
     if (!(options_ & ETHERTAP_OPT_REPORT_PARAM) || dead_) {
         return ZX_ERR_NOT_SUPPORTED;
@@ -185,7 +187,7 @@ zx_status_t TapDevice::EthmacSetParam(uint32_t param, int32_t value, void* data)
         // Send the final byte of each address, sorted lowest-to-highest.
         uint32_t i;
         for (i = 0; i < static_cast<uint32_t>(value) && i < sizeof(send_buf.report.data); i++) {
-            send_buf.report.data[i] = static_cast<uint8_t*>(data)[i * ETH_MAC_SIZE + 5];
+            send_buf.report.data[i] = static_cast<const uint8_t*>(data)[i * ETH_MAC_SIZE + 5];
         }
         send_buf.report.data_length = i;
         qsort(send_buf.report.data, send_buf.report.data_length, 1,

@@ -12,6 +12,7 @@
 
 #include <ddktl/device.h>
 #include <ddktl/protocol/display-controller.h>
+#include <ddktl/protocol/empty-protocol.h>
 #include <fbl/unique_ptr.h>
 #include <lib/zx/vmo.h>
 
@@ -19,7 +20,8 @@ class SimpleDisplay;
 using DeviceType = ddk::Device<SimpleDisplay, ddk::Unbindable>;
 
 class SimpleDisplay : public DeviceType,
-                      public ddk::DisplayControllerProtocol<SimpleDisplay> {
+                      public ddk::DisplayControllerProtocol<SimpleDisplay>,
+                      public ddk::EmptyProtocol<ZX_PROTOCOL_DISPLAY_CONTROLLER_IMPL> {
 public:
     SimpleDisplay(zx_device_t* parent, zx_handle_t vmo,
                   uintptr_t framebuffer, uint64_t framebuffer_size,
@@ -31,15 +33,16 @@ public:
     void DdkRelease();
     zx_status_t Bind(const char* name, fbl::unique_ptr<SimpleDisplay>* controller_ptr);
 
-    void SetDisplayControllerCb(void* cb_ctx, display_controller_cb_t* cb);
-    zx_status_t ImportVmoImage(image_t* image, const zx::vmo& vmo, size_t offset);
-    void ReleaseImage(image_t* image);
-    void CheckConfiguration(const display_config_t** display_config,
-                            uint32_t* display_cfg_result, uint32_t** layer_cfg_result,
-                            uint32_t display_count);
-    void ApplyConfiguration(const display_config_t** display_config, uint32_t display_count);
-    uint32_t ComputeLinearStride(uint32_t width, zx_pixel_format_t format);
-    zx_status_t AllocateVmo(uint64_t size, zx_handle_t* vmo_out);
+    void DisplayControllerSetDisplayControllerInterface(const display_controller_interface_t* intf);
+    zx_status_t DisplayControllerImportVmoImage(image_t* image, zx_handle_t vmo, size_t offset);
+    void DisplayControllerReleaseImage(image_t* image);
+    uint32_t DisplayControllerCheckConfiguration(const display_config_t** display_configs,
+                                                 size_t display_count, uint32_t** layer_cfg_results,
+                                                 size_t* layer_cfg_result_count);
+    void DisplayControllerApplyConfiguration(const display_config_t** display_config,
+                                             size_t display_count);
+    uint32_t DisplayControllerComputeLinearStride(uint32_t width, zx_pixel_format_t format);
+    zx_status_t DisplayControllerAllocateVmo(uint64_t size, zx_handle_t* vmo_out);
 
 private:
     zx::vmo framebuffer_handle_;
@@ -52,8 +55,7 @@ private:
     uint32_t stride_;
     zx_pixel_format_t format_;
 
-    display_controller_cb_t* cb_;
-    void* cb_ctx_;
+    ddk::DisplayControllerInterfaceProxy intf_;
 };
 
 #endif // __cplusplus

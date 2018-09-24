@@ -90,43 +90,43 @@ static inline zx_status_t hid_op_query(hid_device_t* hid, uint32_t options, hid_
     return hid->hid.ops->query(hid->hid.ctx, options, info);
 }
 
-static inline zx_status_t hid_op_start(hid_device_t* hid, hidbus_ifc_t* ifc, void* cookie) {
-    return hid->hid.ops->start(hid->hid.ctx, ifc, cookie);
+static inline zx_status_t hid_op_start(hid_device_t* hid, const hidbus_ifc_t* ifc) {
+    return hidbus_start(&hid->hid, ifc);
 }
 
 static inline void hid_op_stop(hid_device_t* hid) {
-    hid->hid.ops->stop(hid->hid.ctx);
+    hidbus_stop(&hid->hid);
 }
 
 static inline zx_status_t hid_op_get_descriptor(hid_device_t* hid, uint8_t desc_type,
                                                 void** data, size_t* len) {
-    return hid->hid.ops->get_descriptor(hid->hid.ctx, desc_type, data, len);
+    return hidbus_get_descriptor(&hid->hid, desc_type, data, len);
 }
 
 static inline zx_status_t hid_op_get_report(hid_device_t* hid, uint8_t rpt_type, uint8_t rpt_id,
                                             void* data, size_t len, size_t* out_len) {
-    return hid->hid.ops->get_report(hid->hid.ctx, rpt_type, rpt_id, data, len, out_len);
+    return hidbus_get_report(&hid->hid, rpt_type, rpt_id, data, len, out_len);
 }
 
 static inline zx_status_t hid_op_set_report(hid_device_t* hid, uint8_t rpt_type, uint8_t rpt_id,
                                             void* data, size_t len) {
-    return hid->hid.ops->set_report(hid->hid.ctx, rpt_type, rpt_id, data, len);
+    return hidbus_set_report(&hid->hid, rpt_type, rpt_id, data, len);
 }
 
 static inline zx_status_t hid_op_get_idle(hid_device_t* hid, uint8_t rpt_id, uint8_t* duration) {
-    return hid->hid.ops->get_idle(hid->hid.ctx, rpt_id, duration);
+    return hidbus_get_idle(&hid->hid, rpt_id, duration);
 }
 
 static inline zx_status_t hid_op_set_idle(hid_device_t* hid, uint8_t rpt_id, uint8_t duration) {
-    return hid->hid.ops->set_idle(hid->hid.ctx, rpt_id, duration);
+    return hidbus_set_idle(&hid->hid, rpt_id, duration);
 }
 
 static inline zx_status_t hid_op_get_protocol(hid_device_t* hid, uint8_t* protocol) {
-    return hid->hid.ops->get_protocol(hid->hid.ctx, protocol);
+    return hidbus_get_protocol(&hid->hid, protocol);
 }
 
 static inline zx_status_t hid_op_set_protocol(hid_device_t* hid, uint8_t protocol) {
-    return hid->hid.ops->set_protocol(hid->hid.ctx, protocol);
+    return hidbus_set_protocol(&hid->hid, protocol);
 }
 
 
@@ -155,9 +155,10 @@ static zx_status_t hid_get_protocol(hid_device_t* hid, void* out_buf, size_t out
 
     int* reply = out_buf;
     *reply = INPUT_PROTO_NONE;
-    if (hid->info.dev_class == HID_DEV_CLASS_KBD || hid->info.dev_class == HID_DEV_CLASS_KBD_POINTER) {
+    if (hid->info.device_class == HID_DEVICE_CLASS_KBD ||
+        hid->info.device_class == HID_DEVICE_CLASS_KBD_POINTER) {
         *reply = INPUT_PROTO_KBD;
-    } else if (hid->info.dev_class == HID_DEV_CLASS_POINTER) {
+    } else if (hid->info.device_class == HID_DEVICE_CLASS_POINTER) {
         *reply = INPUT_PROTO_MOUSE;
     }
     *out_actual = sizeof(*reply);
@@ -586,7 +587,7 @@ done:
 #if BOOT_MOUSE_HACK
         // Ignore the HID report descriptor from the device, since we're putting
         // the device into boot protocol mode.
-        if (dev->info.dev_class == HID_DEV_CLASS_POINTER) {
+        if (dev->info.device_class == HID_DEVICE_CLASS_POINTER) {
             if (dev->info.boot_device) {
                 zxlogf(INFO, "hid: boot mouse hack for \"%s\":  "
                        "report count (%zu->1), "
@@ -729,7 +730,8 @@ zx_protocol_device_t hid_device_proto = {
     .release = hid_release_device,
 };
 
-void hid_io_queue(void* cookie, const uint8_t* buf, size_t len) {
+void hid_io_queue(void* cookie, const void* _buf, size_t len) {
+    const uint8_t* buf = _buf;
     hid_device_t* hid = cookie;
 
     mtx_lock(&hid->instance_lock);
@@ -825,7 +827,7 @@ void hid_io_queue(void* cookie, const uint8_t* buf, size_t len) {
     mtx_unlock(&hid->instance_lock);
 }
 
-hidbus_ifc_t hid_ifc = {
+hidbus_ifc_ops_t hid_ifc_ops = {
     .io_queue = hid_io_queue,
 };
 
@@ -861,14 +863,14 @@ static zx_status_t hid_bind(void* ctx, zx_device_t* parent) {
         }
 
         // Disable numlock
-        if (hiddev->info.dev_class == HID_DEV_CLASS_KBD) {
+        if (hiddev->info.device_class == HID_DEVICE_CLASS_KBD) {
             uint8_t zero = 0;
             hid_op_set_report(hiddev, HID_REPORT_TYPE_OUTPUT, 0, &zero, sizeof(zero));
             // ignore failure for now
         }
     }
 
-    status = hid_op_get_descriptor(hiddev, HID_DESC_TYPE_REPORT,
+    status = hid_op_get_descriptor(hiddev, HID_DESCRIPTION_TYPE_REPORT,
             (void**)&hiddev->hid_report_desc, &hiddev->hid_report_desc_len);
     if (status != ZX_OK) {
         zxlogf(ERROR, "hid: could not retrieve HID report descriptor: %d\n", status);
@@ -903,7 +905,7 @@ static zx_status_t hid_bind(void* ctx, zx_device_t* parent) {
     }
 
     // TODO: delay calling start until we've been opened by someone
-    status = hid_op_start(hiddev, &hid_ifc, hiddev);
+    status = hid_op_start(hiddev, &(hidbus_ifc_t){&hid_ifc_ops, hiddev});
     if (status != ZX_OK) {
         zxlogf(ERROR, "hid: could not start hid device: %d\n", status);
         device_remove(hiddev->zxdev);

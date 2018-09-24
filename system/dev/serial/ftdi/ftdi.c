@@ -9,6 +9,7 @@
 #include <ddk/protocol/serial-impl.h>
 #include <ddk/protocol/usb.h>
 #include <ddk/usb/usb.h>
+#include <zircon/device/serial.h>
 #include <zircon/listnode.h>
 #include <zircon/hw/usb.h>
 
@@ -45,8 +46,7 @@ typedef struct {
     serial_port_info_t serial_port_info;
     serial_impl_protocol_t serial;
 
-    serial_notify_cb notify_cb;
-    void* notify_cb_cookie;
+    serial_notify_t notify_cb;
     bool enabled;
     uint32_t state;
     // pool of free USB requests
@@ -68,8 +68,8 @@ static uint32_t ftdi_check_state(ftdi_t* ftdi) {
 
     if (state != ftdi->state) {
         ftdi->state = state;
-        if (ftdi->notify_cb) {
-            ftdi->notify_cb(state, ftdi->notify_cb_cookie);
+        if (ftdi->notify_cb.callback) {
+            ftdi->notify_cb.callback(ftdi->notify_cb.ctx, state);
         }
     }
     return state;
@@ -278,15 +278,14 @@ static zx_status_t ftdi_serial_enable(void* ctx, bool enable) {
     return ZX_OK;
 }
 
-static zx_status_t ftdi_set_notify_callback(void* ctx, serial_notify_cb cb, void* cookie) {
+static zx_status_t ftdi_set_notify_callback(void* ctx, const serial_notify_t* cb) {
     ftdi_t* ftdi = ctx;
 
     if (ftdi->enabled) {
         return ZX_ERR_BAD_STATE;
     }
 
-    ftdi->notify_cb = cb;
-    ftdi->notify_cb_cookie = cookie;
+    ftdi->notify_cb = *cb;
 
     mtx_lock(&ftdi->mutex);
     ftdi_check_state(ftdi);
@@ -295,7 +294,7 @@ static zx_status_t ftdi_set_notify_callback(void* ctx, serial_notify_cb cb, void
     return ZX_OK;
 }
 
-static serial_impl_ops_t ftdi_serial_ops = {
+static serial_impl_protocol_ops_t ftdi_serial_ops = {
     .get_info = ftdi_serial_get_info,
     .config = ftdi_serial_config,
     .enable = ftdi_serial_enable,

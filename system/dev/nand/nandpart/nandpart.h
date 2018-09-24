@@ -25,7 +25,7 @@ using DeviceType = ddk::Device<NandPartDevice, ddk::GetSizable, ddk::GetProtocol
 
 class NandPartDevice : public DeviceType,
                        public ddk::NandProtocol<NandPartDevice>,
-                       public ddk::BadBlockable<NandPartDevice> {
+                       public ddk::BadBlockProtocol<NandPartDevice> {
 public:
     // Spawns device nodes based on parent node.
     static zx_status_t Create(zx_device_t* parent);
@@ -43,15 +43,15 @@ public:
     void DdkRelease() { delete this; }
 
     // nand protocol implementation.
-    void Query(nand_info_t* info_out, size_t* nand_op_size_out);
-    void Queue(nand_op_t* op);
-    zx_status_t GetFactoryBadBlockList(uint32_t* bad_blocks, uint32_t bad_block_len,
-                                       uint32_t* num_bad_blocks);
+    void NandQuery(nand_info_t* info_out, size_t* nand_op_size_out);
+    void NandQueue(nand_operation_t* op, nand_queue_callback completion_cb, void* cookie);
+    zx_status_t NandGetFactoryBadBlockList(uint32_t* bad_blocks, size_t bad_block_len,
+                                           size_t* num_bad_blocks);
 
     // Bad block protocol implementation.
-    zx_status_t GetBadBlockList(uint32_t* bad_block_list, uint32_t bad_block_list_len,
-                                uint32_t* bad_block_count);
-    zx_status_t MarkBlockBad(uint32_t block);
+    zx_status_t BadBlockGetBadBlockList(uint32_t* bad_block_list, size_t bad_block_list_len,
+                                size_t* bad_block_count);
+    zx_status_t BadBlockMarkBlockBad(uint32_t block);
 
 private:
     explicit NandPartDevice(zx_device_t* parent, const nand_protocol_t& nand_proto,

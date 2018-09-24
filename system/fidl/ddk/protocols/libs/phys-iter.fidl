@@ -1,0 +1,35 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.phys_iter;
+
+using zx;
+
+/// Specifies the buffer to iterate over.
+[repr="C"]
+struct PhysIterBuffer {
+    /// List of physical addresses backing the buffer starting at vmo_offset.
+    zx.paddr? phys;
+    /// Number of entries in phys list.
+    uint64 phys_count;
+    /// Length of the buffer starting at vmo_offset.
+    usize length;
+    /// Offset into first page to start iterating on.
+    uint64 vmo_offset;
+};
+
+/// Used to iterate over contiguous buffer ranges in the physical address space.
+[repr="C"]
+struct PhysIter {
+    PhysIterBuffer buf;
+
+    /// Current offset in the txn (relative to buffer vmo_offset)
+    zx.off     offset;
+    /// Max length to be returned by phys_iter_next()
+    usize      max_length;
+    /// index of page in buf->phys that contains offset
+    uint64     page;
+    /// last valid page index in buf->phys
+    uint64     last_page;
+};

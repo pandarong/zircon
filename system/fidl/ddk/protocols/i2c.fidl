@@ -1,0 +1,25 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.i2c;
+
+using zx;
+
+const uint32 I2C_10_BIT_ADDR_MASK = 0xF000;
+
+[Layout="ddk-protocol"]
+interface I2c {
+    /// Writes and reads data on an i2c channel. If both write_length and read_length
+    /// are greater than zero, this call will perform a write operation immediately followed
+    /// by a read operation with no other traffic occuring on the bus in between.
+    /// If read_length is zero, then i2c_transact will only perform a write operation,
+    /// and if write_length is zero, then it will only perform a read operation.
+    /// The results of the operation are returned asynchronously via the complete_cb.
+    /// The cookie parameter can be used to pass your own private data to the complete_cb callback.
+    [Async]
+    1: Transact(uint32 index, vector<void> write, usize read_length) -> (zx.status status,
+                                                                         vector<void> read);
+    /// Returns the maximum transfer size for read and write operations on the channel.
+    2: GetMaxTransferSize(uint32 index) -> (zx.status s, usize size);
+};

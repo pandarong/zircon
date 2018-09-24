@@ -252,7 +252,7 @@ void Controller::HandleHotplug(registers::Ddi ddi, bool long_pulse) {
         }
     }
 
-    if (dc_cb_ && (added_device || display_removed != INVALID_DISPLAY_ID)) {
+    if (dc_intf_.is_valid() && (added_device || display_removed != INVALID_DISPLAY_ID)) {
         CallOnDisplaysChanged(&added_device, added_device != nullptr ? 1 : 0,
                              &display_removed, display_removed != INVALID_DISPLAY_ID);
     }
@@ -261,7 +261,7 @@ void Controller::HandleHotplug(registers::Ddi ddi, bool long_pulse) {
 void Controller::HandlePipeVsync(registers::Pipe pipe, zx_time_t timestamp) {
     fbl::AutoLock lock(&display_lock_);
 
-    if (!dc_cb_) {
+    if (!dc_intf_.is_valid()) {
         return;
     }
 
@@ -291,7 +291,7 @@ void Controller::HandlePipeVsync(registers::Pipe pipe, zx_time_t timestamp) {
     }
 
     if (id != INVALID_DISPLAY_ID && handle_count) {
-        dc_cb_->on_display_vsync(dc_cb_ctx_, id, timestamp, handles, handle_count);
+        dc_intf_.OnDisplayVsync(id, timestamp, handles, handle_count);
     }
 }
 
@@ -768,9 +768,11 @@ zx_status_t Controller::AddDisplay(fbl::unique_ptr<DisplayDevice>&& display) {
     return ZX_OK;
 }
 
-void Controller::CallOnDisplaysChanged(DisplayDevice** added, uint32_t added_count,
-                                       uint64_t* removed, uint32_t removed_count) {
+void Controller::CallOnDisplaysChanged(DisplayDevice** added, size_t added_count,
+                                       uint64_t* removed, size_t removed_count) {
     added_display_args_t added_args[added_count];
+    added_display_info_t added_info[added_count];
+    size_t added_actual;
     for (unsigned i = 0; i < added_count; i++) {
         added_args[i].display_id = added[i]->id();
         added_args[i].edid_present = true;
@@ -780,18 +782,21 @@ void Controller::CallOnDisplaysChanged(DisplayDevice** added, uint32_t added_cou
         added_args[i].cursor_infos = cursor_infos;
         added_args[i].cursor_info_count = static_cast<uint32_t>(fbl::count_of(cursor_infos));
     }
-    dc_cb_->on_displays_changed(dc_cb_ctx_, added_args, added_count, removed, removed_count);
-    for (unsigned i = 0; i < added_count; i++) {
-        added[i]->set_is_hdmi(added_args[i].is_hdmi_out);
+    dc_intf_->OnDisplayChanged(added_args, added_count, removed, removed_count,
+                                added_info, added_count, &added_actual);
+    ZX_DEBUG_ASSERT(added_count == added_actual);
+    for (unsigned i = 0; i < added_actual; i++) {
+        added[i]->set_is_hdmi(added_info[i].is_hdmi_out);
     }
 }
 
 // DisplayController methods
 
-void Controller::SetDisplayControllerCb(void* cb_ctx, display_controller_cb_t* cb) {
+void Controller::DisplayControllerSetDisplayControllerInterface(
+    const display_controller_interface_t* intf) {
+
     fbl::AutoLock lock(&display_lock_);
-    dc_cb_ctx_ = cb_ctx;
-    dc_cb_ = cb;
+    dc_intf_ = ddk::DisplayControllerInterfaceProxy(intf);
 
     if (ready_for_callback_ && display_devices_.size()) {
         DisplayDevice* added_displays[registers::kDdiCount];
@@ -803,7 +808,8 @@ void Controller::SetDisplayControllerCb(void* cb_ctx, display_controller_cb_t* c
     }
 }
 
-zx_status_t Controller::ImportVmoImage(image_t* image, const zx::vmo& vmo, size_t offset) {
+zx_status_t Controller::DisplayControllerImportVmoImage(image_t* image, zx_handle_t vmo,
+                                                        size_t offset) {
     if (!(image->type == IMAGE_TYPE_SIMPLE || image->type == IMAGE_TYPE_X_TILED
                 || image->type == IMAGE_TYPE_Y_LEGACY_TILED
                 || image->type == IMAGE_TYPE_YF_TILED)) {
@@ -848,7 +854,7 @@ zx_status_t Controller::ImportVmoImage(image_t* image, const zx::vmo& vmo, size_
         gtt_region = fbl::move(alt_gtt_region);
     }
 
-    status = gtt_region->PopulateRegion(vmo.get(), offset / PAGE_SIZE, length);
+    status = gtt_region->PopulateRegion(vmo, offset / PAGE_SIZE, length);
     if (status != ZX_OK) {
         return status;
     }
@@ -858,7 +864,7 @@ zx_status_t Controller::ImportVmoImage(image_t* image, const zx::vmo& vmo, size_
     return ZX_OK;
 }
 
-void Controller::ReleaseImage(image_t* image) {
+void Controller::DisplayControllerReleaseImage(image_t* image) {
     fbl::AutoLock lock(&gtt_lock_);
     for (unsigned i = 0; i < imported_images_.size(); i++) {
         if (imported_images_[i]->base() == reinterpret_cast<uint64_t>(image->handle)) {
@@ -868,7 +874,7 @@ void Controller::ReleaseImage(image_t* image) {
     }
 }
 
-const fbl::unique_ptr<GttRegion>& Controller::GetGttRegion(void* handle) {
+const fbl::unique_ptr<GttRegion>& Controller::DisplayControllerGetGttRegion(void* handle) {
     fbl::AutoLock lock(&gtt_lock_);
     for (auto& region : imported_images_) {
         if (region->base() == reinterpret_cast<uint64_t>(handle)) {
@@ -1314,29 +1320,26 @@ bool Controller::CheckDisplayLimits(const display_config_t** display_configs,
     return true;
 }
 
-void Controller::CheckConfiguration(const display_config_t** display_config,
-                                    uint32_t* display_cfg_result, uint32_t** layer_cfg_result,
-                                    uint32_t display_count) {
+uint32_t Controller::DisplayControllerCheckConfiguration(const display_config_t** display_config,
+                                                         size_t display_count,
+                                                         uint32_t** layer_cfg_result,
+                                                         size_t* layer_cfg_result_count) {
     fbl::AutoLock lock(&display_lock_);
 
     if (display_count == 0) {
         // All displays off is supported
-        *display_cfg_result = CONFIG_DISPLAY_OK;
-        return;
+        return CONFIG_DISPLAY_OK;
     }
 
     uint64_t pipe_alloc[registers::kPipeCount];
     if (!CalculatePipeAllocation(display_config, display_count, pipe_alloc)) {
-        *display_cfg_result = CONFIG_DISPLAY_TOO_MANY;
-        return;
+        return CONFIG_DISPLAY_TOO_MANY;
     }
 
     if (!CheckDisplayLimits(display_config, display_count, layer_cfg_result)) {
-        *display_cfg_result = CONFIG_DISPLAY_UNSUPPORTED_MODES;
-        return;
+        return CONFIG_DISPLAY_UNSUPPORTED_MODES;
     }
 
-    *display_cfg_result = CONFIG_DISPLAY_OK;
     for (unsigned i = 0; i < display_count; i++) {
         auto* config = display_config[i];
         DisplayDevice* display = nullptr;
@@ -1509,6 +1512,8 @@ void Controller::CheckConfiguration(const display_config_t** display_config,
             }
         }
     }
+
+    return CONFIG_DISPLAY_OK;
 }
 
 bool Controller::CalculatePipeAllocation(const display_config_t** display_config,
@@ -1612,20 +1617,21 @@ void Controller::ApplyConfiguration(const display_config_t** display_config,
         }
     }
 
-    if (dc_cb_) {
+    if (dc_intf_.is_valid) {
         zx_time_t now = fake_vsync_count ? zx_clock_get(ZX_CLOCK_MONOTONIC) : 0;
         for (unsigned i = 0; i < fake_vsync_count; i++) {
-            dc_cb_->on_display_vsync(dc_cb_ctx_, fake_vsyncs[i], now, nullptr, 0);
+            dc_intf_.OnDisplayVsync(fake_vsyncs[i], now, nullptr, 0);
         }
     }
 }
 
-uint32_t Controller::ComputeLinearStride(uint32_t width, zx_pixel_format_t format) {
+uint32_t Controller::DisplayControllerComputeLinearStride(uint32_t width,
+                                                          zx_pixel_format_t format) {
     return fbl::round_up(width,
             get_tile_byte_width(IMAGE_TYPE_SIMPLE, format) / ZX_PIXEL_FORMAT_BYTES(format));
 }
 
-zx_status_t Controller::AllocateVmo(uint64_t size, zx_handle_t* vmo_out) {
+zx_status_t Controller::DisplayControllerAllocateVmo(uint64_t size, zx_handle_t* vmo_out) {
     return zx_vmo_create(size, 0, vmo_out);
 }
 
@@ -1931,7 +1937,7 @@ void Controller::FinishInit() {
     {
         fbl::AutoLock lock(&display_lock_);
         uint32_t size = static_cast<uint32_t>(display_devices_.size());
-        if (size && dc_cb_) {
+        if (size && dc_intf_.is_valid()) {
             DisplayDevice* added_displays[registers::kDdiCount];
             for (unsigned i = 0; i < size; i++) {
                 added_displays[i] = display_devices_[i].get();
