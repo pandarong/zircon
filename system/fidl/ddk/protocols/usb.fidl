@@ -1,0 +1,164 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.usb;
+
+using ddk.phys_iter;
+using zircon.hw.usb;
+using zircon.hw.usb_hub;
+using zircon.listnode;
+using zx;
+
+//using UsbSpeed = uint8;
+enum UsbSpeed : uint8 {};
+
+[Layout="ddk-callback"]
+interface UsbRequestComplete {
+    1: Callback(UsbRequest? req) -> ();
+};
+
+[Layout="ddk-callback"]
+interface UsbRequestRelease {
+    1: Callback(UsbRequest? req) -> ();
+};
+
+/// Should be set by the requestor.
+struct UsbHeader {
+    /// Frame number for scheduling isochronous transfers.
+    uint64 frame;
+    uint32 device_id;
+    /// bEndpointAddress from endpoint descriptor.
+    uint8 ep_address;
+    /// Number of bytes to transfer.
+    zx.off length;
+    /// Send zero length packet if length is multiple of max packet size.
+    bool send_zlp;
+};
+
+/// Response data.
+/// (Filled in by processor before |UsbRequestComplete()| is called)
+struct UsbResponse {
+    /// Status of transaction.
+    zx.status status;
+    /// Number of bytes actually transferred (on success).
+    zx.off actual;
+};
+
+struct UsbRequest {
+    UsbHeader header;
+
+    /// For control transactions.
+    zircon.hw.usb.UsbSetup setup;
+
+    /// VMO handle for payload.
+    handle<vmo> vmo_handle;
+    handle<bti> bti_handle;
+    usize size;
+    /// Offset of the start of data from first page address of the vmo.
+    zx.off offset;
+    /// Mapped address of the first page of the vmo.
+    /// Add offset to get actual data.
+    vector<void> virt;
+
+    handle pmt;
+    /// Phys addresses of the payload.
+    vector<zx.paddr> phys_list;
+
+    /// The |complete.callback()| callback is set by the requestor and is
+    /// invoked by the 'complete' ops method when it is called by
+    /// the processor upon completion of the usb request.
+    /// The saved_complete_cb field can be used to temporarily save
+    /// the original callback and overwrite it with the desired intermediate
+    /// callback.
+    UsbRequestComplete? complete;
+
+    /// Set by the requestor for opting out of the complete_cb()
+    /// callback for successfully completed requests. The callback
+    /// will still be invoked if an error is encountered.
+    /// This is useful for isochronous requests, where the requestor
+    /// may not care about most callbacks. They will still have to request
+    /// callbacks at a regular interval to queue more data, and free or
+    /// reuse previously silently completed requests.
+    bool cb_on_error_only;
+
+    /// The current 'owner' of the usb request may save the original
+    /// complete callback and cookie, allowing them to insert an
+    /// intermediate callback.
+    UsbRequestComplete? saved_complete;
+
+    UsbResponse response;
+
+    /// list node and context
+    /// the current "owner" of the usb_request may use these however desired
+    /// (eg, the requestor may use node to hold the usb_request on a free list
+    /// and when it's queued the processor may use node to hold the usb_request
+    /// in a transaction queue)
+    zircon.listnode.ListNode node;
+
+    vector<void> context;
+
+    /// The release.callback() callback is set by the allocator and is
+    /// invoked by the 'usb_request_release' method when it is called
+    /// by the requestor.
+    UsbRequestRelease? release;
+};
+
+[Layout="ddk-protocol"]
+interface Usb {
+    1: ReqAlloc(uint64 data_size, uint8 ep_address) -> (zx.status s, UsbRequest? req);
+    2: ReqAllocVmo(handle<vmo> vmo, uint64 vmo_offset, uint64 length,
+                   uint8 ep_address) -> (zx.status s, UsbRequest? req);
+    3: ReqInit(UsbRequest? req, handle<vmo> vmo, uint64 vmo_offset, uint64 length,
+                   uint8 ep_address) -> (zx.status s);
+    4: ReqCopyFrom(UsbRequest? req, usize offset) -> (isize s, vector<void> data);
+    5: ReqCopyTo(UsbRequest? req, vector<void> data, usize offset) -> (isize s);
+    6: ReqMmap(UsbRequest? req) -> (zx.status s, vector<void>? data);
+    7: ReqCacheop(UsbRequest? req, uint32 op, usize offset, usize length) -> (zx.status s);
+    8: ReqCacheFlush(UsbRequest? req, usize offset, usize length) -> (zx.status s);
+    9: ReqCacheFlushInvalidate(UsbRequest? req, zx.off offset, usize length) -> (zx.status s);
+    10: ReqPhysmap(UsbRequest? req) -> (zx.status s);
+    11: ReqRelease(UsbRequest? req) -> ();
+    12: ReqComplete(UsbRequest? req, zx.status status, zx.off actual) -> ();
+    13: ReqPhysIterInit(UsbRequest? req, usize max_length) -> (ddk.phys_iter.PhysIter iter);
+    14: Control(uint8 request_type, uint8 @request, uint16 value, uint16 index,
+                vector<void> data, zx.time timeout) -> (zx.status s, usize length);
+    /// queues a USB request
+    15: RequestQueue(UsbRequest? req) -> ();
+    16: GetSpeed() -> (UsbSpeed s);
+    17: SetInterface(int64 interface_number, int64 alt_setting) -> (zx.status s);
+    18: SetConfiguration(int64 configuration) -> (zx.status s);
+    /// Resets an endpoint that is in a halted or error state.
+    /// Endpoints will be halted if the device returns a STALL in response to a USB transaction.
+    /// When that occurs, the transaction will fail with ERR_IO_REFUSED.
+    /// usb_reset_endpoint() the endpoint to normal running state.
+    19: ResetEndpoint(uint8 ep_address) -> (zx.status s);
+    /// returns the maximum amount of data that can be transferred on an endpoint in a single
+    /// transaction.
+    20: GetMaxTransferSize(uint8 ep_address) -> (usize s);
+    21: GetDeviceId() -> (uint32 dev_id);
+    22: GetDeviceDescriptor() -> (zircon.hw.usb.UsbDeviceDescriptor desc);
+    /// returns the USB descriptors for the USB device or interface
+    /// the returned value is de-allocated with free()
+    23: GetDescriptorList() -> (vector<void>? descriptors);
+    /// returns the USB descriptors following the interface's existing descriptors
+    /// the returned value is de-allocated with free()
+    24: GetAdditionalDescriptorList() -> (vector<void>? descriptors);
+    /// Fetch the descriptor using the provided descriptor ID and language ID.  If
+    /// the language ID requested is not available, the first entry of the language
+    /// ID table will be used instead and be provided in the updated version of the
+    /// parameter.
+    ///
+    /// The string will be encoded using UTF-8, and will be truncated to fit the
+    /// space provided by the buflen parameter.  buflen will be updated to indicate
+    /// the amount of space needed to hold the actual UTF-8 encoded string lenth, and
+    /// may be larger than the original value passed.  Embedded nulls may be present
+    /// in the string, and the result may not be null terminated if the string
+    /// occupies the entire provided buffer.
+    25: GetStringDescriptor(uint8 desc_id, uint16 lang_id) -> (zx.status s, uint16 lang_id,
+                                                               vector<void> buf);
+    /// marks the interface as claimed and appends the interface descriptor to the
+    /// interface's existing descriptor
+    26: ClaimInterface(zircon.hw.usb.UsbInterfaceDescriptor? intf, usize length) -> (zx.status s);
+    27: CancelAll(uint8 ep_address) -> (zx.status s);
+};

@@ -140,8 +140,8 @@ static void dwc3_ep_queue_next_locked(dwc3_t* dwc, dwc3_endpoint_t* ep) {
     }
 }
 
-zx_status_t dwc3_ep_config(dwc3_t* dwc, usb_endpoint_descriptor_t* ep_desc,
-                                  usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
+zx_status_t dwc3_ep_config(dwc3_t* dwc, const usb_endpoint_descriptor_t* ep_desc,
+                           const usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
     // convert address to index in range 0 - 31
     // low bit is IN/OUT
     unsigned ep_num = dwc3_ep_num(ep_desc->bEndpointAddress);

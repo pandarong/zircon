@@ -1,0 +1,34 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library ddk.protocol.usb_dci;
+
+using ddk.protocol.usb;
+using zircon.hw.usb;
+using zx;
+
+/// This protocol is used for USB peripheral controller drivers.
+///
+/// Callbacks implemented by the USB device driver.
+[Layout="ddk-interface"]
+interface UsbDciInterface {
+    /// callback for handling ep0 control requests
+    1: Control(zircon.hw.usb.UsbSetup setup, vector<void>? write) -> (zx.status s, vector<void> read);
+    2: SetConnected(bool connected) -> ();
+    3: SetSpeed(zircon.hw.usb.UsbSpeed speed) -> ();
+};
+
+[Layout="ddk-protocol", DefaultProtocol]
+interface UsbDci {
+    1: RequestQueue(ddk.protocol.usb.UsbRequest? req) -> ();
+    /// Registers callback interface with the controller driver.
+    2: SetInterface(UsbDciInterface @interface) -> (zx.status s);
+    3: ConfigEp(zircon.hw.usb.UsbEndpointDescriptor ep_desc,
+                zircon.hw.usb.UsbSsEpCompDescriptor ss_comp_desc) -> (zx.status s);
+    4: DisableEp(uint8 ep_address) -> (zx.status s);
+    5: EpSetStall(uint8 ep_address) -> (zx.status s);
+    6: EpClearStall(uint8 ep_address) -> (zx.status s);
+    /// Shares a copy of the DCI driver's BTI handle.
+    7: GetBti() -> (zx.status s, handle<bti> bti);
+};

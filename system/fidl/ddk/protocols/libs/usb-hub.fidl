@@ -1,0 +1,39 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library zircon.hw.usb_hub;
+
+[Packed, repr="C"]
+struct UsbHighSpeed {
+    // variable length depending on number of ports
+    array<uint8>:4  DeviceRemovable;
+    array<uint8>:4  PortPwrCtrlMask;
+};
+
+[Packed, repr="C"]
+struct UsbSuperSpeed {
+    uint8 bHubHdrDecLat;
+    uint16 wHubDelay;
+    uint16 DeviceRemovable;
+};
+
+[Packed, repr="C"]
+union UsbGen {
+    /// USB 2.0
+    UsbHighSpeed hs;
+    /// USB 3.0
+    UsbSuperSpeed ss;
+};
+
+[Packed, repr="C"]
+struct UsbHubDescriptor {
+    uint8 bDescLength;
+    uint8 bDescriptorType;
+    uint8 bNbrPorts;
+    uint16 wHubCharacteristics;
+    uint8 bPowerOn2PwrGood;
+    uint8 bHubContrCurrent;
+    UsbGen u;
+};
+

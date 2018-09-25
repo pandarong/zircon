@@ -134,8 +134,8 @@ void dwc3_cmd_ep_clear_stall(dwc3_t* dwc, unsigned ep_num);
 // Endpoints
 zx_status_t dwc3_ep_fifo_init(dwc3_t* dwc, unsigned ep_num);
 void dwc3_ep_fifo_release(dwc3_t* dwc, unsigned ep_num);
-zx_status_t dwc3_ep_config(dwc3_t* dwc, usb_endpoint_descriptor_t* ep_desc,
-                                  usb_ss_ep_comp_descriptor_t* ss_comp_desc);
+zx_status_t dwc3_ep_config(dwc3_t* dwc, const usb_endpoint_descriptor_t* ep_desc,
+                           const usb_ss_ep_comp_descriptor_t* ss_comp_desc);
 void dwc3_ep_set_config(dwc3_t* dwc, unsigned ep_num, bool enable);
 zx_status_t dwc3_ep_disable(dwc3_t* dwc, uint8_t ep_addr);
 void dwc3_start_eps(dwc3_t* dwc);

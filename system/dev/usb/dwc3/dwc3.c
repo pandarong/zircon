@@ -198,7 +198,7 @@ void dwc3_usb_reset(dwc3_t* dwc) {
 
     dwc3_set_address(dwc, 0);
     dwc3_ep0_start(dwc);
-    usb_dci_set_connected(&dwc->dci_intf, true);
+    usb_dci_interface_set_connected(&dwc->dci_intf, true);
 }
 
 void dwc3_disconnected(dwc3_t* dwc) {
@@ -208,7 +208,7 @@ void dwc3_disconnected(dwc3_t* dwc) {
     dwc->ep0_state = EP0_STATE_NONE;
 
     if (dwc->dci_intf.ops) {
-        usb_dci_set_connected(&dwc->dci_intf, false);
+        usb_dci_interface_set_connected(&dwc->dci_intf, false);
     }
 
     for (unsigned i = 2; i < countof(dwc->eps); i++) {
@@ -254,7 +254,7 @@ void dwc3_connection_done(dwc3_t* dwc) {
         dwc3_cmd_ep_set_config(dwc, EP0_IN, USB_ENDPOINT_CONTROL, ep0_max_packet, 0, true);
     }
 
-    usb_dci_set_speed(&dwc->dci_intf, dwc->speed);
+    usb_dci_interface_set_speed(&dwc->dci_intf, dwc->speed);
 }
 
 void dwc3_set_address(dwc3_t* dwc, unsigned address) {
@@ -294,14 +294,14 @@ static void dwc3_request_queue(void* ctx, usb_request_t* req) {
     dwc3_ep_queue(dwc, ep_num, req);
 }
 
-static zx_status_t dwc3_set_interface(void* ctx, usb_dci_interface_t* dci_intf) {
+static zx_status_t dwc3_set_interface(void* ctx, const usb_dci_interface_t* dci_intf) {
     dwc3_t* dwc = ctx;
     memcpy(&dwc->dci_intf, dci_intf, sizeof(dwc->dci_intf));
     return ZX_OK;
 }
 
-static zx_status_t dwc3_config_ep(void* ctx, usb_endpoint_descriptor_t* ep_desc,
-                                  usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
+static zx_status_t dwc3_config_ep(void* ctx, const usb_endpoint_descriptor_t* ep_desc,
+                                  const usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
     dwc3_t* dwc = ctx;
     return dwc3_ep_config(dwc, ep_desc, ss_comp_desc);
 }
