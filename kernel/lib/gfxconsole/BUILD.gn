@@ -4,11 +4,14 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-source_set("gfxconsole") {
+library("gfxconsole") {
+  kernel = true
   sources = [
-    "gfxconsole.c",
+    "gfxconsole.cpp",
   ]
-  deps = [
+  deps += [ "$zx/kernel/lib/gfx" ]
+  public_deps = [
+    # <lib/gfxconsole.h> has #include <lib/gfx.h>.
     "$zx/kernel/lib/gfx",
   ]
 }

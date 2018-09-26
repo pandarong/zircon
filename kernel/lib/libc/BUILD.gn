@@ -21,9 +21,19 @@ library("libc") {
     "strtol.c",
     "strtoll.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/lib/heap",
     "$zx/kernel/lib/io",
     "string",
   ]
+  public_deps = [
+    # stdio.h has #include <lib/io.h>.
+    "$zx/kernel/lib/io:headers",
+
+    # malloc.h has #include <lib/heap.h>.
+    "$zx/kernel/lib/heap:headers",
+  ]
+
+  # Avoid circularity.
+  deps -= [ get_label_info(":headers", "label_no_toolchain") ]
 }

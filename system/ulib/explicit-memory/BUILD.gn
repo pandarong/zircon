@@ -10,7 +10,7 @@ library("explicit-memory") {
     "bytes.c",
   ]
   if (!is_kernel) {
-    deps = [
+    deps += [
       "$system/ulib/c",
       "$system/ulib/fbl",
     ]

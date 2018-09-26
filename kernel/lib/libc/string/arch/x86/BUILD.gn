@@ -10,7 +10,7 @@ source_set("x86") {
     "memset.S",
     "selector.cpp",
   ]
-  deps = [
+  deps += [
     ":tests",
     "$zx/kernel/lib/code_patching",
   ]
@@ -22,7 +22,7 @@ source_set("tests") {
   sources = [
     "tests.cpp",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/lib/unittest",
   ]
 }

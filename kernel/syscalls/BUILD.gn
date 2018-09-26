@@ -32,8 +32,9 @@ source_set("syscalls") {
     "vmo.cpp",
     "zircon.cpp",
   ]
-  deps = [
+  deps += [
     #":generate-vdso-valid-sysret",
+    "$zx/kernel/dev/udisplay",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
@@ -41,5 +42,11 @@ source_set("syscalls") {
     "$zx/kernel/lib/user_copy",
     "$zx/kernel/lib/vdso",
     "$zx/kernel/object",
+    "$zx/system/ulib/explicit-memory",
+    "$zx/system/ulib/libzbi",
+    "$zx/system/ulib/region-alloc",
   ]
+  if (current_cpu == "x64") {
+    deps += [ "$zx/kernel/platform/pc" ]
+  }
 }

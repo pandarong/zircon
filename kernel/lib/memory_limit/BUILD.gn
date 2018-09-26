@@ -8,9 +8,19 @@ library("memory_limit") {
   kernel = true
   sources = [
     "memory_limit.cpp",
+  ]
+  deps += [
+    ":tests",
+    "$zx/kernel/lib/fbl",
+  ]
+}
+
+source_set("tests") {
+  sources = [
     "memory_limit_tests.cpp",
   ]
-  deps = [
-    "$zx/kernel/lib/fbl",
+  deps += [
+    ":headers",
+    "$zx/kernel/lib/unittest",
   ]
 }

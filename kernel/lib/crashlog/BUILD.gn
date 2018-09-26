@@ -9,4 +9,5 @@ library("crashlog") {
   sources = [
     "crashlog.cpp",
   ]
+  deps += [ "$zx/kernel/lib/version" ]
 }

@@ -4,14 +4,11 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-source_set("top") {
+library("hwreg") {
+  kernel = true
+  static = true
   sources = [
-    "init.cpp",
-    "main.cpp",
+    "printers.cpp",
   ]
-  deps += [
-    "$zx/kernel/kernel",
-    "$zx/kernel/platform",
-    "$zx/kernel/target",
-  ]
+  deps += [ "$zx/kernel/lib/fbl" ]
 }

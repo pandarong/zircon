@@ -9,10 +9,11 @@ library("lockdep") {
   sources = [
     "lock_dep.cpp",
   ]
+  public_deps = [ "$zx/system/ulib/fbl:headers" ]
   if (!is_kernel) {
-    deps = [
-      "$system/ulib/fbl",
-      "$system/ulib/zx",
+    deps += [
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/zx",
     ]
   }
 }

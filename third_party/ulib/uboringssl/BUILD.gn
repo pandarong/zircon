@@ -14,7 +14,11 @@ library("uboringssl") {
 
   # TODO(mcgrathr): needs comment
   defines = [ "OPENSSL_NO_ASM" ]
-  if (!is_kernel) {
+
+  if (is_kernel) {
+    # Avoid circularity.
+    deps -= [ "$zx/kernel/vm:headers" ]
+  } else {
     # TODO(mcgrathr): Add the rest.
   }
 }

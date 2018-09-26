@@ -7,7 +7,7 @@ import("$zx/public/gn/toolchain/select_toolchain.gni")
 
 group("default") {
   deps = [
-    ":tools",
+    # TODO: ":tools",
 
     # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?
     # Add a buildarg to build multiple variants into complete ZBIs.
@@ -23,16 +23,17 @@ select_toolchain("host_dev_tools") {
   ]
 }
 
+if (false) { #TODO: later
 # Install the host developer tools for the running host platform in the
 # "$root_build_dir/tools/" directory.
 copy("tools") {
   sources = [
     # TODO: get_metadata([ ":host_dev_tools" ], [ "tool_executables" ]),
-    "/dev/null",
   ]
   outputs = [
     "$root_build_dir/tools/{{source_file_part}}",
   ]
+}
 }
 
 foreach(cpu, standard_fuchsia_cpus) {
@@ -42,5 +43,3 @@ foreach(cpu, standard_fuchsia_cpus) {
     ]
   }
 }
-
-print("XXX end of //BUILD.gn($current_toolchain)")

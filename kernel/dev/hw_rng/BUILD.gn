@@ -9,4 +9,5 @@ library("hw_rng") {
   sources = [
     "debug.cpp",
   ]
+  deps += [ "$zx/kernel/lib/console" ]
 }

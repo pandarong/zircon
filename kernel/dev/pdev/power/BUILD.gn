@@ -8,7 +8,7 @@ source_set("power") {
   sources = [
     "power.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/pdev",
   ]
 }

@@ -12,7 +12,7 @@ library("v2") {
     "arm_gicv2m_msi.c",
     "arm_gicv2m_pcie.cpp",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/interrupt/arm_gic/common",
     "$zx/kernel/dev/pdev",
