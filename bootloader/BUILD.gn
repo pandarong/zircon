@@ -23,7 +23,7 @@ if (toolchain.environment == "efi") {
   }
 
   executable("bootloader") {
-    deps = [
+    deps += [
       ":lib",
       ":src",
     ]

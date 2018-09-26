@@ -22,20 +22,24 @@ library("pc") {
     "smbios.cpp",
     "timer.cpp",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/pcie",
     "$zx/kernel/lib/cbuf",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/fixed_point",
     "$zx/kernel/lib/gfxconsole",
     "$zx/kernel/lib/lockdep",
     "$zx/kernel/lib/memory_limit",
     "$zx/kernel/lib/pow2_range_allocator",
-    "$zx/kernel/lib/smbios",
     "$zx/kernel/lib/version",
-    "$zx/kernel/lib/zbi",
-    "$zx/third_party/lib/acpica",
-    "$zx/third_party/lib/cksum",
+    "$zx/system/ulib/libzbi",
+    "$zx/system/ulib/smbios",
+    "$zx/third_party/ulib/cksum",
+  ]
+  public_deps = [
+    # <platform/pc/acpi.h> has #include <acpica/acpi.h>.
+    "$zx/third_party/lib/acpica:headers",
   ]
 }

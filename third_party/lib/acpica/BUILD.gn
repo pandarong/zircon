@@ -1,0 +1,65 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+config_group("headers") {
+  include_dirs = [ "source/include" ]
+}
+
+source_set("acpica") {
+  public_deps = [
+    ":headers",
+  ]
+
+  # Local sources use #include "acpi.h", not #include <acpica/acpi.h>.
+  include_dirs = [ "source/include/acpica" ]
+
+  sources = [
+    "source/components/hardware/hwregs.c",
+    "source/components/hardware/hwsleep.c",
+    "source/components/hardware/hwvalid.c",
+    "source/components/hardware/hwxface.c",
+    "source/components/hardware/hwxfsleep.c",
+    "source/components/tables/tbdata.c",
+    "source/components/tables/tbfadt.c",
+    "source/components/tables/tbfind.c",
+    "source/components/tables/tbinstal.c",
+    "source/components/tables/tbprint.c",
+    "source/components/tables/tbutils.c",
+    "source/components/tables/tbxface.c",
+    "source/components/tables/tbxfroot.c",
+    "source/components/utilities/utalloc.c",
+    "source/components/utilities/utexcep.c",
+    "source/components/utilities/utglobal.c",
+    "source/components/utilities/utmisc.c",
+    "source/components/utilities/utstring.c",
+    "source/components/utilities/utxferror.c",
+    "source/os_specific/service_layers/oszircon.cpp",
+  ]
+
+  # Disable warnings we won't fix in third-party code.
+  cflags = [ "-Wno-implicit-fallthrough" ]
+  if (is_gcc) {
+    cflags += [
+      "-Wno-discarded-qualifiers",
+      "-Wno-format-signedness",
+    ]
+  } else {
+    cflags += [
+      "-Wno-incompatible-pointer-types-discards-qualifiers",
+      "-Wno-null-pointer-arithmetic",
+    ]
+  }
+
+  # We need to specify -fno-strict-aliasing, since ACPICA has a habit of
+  # violating strict aliasing rules in some of its macros.  Rewriting this
+  # code would increase the maintenance cost of bringing in the latest
+  # upstream ACPICA, so instead we mitigate the problem with a compile-time
+  # flag.  We take the more conservative approach of disabling
+  # strict-aliasing-based optimizations, rather than disabling warnings.
+  cflags += [ "-fno-strict-aliasing" ]
+
+  deps += [ "$zx/kernel/platform/pc" ]
+}

@@ -15,12 +15,19 @@ library("intel") {
     "iommu_page.cpp",
     "second_level_pt.cpp",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/arch/x86/page_tables",
+    "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/pcie",
-    "$zx/kernel/lib/bitmap",
     "$zx/kernel/lib/fbl",
-    "$zx/kernel/lib/hwreg",
-    "$zx/kernel/lib/region-alloc",
+    "$zx/kernel/lib/user_copy",
+    "$zx/system/ulib/bitmap",
+    "$zx/system/ulib/hwreg",
+    "$zx/system/ulib/region-alloc",
+    "$zx/system/ulib/zxcpp",
+  ]
+  public_deps = [
+    # dev/iommu/intel.h has #include <fbl/ref_ptr.h>.
+    "$zx/kernel/lib/fbl:headers",
   ]
 }

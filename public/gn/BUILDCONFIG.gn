@@ -2,7 +2,78 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("$zx/public/gn/toolchain/api.gni")
+assert(!defined(current_toolchain), "only for buildconfig context")
+
+declare_args() {
+  # *This must never be set as a build argument*.  "$zx/" is the prefix for GN
+  # "source-absolute" paths in the Zircon build.  When Zircon is built
+  # standalone, the Zircon repository is the root of the build (where `.gn` is
+  # found) so "$zx/" becomes "//".  When Zircon is part of a larger unified
+  # build, there is a higher-level `.gn` file that uses `default_args` to set
+  # "$zx" to "//zircon/".
+  zx = "/"
+}
+
+# TODO: This distinguishes a standalone Zircon build (where $zx/ is //) from
+# an integrated build (where $zx/ is //zircon).  When the integrated build
+# is fully cleaned up, this should not matter.
+zircon_standalone = zx == "/"
+
+# The default toolchain is a very boring one.  It can only be used for
+# action and copy rules where current_cpu et al don't matter.  Doing
+# anything else happens in another toolchain.
+set_default_toolchain("$zx/public/gn/toolchain:stub")
+
+# The rest of this file pertains to what happens in other toolchains
+# defined by define_environment().
+
+declare_args() {
+  # *This must never be set as a build argument.*
+  # It exists only to be set via define_toolchain().
+  # See define_environment() for more information.
+  toolchain = {
+    globals = {
+    }
+    public_deps = []
+  }
+}
+
+# The toolchain can specify pervasive globals.
+forward_variables_from(toolchain.globals, "*")
+
+# This is the name for $current_cpu that's used in Zircon file names.
+if (current_cpu == "x64") {
+  zircon_cpu = "x86"
+} else if (current_cpu != "") {
+  zircon_cpu = current_cpu
+}
+
+# Shorthand for `current_os == "fuchsia".
+is_fuchsia = current_os == "fuchsia"
+
+# Shorthand for `current_os == "linux".
+is_linux = current_os == "linux"
+
+# Shorthand for `current_os == "mac".
+is_mac = current_os == "mac"
+
+if (!defined(is_gcc)) {
+  # True iff $current_toolchain builds with GCC rather than Clang.
+  is_gcc = false
+}
+
+if (!defined(is_host)) {
+  # True iff $current_toolchain builds for a host platform rather than for
+  # the Fuchsia system being built.  This doesn't mean that it builds for
+  # $host_cpu and $host_os--it could be a cross-compilation toolchain for
+  # building host tools for a different host.
+  is_host = false
+}
+
+if (!defined(is_kernel)) {
+  # True iff $current_toolchain builds kernel-like code.
+  is_kernel = false
+}
 
 # Assert in a template that its invoker doesn't use legacy configs.
 #
@@ -14,11 +85,9 @@ import("$zx/public/gn/toolchain/api.gni")
 #     Required: Implicitly set in every template() scope.
 #
 #   target_type
-#     Required: The name of the template().
+#     Required: The name of the calling template().
 #
 template("assert_no_legacy_configs") {
-  print(
-      "XXX$current_toolchain expanding assert_no_legacy_configs($target_name) $invoker")
   label = get_label_info(":$target_name", "label_no_toolchain")
   target_invoker = invoker.invoker
   type = invoker.type
@@ -31,18 +100,18 @@ template("assert_no_legacy_configs") {
   not_needed([ "target_invoker" ])
 }
 
-if (false) {
-  template("config") {
-    _config_label = get_label_info(":$target_name", "label_no_toolchain")
-    assert(false, "use config_group() instead of config() for $_config_label")
+# This is used exclusively by config_group(), below.
+template("_raw_config") {
+  config(target_name) {
+    forward_variables_from(invoker, "*")
   }
+}
 
-  # The primitive GN feature should never be used directly in this build.
-  # Use config_group() instead.
-  template("config") {
-    _config_label = get_label_info(":$target_name", "label_no_toolchain")
-    assert(false, "use config_group() instead of config() for $_config_label")
-  }
+# The primitive GN feature should never be used directly in this build.
+# Use config_group() instead.
+template("config") {
+  _config_label = get_label_info(":$target_name", "label_no_toolchain")
+  assert(false, "use config_group() instead of config() for $_config_label")
 }
 
 # Propagate switch settings and dependencies to dependents.
@@ -85,7 +154,7 @@ template("config_group") {
          "use public_deps instead of configs in $_config_label config_group()")
 
   # The underlying config() holds everything but the deps.
-  config("_config.$_config_name") {
+  _raw_config("_config.$_config_name") {
     visibility = [ ":$_config_name" ]
     asmflags = []
     cflags = []
@@ -93,6 +162,7 @@ template("config_group") {
     forward_variables_from(invoker,
                            "*",
                            [
+                             "compiler_flags",
                              "data_deps",
                              "deps",
                              "public_deps",
@@ -115,7 +185,7 @@ template("config_group") {
                              "testonly",
                              "visibility",
                            ])
-    public_configs = [ "_config.$_config_name" ]
+    public_configs = [ ":_config.$_config_name" ]
   }
 }
 
@@ -173,18 +243,43 @@ template("library") {
 
   config_group("${_library_name}.headers") {
     include_dirs = [ "include" ]
+    forward_variables_from(invoker,
+                           [
+                             "public_deps",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (defined(visibility)) {
+      if (is_kernel) {
+        visibility += [ _library_name ]
+      } else {
+        visibility += [
+          ":${_library_name}.sources",
+          ":${_library_name}.static",
+          ":${_library_name}.shared",
+        ]
+      }
+    }
   }
 
   if (is_kernel) {
     if (kernel) {
       source_set(_library_name) {
         forward_variables_from(invoker, "*", _library_params)
+        if (!defined(public_deps)) {
+          public_deps = []
+        }
+        public_deps += [ ":${_library_name}.headers" ]
       }
     }
   } else if (is_host) {
     if (host) {
       static_library(_library_name) {
         forward_variables_from(invoker, "*", _library_params)
+        if (!defined(public_deps)) {
+          public_deps = []
+        }
+        public_deps += [ ":${_library_name}.headers" ]
       }
     }
   } else if (static || shared) {
@@ -193,7 +288,13 @@ template("library") {
         "${_library_name}.static",
         "${_library_name}.shared",
       ]
-      forward_variables_from(invoker, "*", _library_params)
+      forward_variables_from(invoker,
+                             "*",
+                             _library_params + [
+                                   "public_deps",
+                                   "visibility",
+                                 ])
+      deps += [ ":${_library_name}.headers" ]
     }
     if (static) {
       static_library("${_library_name}.static") {
@@ -203,6 +304,10 @@ template("library") {
                                  "testonly",
                                  "visibility",
                                ])
+        if (!defined(public_deps)) {
+          public_deps = []
+        }
+        public_deps += [ ":${_library_name}.headers" ]
         deps = [
           ":${_library_name}._sources",
         ]
@@ -216,6 +321,10 @@ template("library") {
                                  "testonly",
                                  "visibility",
                                ])
+        if (!defined(public_deps)) {
+          public_deps = []
+        }
+        public_deps += [ ":${_library_name}.headers" ]
         deps = [
           ":${_library_name}._sources",
         ]
@@ -283,64 +392,57 @@ template("library") {
 }
 
 template("_target_no_legacy_configs") {
-  print(
-      "XXX$current_toolchain expanding _target_no_legacy_configs($target_name) $invoker")
   assert_no_legacy_configs(target_name) {
     type = invoker.type
   }
   print(
-      "XXX$current_toolchain after assert -> target(${invoker.type},$target_name) ${invoker.invoker}")
+      "XXX $current_toolchain target(${invoker.type}, $target_name) ${invoker.invoker}")
   target(invoker.type, target_name) {
+    not_needed(invoker.invoker, "*")
     forward_variables_from(invoker.invoker, "*", [ "visibility" ])
     forward_variables_from(invoker.invoker, [ "visibility" ])
   }
 }
 
 # Just wrap these to inject assert_no_legacy_configs().
-foreach(target_type,
-        [
-          "source_set",
-          "static_library",
-        ]) {
-  template(target_type) {
-    print("XXX$current_toolchain expanding $target_type($target_name) $invoker")
-    _target_no_legacy_configs(target_name) {
-      type = target_type
+if (false) {
+  foreach(target_type,
+          [
+            "source_set",
+            "static_library",
+          ]) {
+    template(target_type) {
+      _target_no_legacy_configs(target_name) {
+        type = target_type
+      }
     }
   }
-}
 
-# These are what we call the "terminal" target types: they are linked
-# artifacts that get explicitly installed on a device (or run on a host).
-# static_library() and source_set() aren't terminal because they don't link.
-# shared_library() isn't terminal because it gets installed only implicitly as
-# a dependency of another target (either another library or a terminal
-# target).  So these are the base target types that participate directly in
-# variant selection.
-_terminal_target_types = [
-  # TODO: "driver",
-  "loadable_module",
+  # These are what we call the "terminal" target types: they are linked
+  # artifacts that get explicitly installed on a device (or run on a host).
+  # static_library() and source_set() aren't terminal because they don't link.
+  # shared_library() isn't terminal because it gets installed only implicitly as
+  # a dependency of another target (either another library or a terminal
+  # target).  So these are the base target types that participate directly in
+  # variant selection.
+  _terminal_target_types = [
+    # TODO: "driver",
 
-  #  "executable",
+    "loadable_module",
+    "executable",
 
-  # TODO: "tool",
-]
+    # TODO: "tool",
+  ]
 
-template("executable") {
-  print("XXX$current_toolchain in executable($target_name) $invoker")
-  _target_no_legacy_configs(target_name) {
-    type = "raw_executable"
-  }
-}
-
-# TODO: variants
-# Probably want this to be a private template a la _variant_target
-# instead of foreach.  driver/tool need more magic and it seems cleaner
-# to do it in separate templates than in an if nest inside this foreach.
-foreach(target_type, _terminal_target_types) {
-  template(target_type) {
-    _target_no_legacy_configs(target_name) {
-      type = target_type
+  # TODO: variants
+  # Probably want this to be a private template a la _variant_target
+  # instead of foreach.  driver/tool need more magic and it seems cleaner
+  # to do it in separate templates than in an if nest inside this foreach.
+  foreach(target_type, _terminal_target_types) {
+    template(target_type) {
+      _target_no_legacy_configs(target_name) {
+        type = target_type
+      }
     }
   }
 }
@@ -350,6 +452,7 @@ foreach(target_type, _terminal_target_types) {
 # default `deps` below, so their targets use `deps += ...` normally.
 _compile_target_types = [
   # TODO: "driver",
+
   "executable",
   "library",
   "loadable_module",

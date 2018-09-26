@@ -9,6 +9,7 @@ source_set("userboot") {
     "userboot-image.S",
     "userboot.cpp",
   ]
+
   # userboot-image.S includes the userboot contents and so must be
   # reassembled when that changes.  But listing $zx/system/core/userboot in
   # deps here will make GN try to link userboot into the kernel.
@@ -19,60 +20,62 @@ source_set("userboot") {
   # is reassembled with the new userboot contents.
   #inputs = [ get_metadata(["$zx/system/core/userboot"],["link_output"]) ]
   include_dirs = [ target_gen_dir ]
-  deps = [
-#    ":gen-userboot-code-header",
+  deps += [
+    #":gen-userboot-code-header",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/vdso",
   ]
-#  inputs = [
-#    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
-#  ]
+
+  #  inputs = [
+  #    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
+  #  ]
 }
 
 if (false) {
-template("rodso_code_header") {
-  outputs = invoker.outputs
-  assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
+  template("rodso_code_header") {
+    outputs = invoker.outputs
+    assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
 
-  deps = invoker.deps
-  sources = [
-    get_metadata(deps, [ "gen_rodso_code_inputs" ]),
-  ]
-  script = "$zx/scripts/gen-rodso-code.sh"
-  inputs = toolchain.inputs_nm + toolchain.inputs_readelf
-  args = [
-    toolchain.nm,
-    toolchain.readelf,
-    rebase_path(outputs[0], root_build_dir),
-    get_metadata(deps, [ "gen_rodso_code_args" ]),
-  ]
-}
+    deps = invoker.deps
+    sources = [
+      get_metadata(deps, [ "gen_rodso_code_inputs" ]),
+    ]
+    script = "$zx/scripts/gen-rodso-code.sh"
+    inputs = toolchain.inputs_nm + toolchain.inputs_readelf
+    args = [
+      toolchain.nm,
+      toolchain.readelf,
+      rebase_path(outputs[0], root_build_dir),
+      get_metadata(deps, [ "gen_rodso_code_args" ]),
+    ]
+  }
 
-# The userboot-code.h generated header file tells the userboot.cpp code
-# where the segment boundaries and entry points are.
-action("gen-userboot-code-header") {
-  outputs = [
-    "$target_gen_dir/userboot-code.h",
-  ]
-  deps = [
-    "$zx/system/core/userboot",
-  ]
+  # The userboot-code.h generated header file tells the userboot.cpp code
+  # where the segment boundaries and entry points are.
+  action("gen-userboot-code-header") {
+    outputs = [
+      "$target_gen_dir/userboot-code.h",
+    ]
+    deps = [
+      "$zx/system/core/userboot",
+    ]
 
-  # TODO(mcgrathr): future
-  #sources = get_metadata(deps, [ "runtime_outputs" ], [ "redirect" ])
-  userboot_out_dir = get_label_info(":_($userboot_toolchain)", "root_out_dir")
-  sources = [
-    "$userboot_out_dir/userboot.so",
-  ]
+    # TODO(mcgrathr): future
+    #sources = get_metadata(deps, [ "runtime_outputs" ], [ "redirect" ])
+    userboot_out_dir = get_label_info(":_($userboot_toolchain)", "root_out_dir")
+    sources = [
+      "$userboot_out_dir/userboot.so",
+    ]
 
-  script = "$zx/scripts/gen-rodso-code.sh"
+    script = "$zx/scripts/gen-rodso-code.sh"
 
-  inputs = toolchain.inputs_nm + toolchain.inputs_readelf
-  args = [
-    toolchain.nm,
-    toolchain.readelf,
-    rebase_path(outputs[0], root_build_dir),
-    "USERBOOT",
-    rebase_path(sources[0], root_build_dir),
-  ]
-}
+    inputs = toolchain.inputs_nm + toolchain.inputs_readelf
+    args = [
+      toolchain.nm,
+      toolchain.readelf,
+      rebase_path(outputs[0], root_build_dir),
+      "USERBOOT",
+      rebase_path(sources[0], root_build_dir),
+    ]
+  }
 }

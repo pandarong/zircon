@@ -29,7 +29,7 @@ source_set("string") {
     "strtok.c",
     "strxfrm.c",
   ]
-  deps = [
+  deps += [
     "arch/$zircon_cpu",
   ]
 }

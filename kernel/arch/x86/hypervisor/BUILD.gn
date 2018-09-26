@@ -4,14 +4,17 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-source_set("top") {
+source_set("hypervisor") {
   sources = [
-    "init.cpp",
-    "main.cpp",
+    "guest.cpp",
+    "pvclock.cpp",
+    "vcpu.cpp",
+    "vmexit.cpp",
+    "vmx.S",
+    "vmx_cpu_state.cpp",
   ]
   deps += [
-    "$zx/kernel/kernel",
-    "$zx/kernel/platform",
-    "$zx/kernel/target",
+    "$zx/kernel/platform/pc",
+    "$zx/system/ulib/explicit-memory",
   ]
 }

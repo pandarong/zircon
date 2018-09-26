@@ -7,6 +7,6 @@
 library("console") {
   kernel = true
   sources = [
-    "console.c",
+    "console.cpp",
   ]
 }

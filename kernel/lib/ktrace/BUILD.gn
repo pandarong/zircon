@@ -8,4 +8,5 @@ source_set("ktrace") {
   sources = [
     "ktrace.cpp",
   ]
+  deps += [ "$zx/system/ulib/zircon-internal" ]
 }
