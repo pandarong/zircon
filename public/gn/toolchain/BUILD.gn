@@ -2,13 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# TODO: can't iwyu because environment.gni does and {}!={}
-# import("$zx/public/gn/toolchain/standard.gni")
 import("environment.gni")
 import("toolchain.gni")
 
+# TODO(crbug.com/gn/11): can't iwyu because environment.gni does and {}!={}
+# import("standard.gni")
+
 assert(current_toolchain == default_toolchain,
-       "Define toolchains only in $default_toolchain")
+       "Define toolchains only in `default_toolchain` $default_toolchain")
 
 # The stub toolchain is the $default_toolchain set by //gn/BUILDCONFIG.gn.
 # It has nothing but the standard stamp and copy tools, so it can only be
@@ -17,6 +18,9 @@ define_toolchain("stub") {
   tools = []
 }
 
+# Define toolchains for building host tools.  Always define a toolchain for
+# each supported host, not just the current one.  It's always possible to
+# cross-compile the host tools for a different host.
 standard_host = false
 foreach(host, standard_build_hosts) {
   define_environment("host") {
