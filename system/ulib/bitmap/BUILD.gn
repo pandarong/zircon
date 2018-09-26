@@ -11,7 +11,7 @@ library("bitmap") {
     "rle-bitmap.cpp",
   ]
   if (!is_kernel) {
-    deps = [
+    deps += [
       "$system/ulib/c",
       "$system/ulib/fbl",
       "$system/ulib/zircon",

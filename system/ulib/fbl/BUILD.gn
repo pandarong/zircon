@@ -10,4 +10,8 @@ library("fbl") {
   sources = [
     "alloc_checker.cpp",
   ]
+  if (toolchain.environment == "kernel") {
+    # Avoid circularity.
+    deps -= [ "$zx/kernel/vm:headers" ]
+  }
 }

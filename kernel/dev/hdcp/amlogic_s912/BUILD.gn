@@ -8,7 +8,7 @@ source_set("amlogic_s912") {
   sources = [
     "hdcp.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/pdev",
   ]
 }

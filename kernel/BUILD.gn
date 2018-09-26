@@ -7,15 +7,30 @@
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/environment.gni")
 
-# TODO: can't iwyu because environment.gni does and {}!={}
-# import("$zx/public/gn/toolchain/standard.gni")
+# TODO((crbug.com/gn/11)): import("$zx/public/gn/toolchain/standard.gni")
 import("params.gni")
 
 if (current_toolchain == default_toolchain) {
   # In the default toolchain, just define the kernel toolchains.
   foreach(cpu, standard_fuchsia_cpus) {
     define_environment("kernel") {
-      public_deps += [ ":kernel_config" ]
+      globals = {
+        is_kernel = true
+      }
+      public_deps += standard_fuchsia_configs
+      public_deps += [
+        ":kernel_config",
+        "lib/libc:headers",
+
+        # <kernel/spinlock.h> has #include <lockdep/lock_policy.h>.
+        "$zx/system/ulib/lockdep:headers",
+
+        # <kernel/thread.h> has #include <vm/kstack.h>.
+        "vm:headers",
+
+        # <lib/ktrace.h> has #include <lib/zircon-internal/ktrace.h>.
+        "$zx/system/ulib/zircon-internal:headers",
+      ]
     }
   }
 } else {
@@ -257,5 +272,3 @@ if (current_toolchain == default_toolchain) {
     }
   }
 }
-
-print("XXX end of //kernel/BUILD.gn($current_toolchain)")

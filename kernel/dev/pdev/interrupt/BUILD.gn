@@ -8,7 +8,7 @@ source_set("interrupt") {
   sources = [
     "interrupt.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/pdev",
   ]
 }

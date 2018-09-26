@@ -9,11 +9,12 @@ library("fbl") {
   sources = [
     "arena.cpp",
   ]
-  deps = [
-    ":tests",
-  ]
+  deps += [ ":tests" ]
   public_deps = [
     "$zx/system/ulib/fbl",
+
+    # <fbl/arena.h> has #include <zxcpp/new.h>.
+    "$zx/system/ulib/zxcpp",
   ]
 }
 
@@ -23,5 +24,10 @@ source_set("tests") {
     "arena_tests.cpp",
     "inline_array_tests.cpp",
     "name_tests.cpp",
+  ]
+
+  deps += [
+    ":headers",
+    "$zx/kernel/lib/unittest",
   ]
 }

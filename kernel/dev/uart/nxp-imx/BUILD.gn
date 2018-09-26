@@ -8,7 +8,7 @@ source_set("nxp-imx") {
   sources = [
     "uart.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/pdev",
     "$zx/kernel/dev/pdev/uart",
   ]
