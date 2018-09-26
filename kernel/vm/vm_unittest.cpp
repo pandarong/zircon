@@ -84,6 +84,42 @@ static bool pmm_alloc_contiguous_one_test() {
     END_TEST;
 }
 
+static bool pmm_delayed_alloc_test() {
+    BEGIN_TEST;
+    list_node list = LIST_INITIAL_VALUE(list);
+
+    // allocate up to 3 at a time, then clear at once
+    fbl::RefPtr<PageAllocRequest> requests[3];
+    uint flags = PMM_ALLOC_FLAG_FORCE_DELAYED_TEST;
+    for (auto& request: requests) {
+        // do one delayed allocation
+        zx_status_t status = pmm_alloc_pages_delayed(1, flags, &list, request);
+        ASSERT_EQ(ZX_ERR_SHOULD_WAIT, status, "delayed alloc did not return should wait");
+        ASSERT_NE(nullptr, request.get(), "delayed alloc returned bad request");
+        ASSERT_EQ(true, list_is_empty(&list), "delayed alloc list was non empty");
+        ASSERT_EQ((size_t)1, request->count(), "delayed alloc count");
+        ASSERT_EQ(flags, request->alloc_flags(), "delayed alloc flags");
+
+        status = request->Wait();
+        ASSERT_EQ(ZX_OK, status, "delayed alloc wait did not return OK");
+
+        ASSERT_EQ(ZX_OK, request->error(), "delayed alloc error was not OK");
+
+        request->TakePageList(&list);
+        ASSERT_EQ((size_t)1, list_length(&list), "delayed alloc did not return 1 page");
+
+        // free the page we allocated
+        pmm_free(&list);
+    }
+
+    // free all the requests
+    for (auto& request: requests) {
+        request.reset(nullptr);
+    }
+
+    END_TEST;
+}
+
 static uint32_t test_rand(uint32_t seed) {
     return (seed = seed * 1664525 + 1013904223);
 }
@@ -1077,4 +1113,5 @@ VM_UNITTEST(pmm_alloc_contiguous_one_test)
 VM_UNITTEST(pmm_multi_alloc_test)
 // runs the system out of memory, uncomment for debugging
 //VM_UNITTEST(pmm_oversized_alloc_test)
+VM_UNITTEST(pmm_delayed_alloc_test)
 UNITTEST_END_TESTCASE(pmm_tests, "pmm", "Physical memory manager tests");

@@ -19,6 +19,7 @@
 #include <trace.h>
 #include <vm/bootalloc.h>
 #include <vm/init.h>
+#include <vm/page_alloc_request.h>
 #include <vm/physmap.h>
 #include <vm/pmm.h>
 #include <vm/vm.h>
@@ -116,6 +117,9 @@ void vm_init_preheap() {
 
 void vm_init() {
     LTRACE_ENTRY;
+
+    // initialize the page allocator subsystem
+    page_alloc_request_init();
 
     VmAspace* aspace = VmAspace::kernel_aspace();
 

@@ -20,6 +20,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/bootreserve.cpp \
     $(LOCAL_DIR)/kstack.cpp \
     $(LOCAL_DIR)/page.cpp \
+    $(LOCAL_DIR)/page_alloc_request.cpp \
     $(LOCAL_DIR)/pinned_vm_object.cpp \
     $(LOCAL_DIR)/pmm.cpp \
     $(LOCAL_DIR)/pmm_arena.cpp \
@@ -34,6 +35,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/vm_object_physical.cpp \
     $(LOCAL_DIR)/vm_page_list.cpp \
     $(LOCAL_DIR)/vm_unittest.cpp \
+    $(LOCAL_DIR)/vm_worker.cpp \
     $(LOCAL_DIR)/vmm.cpp \
 
 include make/module.mk

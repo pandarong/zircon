@@ -9,6 +9,9 @@
 
 #include <assert.h>
 #include <err.h>
+#include <fbl/auto_lock.h>
+#include <fbl/intrusive_double_list.h>
+#include <fbl/mutex.h>
 #include <inttypes.h>
 #include <kernel/mp.h>
 #include <kernel/timer.h>
@@ -21,24 +24,34 @@
 #include <string.h>
 #include <trace.h>
 #include <vm/bootalloc.h>
+#include <vm/page_alloc_request.h>
 #include <vm/physmap.h>
 #include <vm/vm.h>
-
-#include "pmm_arena.h"
-#include "pmm_node.h"
-#include "vm_priv.h"
-
-#include <fbl/auto_lock.h>
-#include <fbl/intrusive_double_list.h>
-#include <fbl/mutex.h>
 #include <zircon/thread_annotations.h>
 #include <zircon/time.h>
 #include <zircon/types.h>
 
+#include "pmm_arena.h"
+#include "pmm_node.h"
+#include "vm_priv.h"
+#include "vm_worker.h"
+
 #define LOCAL_TRACE MAX(VM_GLOBAL_TRACE, 0)
 
+namespace {
+
 // The (currently) one and only pmm node
-static PmmNode pmm_node;
+PmmNode pmm_node;
+
+// allocation queue
+fbl::Mutex alloc_queue_lock;
+fbl::DoublyLinkedList<fbl::RefPtr<PageAllocRequest>> alloc_queue TA_GUARDED(alloc_queue_lock);
+
+// worker to consume the queue
+VmWorker alloc_queue_worker;
+zx_time_t alloc_queue_worker_routine(void *arg);
+
+} // namespace
 
 #if PMM_ENABLE_FREE_FILL
 static void pmm_enforce_fill(uint level) {
@@ -70,6 +83,68 @@ zx_status_t pmm_alloc_page(uint alloc_flags, vm_page_t** page, paddr_t* pa) {
 zx_status_t pmm_alloc_pages(size_t count, uint alloc_flags, list_node* list) {
     return pmm_node.AllocPages(count, alloc_flags, list);
 }
+
+zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags, list_node* list,
+                                    fbl::RefPtr<PageAllocRequest>& request) {
+    if (alloc_flags & PMM_ALLOC_FLAG_FORCE_DELAYED_TEST) {
+        // temporary stubbed version that puts the request on a queue
+        request = PageAllocRequest::GetRequest();
+        if (!request) {
+            return ZX_ERR_NO_MEMORY;
+        }
+
+        // set up and queue the request
+        request->SetQueued(count, alloc_flags);
+
+        {
+            fbl::AutoLock guard(&alloc_queue_lock);
+            alloc_queue.push_back(request);
+        }
+
+        alloc_queue_worker.Signal();
+
+        return ZX_ERR_SHOULD_WAIT;
+    }
+
+    return pmm_alloc_pages(count, alloc_flags, list);
+}
+
+namespace {
+
+// called once per Signal() on alloc_queue_worker
+zx_time_t alloc_queue_worker_routine(void *arg) {
+    TRACE_ENTRY;
+
+    // pop off an allocation request(s) until the queue is empty
+    for (;;) {
+        fbl::AutoLock guard(&alloc_queue_lock);
+
+        fbl::RefPtr<PageAllocRequest> request = alloc_queue.pop_front();
+        if (unlikely(!request))
+            return ZX_TIME_INFINITE;
+
+        TRACEF("handling request %p\n", request.get());
+
+        // do the request
+        size_t count = request->count();
+        uint alloc_flags = request->alloc_flags();
+        list_node list = LIST_INITIAL_VALUE(list);
+
+        zx_status_t status = pmm_alloc_pages(count, alloc_flags, &list);
+
+        // complete the transfer
+        request->Complete(status, (status == ZX_OK) ? &list : nullptr);
+    }
+
+    return ZX_TIME_INFINITE;
+}
+
+void pmm_start_workers(uint level) {
+    alloc_queue_worker.Run("PMM allocation queue", &alloc_queue_worker_routine, nullptr);
+}
+
+LK_INIT_HOOK(pmm_vm_workers, &pmm_start_workers, LK_INIT_LEVEL_THREADING);
+} // namespace
 
 zx_status_t pmm_alloc_range(paddr_t address, size_t count, list_node* list) {
     return pmm_node.AllocRange(address, count, list);
@@ -111,13 +186,15 @@ void pmm_count_total_states(size_t state_count[VM_PAGE_STATE_COUNT_]) {
     pmm_node.CountTotalStates(state_count);
 }
 
-static void pmm_dump_timer(struct timer* t, zx_time_t now, void*) {
+namespace {
+
+void pmm_dump_timer(struct timer* t, zx_time_t now, void*) {
     zx_time_t deadline = zx_time_add_duration(now, ZX_SEC(1));
     timer_set_oneshot(t, deadline, &pmm_dump_timer, nullptr);
     pmm_node.DumpFree();
 }
 
-static int cmd_pmm(int argc, const cmd_args* argv, uint32_t flags) {
+int cmd_pmm(int argc, const cmd_args* argv, uint32_t flags) {
     bool is_panic = flags & CMD_FLAG_PANIC;
 
     if (argc < 2) {
@@ -164,3 +241,7 @@ STATIC_COMMAND_START
 STATIC_COMMAND_MASKED("pmm", "physical memory manager", &cmd_pmm, CMD_AVAIL_ALWAYS)
 #endif
 STATIC_COMMAND_END(pmm);
+
+} // namespace
+
+
