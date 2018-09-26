@@ -395,8 +395,6 @@ template("_target_no_legacy_configs") {
   assert_no_legacy_configs(target_name) {
     type = invoker.type
   }
-  print(
-      "XXX $current_toolchain target(${invoker.type}, $target_name) ${invoker.invoker}")
   target(invoker.type, target_name) {
     not_needed(invoker.invoker, "*")
     forward_variables_from(invoker.invoker, "*", [ "visibility" ])
@@ -404,8 +402,18 @@ template("_target_no_legacy_configs") {
   }
 }
 
-# Just wrap these to inject assert_no_legacy_configs().
-if (false) {
+template("host_tool") {
+  _target_no_legacy_configs(target_name) {
+    type = "host_tool"
+  }
+  executable(target_name) {
+    forward_variables_from(invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker, [ "visibility" ])
+  }
+}
+
+if (false){
+  # Just wrap these to inject assert_no_legacy_configs().
   foreach(target_type,
           [
             "source_set",
@@ -431,7 +439,7 @@ if (false) {
     "loadable_module",
     "executable",
 
-    # TODO: "tool",
+    #"tool",
   ]
 
   # TODO: variants
@@ -459,8 +467,7 @@ _compile_target_types = [
   "shared_library",
   "source_set",
   "static_library",
-
-  # TODO: "tool",
+  "tool",
 ]
 
 # ${toolchain.public_deps} gives the initial `deps` set for every compile

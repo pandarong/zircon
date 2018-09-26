@@ -1,0 +1,36 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+# TODO(mcgrathr): Rename the source files.
+if (zircon_cpu == "x86") {
+  zircon_cpu = "x86-64"
+}
+
+library("zircon") {
+  shared = true
+  static = false
+  #TODO: install_path = false
+
+  sources = [
+    "data.S",
+    "syscall-wrappers.cpp",
+    "syscalls-$zircon_cpu.S",
+    "zx_cache_flush.cpp",
+    "zx_channel_call.cpp",
+    "zx_cprng_draw.cpp",
+    "zx_deadline_after.cpp",
+    "zx_futex_wake_handle_close_thread_exit-$zircon_cpu.S",
+    "zx_status_get_string.cpp",
+    "zx_system_get_dcache_line_size.cpp",
+    "zx_system_get_features.cpp",
+    "zx_system_get_num_cpus.cpp",
+    "zx_system_get_physmem.cpp",
+    "zx_system_get_version.cpp",
+    "zx_ticks_get.cpp",
+    "zx_ticks_per_second.cpp",
+    "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
+  ]
+}
