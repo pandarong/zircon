@@ -32,6 +32,10 @@ template("define_toolchain") {
 
     # Define each tool specified by the invoker.
     foreach(tool, invoker.tools) {
+      assert(tool.name != "copy",
+             "define_toolchain() should not include \"copy\" in `tools`")
+      assert(tool.name != "stamp",
+             "define_toolchain() should not include \"stamp\" in `tools`")
       tool(tool.name) {
         forward_variables_from(tool, "*", [ "name" ])
       }
