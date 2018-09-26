@@ -48,20 +48,44 @@ library("object") {
     "vm_address_region_dispatcher.cpp",
     "vm_object_dispatcher.cpp",
     "wait_state_observer.cpp",
-
-    # Tests.
-    "buffer_chain_tests.cpp",
-    "mbuf_tests.cpp",
-    "message_packet_tests.cpp",
-    "state_tracker_tests.cpp",
   ]
-  deps = [
+  deps += [
+    ":tests",
     "$zx/kernel/dev/interrupt",
+    "$zx/kernel/dev/iommu/dummy",
+    "$zx/kernel/dev/pcie",
     "$zx/kernel/dev/udisplay",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/hypervisor",
     "$zx/kernel/lib/oom",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/region-alloc",
+  ]
+  if (current_cpu == "x64") {
+    deps += [ "$zx/kernel/dev/iommu/intel" ]
+  }
+  public_deps = [
+    # <object/pci_device_dispatcher.h> has #include <dev/pci_common.h>
+    "$zx/kernel/dev/pcie:headers",
+
+    # <object/log_dispatcher.h> has #include <lib/debuglog.h>.
+    "$zx/kernel/lib/debuglog:headers",
+
+    # <object/resource_dispatcher.h> has #include <region-alloc/region-alloc.h>.
+    "$zx/system/ulib/region-alloc:headers",
+  ]
+}
+
+source_set("tests") {
+  sources = [
+    "buffer_chain_tests.cpp",
+    "mbuf_tests.cpp",
+    "message_packet_tests.cpp",
+    "state_tracker_tests.cpp",
+  ]
+  deps += [
+    "$zx/kernel/lib/console",
+    "$zx/kernel/lib/unittest",
   ]
 }

@@ -2,11 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("levels.gni")
+
 config_group("compiler") {
   # For GCC, the compiler command implies the target.
   # For Clang, there's a single compiler command that takes `--target`.
   if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
-    compiler_flags = [ "--target=${toolchain.target}" ]
+    compiler_flags = [ "--target=${toolchain.target_tuple}" ]
   }
 
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
@@ -29,11 +31,11 @@ config_group("color_diagnostics") {
   # GCC correctly defaults this from the terminal, so leave it alone.
   if (!is_gcc) {
     compiler_flags = [ "-fcolor-diagnostics" ]
+  }
 
-    # The macOS linker does not support `--color-diagnostics`.
-    if (current_os != "mac") {
-      ldflags += [ "-Wl,--color-diagnostics" ]
-    }
+  # The macOS linker does not support `--color-diagnostics`.
+  if (current_os != "mac") {
+    ldflags = [ "-Wl,--color-diagnostics" ]
   }
 }
 
@@ -69,12 +71,21 @@ config_group("relative_paths") {
   }
 }
 
+config_group("nostdlib") {
+  compiler_flags = [ "-nostdlib" ]
+  if (!is_gcc) {
+    cflags = [ "-nostdlibinc" ]
+  }
+}
+
 config_group("data_sections") {
   cflags = [ "-fdata-sections" ]
 }
 
 config_group("linker_gc") {
-  public_deps = [ ":data_sections" ]
+  public_deps = [
+    ":data_sections",
+  ]
   cflags = [ "-ffunction-sections" ]
   ldflags = cflags
   if (current_os == "mac") {
@@ -124,7 +135,7 @@ config_group("opt_level") {
 
   # TODO(mcgrathr): Kernel can't be built without --gc-sections.
   if (opt_level > 0 || is_kernel) {
-    cflags += [ "-finline-functions" ]
+    compiler_flags += [ "-finline-functions" ]
     public_deps += [ ":linker_gc" ]
   }
 
@@ -158,6 +169,37 @@ config_group("werror") {
 
     # Do not add additional `-Wno-error=...` switches to this config!
   ]
+}
+
+config_group("default_warnings") {
+  cflags = [
+    "-Wall",
+    "-Wextra",
+    "-Wno-multichar",
+    "-Wno-unused-parameter",
+    "-Wno-unused-function",
+    "-Werror=unused-label",
+    "-Werror=return-type",
+  ]
+  cflags_c = [
+    "-Werror=implicit-function-declaration",
+    "-Wstrict-prototypes",
+    "-Wwrite-strings",
+    "-Wconversion",
+    "-Wno-sign-conversion",
+  ]
+  if (is_gcc) {
+    cflags += [
+      "-Wno-nonnull-compare",
+      "-Wno-format-truncation",
+    ]
+  } else {
+    cflags += [
+      "-Wno-address-of-packed-member",
+      "-Wthread-safety",
+      "-Wimplicit-fallthrough",
+    ]
+  }
 }
 
 config_group("icf") {
@@ -195,9 +237,13 @@ config_group("default_include_dirs") {
 
 config_group("default_frame_pointers") {
   if (opt_level < 2) {
-    public_deps = [ ":frame_pointers" ]
+    public_deps = [
+      ":frame_pointers",
+    ]
   } else {
-    public_deps = [ ":no_frame_pointers" ]
+    public_deps = [
+      ":no_frame_pointers",
+    ]
   }
 }
 

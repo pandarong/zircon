@@ -18,11 +18,19 @@ library("pcie") {
     "pcie_root.cpp",
     "pcie_upstream_node.cpp",
   ]
-  deps = [
+  deps += [
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/pci",
     "$zx/system/ulib/region-alloc",
     "$zx/system/ulib/zxcpp",
+  ]
+  public_deps = [
+    # <dev/pcie_platform.h> has #include <dev/interrupt.h>.
+    "$zx/kernel/dev/interrupt:headers",
+
+    # <dev/pcie_bus_driver.h> has #include <region-alloc/region-alloc.h>.
+    "$zx/system/ulib/region-alloc:headers",
   ]
 
   # TODO(mcgrathr): Say why this is needed.

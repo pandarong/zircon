@@ -4,16 +4,14 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-library("udisplay") {
+library("page_tables") {
   kernel = true
   sources = [
-    "udisplay.cpp",
+    "page_tables.cpp",
   ]
-  deps += [
-    "$zx/kernel/lib/crashlog",
-    "$zx/kernel/lib/debuglog",
-    "$zx/kernel/lib/fbl",
-    "$zx/kernel/lib/gfx",
-    "$zx/kernel/lib/gfxconsole",
+  deps += [ "$zx/kernel/lib/fbl" ]
+  public_deps = [
+    # <arch/x86/page_tables/page_tables.h> has #include <hwreg/bitfields.h>.
+    "$zx/system/ulib/hwreg:headers",
   ]
 }

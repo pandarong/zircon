@@ -4,14 +4,16 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-source_set("top") {
+library("cksum") {
+  kernel = true
+  static = true
+  host = true
+
   sources = [
-    "init.cpp",
-    "main.cpp",
+    "adler32.c",
+    "crc16.c",
+    "crc32.c",
   ]
-  deps += [
-    "$zx/kernel/kernel",
-    "$zx/kernel/platform",
-    "$zx/kernel/target",
-  ]
+
+  cflags = [ "-Wno-strict-prototypes" ]
 }

@@ -20,7 +20,11 @@ standard_configs = [
 ]
 
 # Additional configs apply to code built for Fuchsia but not to host code.
-standard_fuchsia_configs = [ "$zx/public/gn/config:werror" ]
+standard_fuchsia_configs = [
+  "$zx/public/gn/config:default_warnings",
+  "$zx/public/gn/config:nostdlib",
+  "$zx/public/gn/config:werror",
+]
 
 # Additional configs apply only to code built into shared libraries.
 # This means everything in a ${toolchain.shlib} toolchain, not just code

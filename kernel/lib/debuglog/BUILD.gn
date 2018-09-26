@@ -9,7 +9,8 @@ library("debuglog") {
   sources = [
     "debuglog.cpp",
   ]
-  deps = [
+  deps += [
+    "$zx/kernel/dev/udisplay:headers",
     "$zx/kernel/lib/crashlog",
     "$zx/kernel/lib/version",
   ]

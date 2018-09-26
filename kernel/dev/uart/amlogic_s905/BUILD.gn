@@ -8,7 +8,7 @@ source_set("amlogic_s905") {
   sources = [
     "uart.c",
   ]
-  deps = [
+  deps += [
     "$zx/kernel/dev/pdev",
     "$zx/kernel/dev/pdev/uart",
   ]

@@ -82,7 +82,7 @@ template("define_c_toolchain") {
   if (tc.tool_dir == "") {
     dir_prefix = ""
   } else {
-    dir_prefix = "${tc.tool_dir}/"
+    dir_prefix = rebase_path(tc.tool_dir, root_build_dir) + "/"
   }
 
   cc = "$compiler_prefix$dir_prefix$cc"
@@ -188,7 +188,6 @@ template("define_c_toolchain") {
     toolchain_args = {
       current_cpu = invoker.cpu
       current_os = invoker.os
-      target_tuple = tc_target
 
       if (defined(invoker.toolchain_args)) {
         forward_variables_from(invoker.toolchain_args,
@@ -215,6 +214,7 @@ template("define_c_toolchain") {
 
         # This gets `tool_dir` et al as expected by c_utils.gni (set above).
         forward_variables_from(tc, "*")
+        target_tuple = tc_target
 
         if (defined(invoker.toolchain_vars)) {
           forward_variables_from(invoker.toolchain_vars, "*")

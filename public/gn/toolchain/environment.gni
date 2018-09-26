@@ -77,8 +77,6 @@ template("define_environment") {
           environment = environment
           environment_label = environment_label
 
-          forward_variables_from(invoker, [ "imports" ])
-
           # This is used by $zx/public/gn/buildconfig/targets.gni.  The
           # labels must be absolute since they will be used all over in the
           # new toolchain, not just where the define_environment() is.
@@ -86,13 +84,18 @@ template("define_environment") {
           foreach(label, tc.public_deps) {
             public_deps += [ get_label_info(label, "label_no_toolchain") ]
           }
+
+          if (defined(invoker.globals)) {
+            globals = invoker.globals
+          }
+
           if (defined(invoker.toolchain_vars)) {
             forward_variables_from(invoker.toolchain_vars,
                                    "*",
                                    [
                                      "environment",
                                      "environment_label",
-                                     "imports",
+                                     "globals",
                                      "public_deps",
                                      "shlib",
                                    ])
@@ -104,7 +107,6 @@ template("define_environment") {
 }
 
 set_defaults("define_environment") {
-  imports = standard_imports
   public_deps = standard_configs
   shlib_public_deps = standard_shlib_configs
 }

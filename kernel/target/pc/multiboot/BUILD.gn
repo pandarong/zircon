@@ -4,10 +4,24 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-# The Multiboot trampoline gets its own toolchain to build x86-32 code.
-multiboot_toolchain = get_label_info(":x64-multiboot", "label_no_toolchain")
+import("$zx/public/gn/toolchain/environment.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
 
-if (current_toolchain == multiboot_toolchain) {
+# The Multiboot trampoline gets its own toolchain to build x86-32 code.
+if (current_toolchain == default_toolchain) {
+  # Define the special toolchain itself only in the default toolchain.
+  define_environment("multiboot") {
+    cpu = "x64"
+    os = "multiboot"
+    public_deps += [
+      ":multiboot_config",
+      "$zx/kernel:kernel_config",
+    ]
+    globals = {
+      is_kernel = true
+    }
+  }
+} else if (toolchain.environment == "multiboot") {
   # This is the top config for all code in the multiboot_toolchain.
   config_group("multiboot_config") {
     public_deps = [
@@ -32,11 +46,13 @@ if (current_toolchain == multiboot_toolchain) {
   # stripped ELF/Multiboot image.
   executable("multiboot") {
     output_extension = "bin"
-    metadata = {
-      image_files = [ "$root_out_dir/$target_name.$output_extension" ]
-      images = {
-        name = "multiboot"
-        path = rebase_path(image_files[0], root_build_dir)
+    if (false) {  # TODO: later
+      metadata = {
+        image_files = [ "$root_out_dir/$target_name.$output_extension" ]
+        images = {
+          name = "multiboot"
+          path = rebase_path(image_files[0], root_build_dir)
+        }
       }
     }
     sources = [
@@ -46,10 +62,10 @@ if (current_toolchain == multiboot_toolchain) {
       "trampoline.c",
       "util.c",
     ]
-    deps = [
+    deps += [
       "$zx/kernel/arch/x86/page_tables:headers",
       "$zx/kernel/platform/pc:headers",
-      "$zx/system/ulib/zbi",
+      "$zx/system/ulib/libzbi",
     ]
     ldflags = [
       "-T",
@@ -61,22 +77,10 @@ if (current_toolchain == multiboot_toolchain) {
   }
 } else {
   # In any other toolchain, just redirect to the proper toolchain.
-  group("multiboot") {
-    public_deps = [
-      ":multiboot($multiboot_toolchain)",
+  select_toolchain("multiboot") {
+    environment_label = ":multiboot"
+    deps = [
+      ":multiboot",
     ]
-  }
-
-  # Define the special toolchain itself only in the default toolchain.
-  if (current_toolchain == default_tooclhain) {
-    define_environment("multiboot") {
-      cpu = "x64"
-      os = "multiboot"
-      public_deps += [ ":multiboot_config" ]
-      globals = {
-        is_kernel = true
-      }
-      targets = [ ":multiboot" ]
-    }
   }
 }

@@ -6,6 +6,7 @@
 
 import("$zx/kernel/params.gni")
 
+# This is used pervasively throughout the kernel on x86.
 config_group("kernel") {
   cflags = [
     "-mno-red-zone",
@@ -36,10 +37,31 @@ config_group("kernel") {
     cflags += [ "-mcmodel=kernel" ]
   }
 
-  defines = [ "ARCH_X86" ]
+  defines = [
+    "ARCH_X86",
+    "KERNEL_ASPACE_BASE=0xffffff8000000000UL",  # -512GB
+    "KERNEL_ASPACE_SIZE=0x0000008000000000UL",
+
+    "USER_ASPACE_BASE=0x0000000001000000UL",  # 16MB
+
+    # We set the top of user address space to be (1 << 47) - 4k.  See
+    # docs/sysret_problem.md for why we subtract 4k here.  Subtracting
+    # USER_ASPACE_BASE from that value gives the value for USER_ASPACE_SIZE
+    # below.
+    "USER_ASPACE_SIZE=0x00007ffffefff000UL",
+  ]
+
+  # For #include <arch/foo.h>.
+  include_dirs = [ "include" ]
+
+  public_deps = [
+    # <arch/aspace.h> has #include <arch/x86/ioport.h>.
+    ":headers",
+  ]
 }
 
-library("arm64") {
+library("x86") {
+  kernel = true
   sources = [
     "acpi.S",
     "arch.cpp",
@@ -61,7 +83,6 @@ library("arm64") {
     "mexec.S",
     "mmu.cpp",
     "mmu_mem_types.cpp",
-    "mmu_tests.cpp",
     "mp.cpp",
     "ops.S",
     "perf_mon.cpp",
@@ -77,14 +98,42 @@ library("arm64") {
     "user_copy.cpp",
     "uspace_entry.S",
   ]
-  deps = [
+  deps += [
+    ":tests",
+    "$zx/kernel/dev/hw_rng",
     "$zx/kernel/dev/iommu/dummy",
     "$zx/kernel/dev/iommu/intel",
-    "$zx/kernel/lib/bitmap",
     "$zx/kernel/lib/code_patching",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/crashlog",
     "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/pci",
     "$zx/kernel/object",
-    "page_tables",
+    "$zx/system/ulib/bitmap",
   ]
+  public_deps = [
+    "page_tables:headers",
+
+    # arch/x86/apic.h has #include <dev/interrupt.h>.
+    "$zx/kernel/dev/interrupt:headers",
+
+    # arch/x86/hypervisor.h has #include <hypervisor/guest_physical_address_space.h>.
+    "$zx/kernel/lib/hypervisor:headers",
+
+    # <arch/aspace.h> has #include <bitmap/rle-bitmap.h>.
+    "$zx/system/ulib/bitmap:headers",
+
+    # <arch/aspace.h> has #include <fbl/unique_ptr.h>.
+    "$zx/system/ulib/fbl:headers",
+
+    # <arch/x86/acpi.h> has #include <acpica/acpi.h>.
+    "$zx/third_party/lib/acpica:headers",
+  ]
+}
+
+source_set("tests") {
+  sources = [
+    "mmu_tests.cpp",
+  ]
+  deps += [ "$zx/kernel/lib/unittest" ]
 }

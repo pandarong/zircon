@@ -16,13 +16,20 @@ library("version") {
   sources = [
     "version.cpp",
   ]
-  include_dirs = [ target_gen_dir ]
-  deps = [
-    ":gen-config-buildid-header",
+  deps += [
+    ":config-buildid-header",
+    "$zx/kernel/lib/console",
   ]
   if (kernel_version_string != "") {
     defines = [ "BUILDID='\"$kernel_version_string\"'" ]
   }
+}
+
+config_group("config-buildid-header") {
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-config-buildid-header",
+  ]
 }
 
 action("gen-config-buildid-header") {
