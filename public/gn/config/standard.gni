@@ -34,15 +34,6 @@ standard_shlib_configs = [
   "$zx/public/gn/config:no_undefined_symbols",
 ]
 
-# These `.gni` files are imported into the global environment in all
-# code-building toolchains to define the pervasive globals, templates,
-# and default parameters.
-standard_imports = [
-  "$zx/public/gn/buildconfig/is.gni",
-  "$zx/public/gn/buildconfig/targets.gni",
-  "$zx/public/gn/buildconfig/zircon_cpu.gni",
-]
-
 # All the $current_cpu values that `current_os == "fuchsia"` supports.
 standard_fuchsia_cpus = [
   "arm64",
