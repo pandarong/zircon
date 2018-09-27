@@ -237,7 +237,7 @@ config_group("default_include_dirs") {
 }
 
 config_group("default_frame_pointers") {
-  if (opt_level < 2) {
+  if (true || opt_level < 2) {
     public_deps = [
       ":frame_pointers",
     ]
@@ -263,6 +263,20 @@ config_group("thread_safety_annotations") {
     cflags = [ "-Wthread-safety" ]
     defines = [ "_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS=1" ]
   }
+}
+
+config_group("no_stack_protector") {
+  cflags = [ "-fno-stack-protector" ]
+}
+
+config_group("no_safestack") {
+  cflags = [ "-fno-sanitize=safe-stack" ]
+  public_deps = [ ":no_stack_protector" ]
+}
+
+config_group("no_sanitizers") {
+  cflags = [ "-fno-sanitize=all" ]
+  public_deps = [ ":no_stack_protector" ]
 }
 
 # Compile code appropriately to be linked into a shared library.
