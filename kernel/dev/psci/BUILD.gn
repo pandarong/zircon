@@ -9,4 +9,8 @@ library("psci") {
   sources = [
     "psci.c",
   ]
+  deps += [
+    "$zx/kernel/dev/pdev",
+    "$zx/kernel/lib/console",
+  ]
 }

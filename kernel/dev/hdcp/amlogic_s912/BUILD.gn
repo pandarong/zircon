@@ -9,6 +9,8 @@ source_set("amlogic_s912") {
     "hdcp.c",
   ]
   deps += [
+    "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/pdev",
+    "$zx/kernel/lib/cbuf",
   ]
 }

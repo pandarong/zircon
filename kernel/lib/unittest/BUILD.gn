@@ -10,6 +10,5 @@ library("unittest") {
     "unittest.cpp",
     "user_memory.cpp",
   ]
-  cflags = [ "-Wno-format-nonliteral" ]
   deps += [ "$zx/kernel/lib/console" ]
 }

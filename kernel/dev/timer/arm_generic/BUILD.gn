@@ -10,6 +10,8 @@ library("arm_generic") {
     "arm_generic_timer.cpp",
   ]
   deps += [
+    "$zx/kernel/dev/interrupt",
+    "$zx/kernel/dev/pdev",
     "$zx/kernel/lib/fixed_point",
   ]
 }

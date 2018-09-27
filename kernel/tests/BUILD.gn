@@ -28,8 +28,10 @@ source_set("tests") {
   deps += [
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
+    "$zx/kernel/lib/debuglog",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/header_tests",
     "$zx/kernel/lib/unittest",
+    "$zx/kernel/object",
   ]
 }
