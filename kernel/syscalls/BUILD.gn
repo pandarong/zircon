@@ -4,6 +4,8 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/public/gn/host_tool_action.gni")
+
 source_set("syscalls") {
   sources = [
     "channel.cpp",
@@ -33,7 +35,10 @@ source_set("syscalls") {
     "zircon.cpp",
   ]
   deps += [
+    ":syscall-numbers",
+
     #":generate-vdso-valid-sysret",
+
     "$zx/kernel/dev/udisplay",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
@@ -49,4 +54,35 @@ source_set("syscalls") {
   if (current_cpu == "x64") {
     deps += [ "$zx/kernel/platform/pc" ]
   }
+}
+
+config_group("syscall-numbers") {
+  visibility = [
+    ":*",
+    "$zx/kernel/arch/$zircon_cpu",
+    "$zx/system/ulib/zircon",
+    "$zx/system/utest/core/bad-syscall",
+  ]
+
+  include_dirs = [ target_gen_dir ]
+
+  deps = [
+#    ":generate-syscall-numbers",
+  ]
+}
+
+host_tool_action("generate-syscall-numbers") {
+  visibility = [ ":syscall-numbers" ]
+  tool = "$zx/system/host/abigen"
+  sources = [
+    "$zx/system/public/zircon/syscalls.abigen",
+  ]
+  outputs = [
+    "$target_gen_dir/zircon/zx-syscall-numbers.h",
+  ]
+  args = [
+    "-numbers",
+    rebase_path(outputs[0], root_build_dir),
+    rebase_path(sources[0], root_build_dir),
+  ]
 }
