@@ -26,6 +26,7 @@ if (current_toolchain == default_toolchain) {
       "$zx/kernel:warnings",
       "$zx/kernel/arch/x86:kernel",
       "$zx/kernel/lib/libc:headers",
+      "$zx/public/gn/config:no_sanitizers",
     ]
     cflags = [
       "-m32",
