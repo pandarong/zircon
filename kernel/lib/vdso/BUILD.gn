@@ -4,6 +4,9 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/kernel/syscalls/abigen.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
 library("vdso") {
   kernel = true
   sources = [
@@ -22,12 +25,15 @@ library("vdso") {
   #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
   include_dirs = [ target_gen_dir ]
   deps += [
-    #":gen-vdso-code-header",
+    ":gen-categories",
+    ":gen-vdso-code-header",
     ":rodso",
     "$zx/kernel/lib/version:config-buildid-header",
     "$zx/system/ulib/fbl",
   ]
   public_deps = [
+    ":vdso-valid-sysret",
+
     # <lib/rodso.h> has #include <object/handle.h>.
     "$zx/kernel/object",
   ]
@@ -40,15 +46,71 @@ source_set("rodso") {
   deps += [ ":headers" ]
 }
 
+config_group("vdso-valid-sysret") {
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-vdso-valid-sysret",
+  ]
+}
+
+action("gen-vdso-valid-sysret") {
+  visibility = [ ":*" ]
+
+  # TODO(mcgrathr): Move the script to this dir.
+  script = "$zx/scripts/gen-vdso-valid-sysret.sh"
+  sources = [
+    "$target_gen_dir/vdso-code.h",
+  ]
+  outputs = [
+    "$target_gen_dir/vdso-valid-sysret.h",
+  ]
+  args = rebase_path(sources + outputs)
+  deps = [
+    ":gen-vdso-code-header",
+  ]
+}
+
+# Redirect to the userland vDSO shared library target.
+select_toolchain("userland") {
+  visibility = [ ":*" ]
+  environment_label = "$zx/public/gn/toolchain:user"
+  deps = [
+    "$zx/system/ulib/zircon",
+  ]
+}
+
 if (false) {
   # This generated header file tells the vdso.cpp code
   # where the segment boundaries and entry points are.
   rodso_code_header("gen-vdso-code-header") {
+    visibility = [ ":*" ]
     outputs = [
       "$target_gen_dir/vdso-code.h",
     ]
     deps = [
-      "$zx/system/ulib/zircon",
+      ":userland",
     ]
   }
+} else {
+  action("gen-vdso-code-header") {
+    outputs = [
+      "$target_gen_dir/vdso-code.h",
+    ]
+    script = "/bin/true"
+    deps = [
+      ":userland",
+    ]
+  }
+}
+
+abigen("gen-categories") {
+  visibility = [ ":*" ]
+  gen = [
+    {
+      args = [ "-category" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-category.inc",
+      ]
+    },
+  ]
 }

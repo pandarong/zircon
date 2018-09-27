@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-import("$zx/public/gn/host_tool_action.gni")
+import("abigen.gni")
 
 source_set("syscalls") {
   sources = [
@@ -24,7 +24,6 @@ source_set("syscalls") {
     "profile.cpp",
     "resource.cpp",
     "socket.cpp",
-    "syscalls.cpp",
     "system.cpp",
     "system_${zircon_cpu}.cpp",
     "task.cpp",
@@ -35,17 +34,14 @@ source_set("syscalls") {
     "zircon.cpp",
   ]
   deps += [
-    ":syscall-numbers",
-
-    #":generate-vdso-valid-sysret",
-
+    ":dispatch",
+    ":syscall-abi",
     "$zx/kernel/dev/udisplay",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/pci",
     "$zx/kernel/lib/user_copy",
-    "$zx/kernel/lib/vdso",
     "$zx/kernel/object",
     "$zx/system/ulib/explicit-memory",
     "$zx/system/ulib/libzbi",
@@ -56,7 +52,18 @@ source_set("syscalls") {
   }
 }
 
-config_group("syscall-numbers") {
+# Only this file depends on vdso-valid-sysret.h.
+source_set("dispatch") {
+  sources = [
+    "syscalls.cpp",
+  ]
+  deps += [
+    ":syscall-abi",
+    "$zx/kernel/lib/vdso",
+  ]
+}
+
+config_group("syscall-abi") {
   visibility = [
     ":*",
     "$zx/kernel/arch/$zircon_cpu",
@@ -67,22 +74,36 @@ config_group("syscall-numbers") {
   include_dirs = [ target_gen_dir ]
 
   deps = [
-    #":generate-syscall-numbers",
+    #":generate-syscall-abi",
   ]
 }
 
-host_tool_action("generate-syscall-numbers") {
-  visibility = [ ":syscall-numbers" ]
-  tool = "$zx/system/host/abigen"
-  sources = [
-    "$zx/system/public/zircon/syscalls.abigen",
-  ]
-  outputs = [
-    "$target_gen_dir/zircon/zx-syscall-numbers.h",
-  ]
-  args = [
-    "-numbers",
-    rebase_path(outputs[0], root_build_dir),
-    rebase_path(sources[0], root_build_dir),
+abigen("generate-syscall-abi") {
+  visibility = [ ":syscall-abi" ]
+  gen = [
+    {
+      args = [ "-numbers" ]
+      outputs = [
+        "$target_gen_dir/zircon/zx-syscall-numbers.h",
+      ]
+    },
+    {
+      args = [ "-kernel-header" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-definitions.h",
+      ]
+    },
+    {
+      args = [ "-kernel-wrappers" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-kernel-wrappers.inc",
+      ]
+    },
+    {
+      args = [ "-kernel-branch" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-kernel-branches.S",
+      ]
+    },
   ]
 }

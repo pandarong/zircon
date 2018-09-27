@@ -33,6 +33,9 @@ template("define_environment") {
     toolchain_base_name += "-${invoker.os}"
   }
 
+  # This will be seen by define_c_toolchain() below.
+  shlib = defined(invoker.shlib) && invoker.shlib
+
   # TODO: real variants.  For now, the only variant is "clang".
   live_variants = [ "clang" ]
 
@@ -49,14 +52,16 @@ template("define_environment") {
       {
         name = "${toolchain_base_name}-${variant}"
         public_deps = invoker.public_deps
+        if (shlib) {
+          shlib_name = "${name}.shlib"
+        }
       },
     ]
-    if (defined(invoker.shlib) && invoker.shlib) {
-      # This will be seen by define_c_toolchain, below.
-      shlib = "${toolchains[0]}-shlib"
+    if (shlib) {
       toolchains += [
         {
-          name = shlib
+          name = "${toolchain_base_name}-${variant}.shlib"
+          shlib_name = name
           public_deps = invoker.public_deps + invoker.shlib_public_deps
         },
       ]
@@ -76,6 +81,10 @@ template("define_environment") {
           # will identify the environment within its own toolchains.
           environment = environment
           environment_label = environment_label
+
+          if (defined(tc.shlib_name)) {
+            shlib = get_label_info(":${tc.shlib_name}", "label_no_toolchain")
+          }
 
           # This is used by $zx/public/gn/buildconfig/targets.gni.  The
           # labels must be absolute since they will be used all over in the

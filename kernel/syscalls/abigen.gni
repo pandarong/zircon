@@ -1,0 +1,32 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/public/gn/host_tool_action.gni")
+
+template("abigen") {
+  action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
+                             "visibility",
+                           ])
+
+    #tool = "$zx/system/host/abigen"
+    script = "/bin/true"
+
+    outputs = []
+    args = []
+    foreach(gen, invoker.gen) {
+      outputs += gen.outputs
+      args += gen.args + rebase_path(gen.outputs, root_build_dir)
+    }
+
+    sources = [
+      "$zx/system/public/zircon/syscalls.abigen",
+    ]
+    args += rebase_path(sources, root_build_dir)
+  }
+}
