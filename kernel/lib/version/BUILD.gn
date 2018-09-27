@@ -16,20 +16,27 @@ library("version") {
   sources = [
     "version.cpp",
   ]
+  defines = [
+    "ARCH=\"$zircon_cpu\"",
+    "PROJECT=\"$current_cpu\"",
+    "PLATFORM=\"XXX\"",
+    "TARGET=\"XXX\"",
+  ]
   deps += [
     ":config-buildid-header",
     "$zx/kernel/lib/console",
   ]
-  if (kernel_version_string != "") {
-    defines = [ "BUILDID='\"$kernel_version_string\"'" ]
-  }
 }
 
 config_group("config-buildid-header") {
-  include_dirs = [ target_gen_dir ]
-  deps = [
-    ":gen-config-buildid-header",
-  ]
+  if (kernel_version_string != "") {
+    defines = [ "BUILDID='\"$kernel_version_string\"'" ]
+  } else {
+    include_dirs = [ target_gen_dir ]
+    deps = [
+      ":gen-config-buildid-header",
+    ]
+  }
 }
 
 action("gen-config-buildid-header") {

@@ -12,11 +12,7 @@ if (current_toolchain == default_toolchain) {
   # Define the special toolchain itself only in the default toolchain.
   define_environment("multiboot") {
     cpu = "x64"
-    os = "multiboot"
-    public_deps += [
-      ":multiboot_config",
-      "$zx/kernel:kernel_config",
-    ]
+    public_deps += standard_fuchsia_configs + [ ":multiboot_config" ]
     globals = {
       is_kernel = true
     }
@@ -25,8 +21,8 @@ if (current_toolchain == default_toolchain) {
   # This is the top config for all code in the multiboot_toolchain.
   config_group("multiboot_config") {
     public_deps = [
-      "$zx/kernel:standalone",
-      "$zx/kernel:warnings",
+      "$zx/kernel:kernel_config",
+      "$zx/kernel/lib/libc:headers",
     ]
     cflags = [
       "-m32",
@@ -67,10 +63,7 @@ if (current_toolchain == default_toolchain) {
       "$zx/kernel/platform/pc:headers",
       "$zx/system/ulib/libzbi",
     ]
-    ldflags = [
-      "-T",
-      "multiboot.ld",
-    ]
+    ldflags = [ "-Wl,-T," + rebase_path("multiboot.ld", root_build_dir) ]
     inputs = [
       "multiboot.ld",
     ]

@@ -10,6 +10,7 @@ source_set("generic-arm") {
   ]
   deps += [
     "$zx/kernel/dev/hdcp/amlogic_s912",
+    "$zx/kernel/dev/hw_rng",
     "$zx/kernel/dev/interrupt/arm_gic/common",
     "$zx/kernel/dev/interrupt/arm_gic/v2",
     "$zx/kernel/dev/interrupt/arm_gic/v3",
@@ -23,9 +24,11 @@ source_set("generic-arm") {
     "$zx/kernel/dev/uart/nxp-imx",
     "$zx/kernel/dev/uart/pl011",
     "$zx/kernel/lib/cbuf",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/lockdep",
     "$zx/kernel/lib/memory_limit",
+    "$zx/kernel/object",
     "$zx/system/ulib/libzbi",
   ]
 }

@@ -34,6 +34,8 @@ library("libc") {
     "$zx/kernel/lib/heap:headers",
   ]
 
-  # Avoid circularity.
-  deps -= [ get_label_info(":headers", "label_no_toolchain") ]
+  if (toolchain.environment == "kernel") {
+    # Avoid circularity.
+    deps -= [ get_label_info(":headers", "label_no_toolchain") ]
+  }
 }

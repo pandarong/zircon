@@ -20,12 +20,14 @@ source_set("kernel") {
     "wait.cpp",
   ]
   deps += [
+    "$zx/kernel/dev/interrupt",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/counters",
     "$zx/kernel/lib/debug",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/heap",
     "$zx/kernel/lib/libc",
+    "$zx/kernel/object",
     "$zx/kernel/vm",
     "$zx/system/ulib/explicit-memory",
     "$zx/system/ulib/zircon-internal",
