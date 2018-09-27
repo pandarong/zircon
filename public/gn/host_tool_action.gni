@@ -1,0 +1,81 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+template("_host_tool_action_target") {
+  action_target = target_name
+
+  assert(defined(invoker.tool), "tool must be defined for $target_name")
+  assert(defined(invoker.outputs), "outputs must be defined for $target_name")
+  assert(defined(invoker.args), "args must be defined for $target_name")
+
+  # Dispatch to a host toolchain to get the tool built.
+  select_toolchain("_tool.$action_target") {
+    visibility = [ ":$action_target" ]
+    cpu = host_cpu
+    os = host_os
+    deps = [
+      invoker.tool,
+    ]
+  }
+
+  target(invoker._target_type, action_target) {
+    forward_variables_from(invoker,
+                           [
+                             "depfile",
+                             "deps",
+                             "inputs",
+                             "outputs",
+                             "public_deps",
+                             "sources",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (!defined(deps)) {
+      deps = []
+    }
+    if (!defined(inputs)) {
+      inputs = []
+    }
+
+    deps += [ ":_tool.$action_target" ]
+
+    # TODO
+    if (false) {
+      script = get_metadata([ "_tool.$action_target" ],
+                            [ "host_tool_action_script" ],
+                            [ "host_tool_barrier" ])
+      inputs += [ get_metadata([ "_tool.$action_target" ],
+                               [ "host_tool_action_inputs" ],
+                               [ "host_tool_barrier" ]) ]
+      args = [ get_metadata([ "_tool.$action_target" ],
+                            [ "host_tool_action_args" ],
+                            [ "host_tool_barrier" ]) ]
+    } else {
+      _host_toolchain = "$zx/public/gn/toolchain:host-$host_cpu-$host_os-clang"
+      tool_out_dir = get_label_info("${invoker.tool}($_host_toolchain)",
+                                    "target_out_dir")
+      script = "$tool_out_dir/" +
+               get_label_info("${invoker.tool}($_host_toolchain)", "name")
+      args = []
+    }
+
+    args += invoker.args
+  }
+}
+
+template("host_tool_action") {
+  _host_tool_action_target(target_name) {
+    _target_type = "action"
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("host_tool_action_foreach") {
+  _host_tool_action_target(target_name) {
+    _target_type = "action_foreach"
+    forward_variables_from(invoker, "*")
+  }
+}
