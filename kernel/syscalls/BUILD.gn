@@ -67,7 +67,7 @@ config_group("syscall-numbers") {
   include_dirs = [ target_gen_dir ]
 
   deps = [
-    ":generate-syscall-numbers",
+    #":generate-syscall-numbers",
   ]
 }
 

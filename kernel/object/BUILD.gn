@@ -85,6 +85,7 @@ source_set("tests") {
     "state_tracker_tests.cpp",
   ]
   deps += [
+    ":headers",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/unittest",
   ]

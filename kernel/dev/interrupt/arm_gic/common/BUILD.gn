@@ -10,4 +10,5 @@ library("common") {
     "arm_gic_common.cpp",
     "arm_gic_hw_interface.cpp",
   ]
+  deps += [ "$zx/kernel/dev/interrupt" ]
 }

@@ -27,6 +27,10 @@ library("vdso") {
     "$zx/kernel/lib/version:config-buildid-header",
     "$zx/system/ulib/fbl",
   ]
+  public_deps = [
+    # <lib/rodso.h> has #include <object/handle.h>.
+    "$zx/kernel/object",
+  ]
 }
 
 source_set("rodso") {

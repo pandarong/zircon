@@ -11,5 +11,6 @@ source_set("hisi") {
   deps += [
     "$zx/kernel/dev/pdev",
     "$zx/kernel/dev/pdev/power",
+    "$zx/kernel/dev/psci",
   ]
 }

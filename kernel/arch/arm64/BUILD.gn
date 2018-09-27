@@ -60,6 +60,7 @@ library("arm64") {
   ]
   deps += [
     "$zx/kernel/dev/iommu/dummy",
+    "$zx/kernel/lib/console",
     "$zx/kernel/lib/crashlog",
     "$zx/kernel/object",
     "$zx/system/ulib/bitmap",

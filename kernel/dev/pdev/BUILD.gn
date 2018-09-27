@@ -9,4 +9,8 @@ library("pdev") {
   sources = [
     "pdev.c",
   ]
+  public_deps = [
+    # <pdev/interrupt.h> has #include <dev/interrupt.h>.
+    "$zx/kernel/dev/interrupt",
+  ]
 }

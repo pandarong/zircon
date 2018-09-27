@@ -21,7 +21,7 @@ if [ $# -eq 1 ]; then
   cat > "$1.new" <<END
 #ifndef __BUILDID_H
 #define __BUILDID_H
-#define ${GIT_REV}
+#define BUILDID "${GIT_REV}"
 #endif
 END
   # Update the existing file only if it's changed.

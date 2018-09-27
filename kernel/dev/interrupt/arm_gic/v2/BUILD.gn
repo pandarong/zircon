@@ -7,14 +7,15 @@
 library("v2") {
   kernel = true
   sources = [
-    "arm_gicv2.c",
-    "arm_gicv2m.c",
-    "arm_gicv2m_msi.c",
+    "arm_gicv2.cpp",
+    "arm_gicv2m.cpp",
+    "arm_gicv2m_msi.cpp",
     "arm_gicv2m_pcie.cpp",
   ]
   deps += [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/interrupt/arm_gic/common",
+    "$zx/kernel/dev/pcie",
     "$zx/kernel/dev/pdev",
     "$zx/kernel/dev/pdev/interrupt",
     "$zx/kernel/lib/pow2_range_allocator",
