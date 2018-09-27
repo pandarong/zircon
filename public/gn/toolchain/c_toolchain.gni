@@ -176,12 +176,46 @@ template("define_c_toolchain") {
       },
 
       {
-        name = "link"
-        description = "LINK {{output}}"
         forward_variables_from(_link_common, "*")
+        name = "link"
+        description = "LINK $outfile"
+
         command = "$ld $switches $link_inputs $link_libs"
       },
     ]
+
+    if (defined(invoker.shlib) && invoker.shlib) {
+      # TODO: strip
+
+      tools += [
+        {
+          forward_variables_from(_link_common, "*")
+
+          name = "solink"
+          description = "LINK_SHLIB $outfile"
+
+          output_prefix = "lib"
+          soname = "${output_prefix}{{target_output_name}}{{output_extension}}"
+
+          # Put the automatic -soname first so that ldflags can override it.
+          switches = "-shared -Wl,-soname,$soname $switches"
+
+          command = "$ld $switches $link_inputs $link_libs"
+
+          # TODO: abi stubs
+        },
+
+        {
+          forward_variables_from(_link_common, "*")
+
+          name = "solink_module"
+          description = "LINK_MODULE $outfile"
+
+          switches = "-shared $switches"
+          command = "$ld $switches $link_inputs $link_libs"
+        },
+      ]
+    }
 
     forward_variables_from(invoker, [ "deps" ])
 
