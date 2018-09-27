@@ -237,33 +237,16 @@ template("library") {
     "shared",
     "static",
   ]
+  assert(host || kernel || static || shared,
+         "library(\"$target_name\") must build somewhere!")
 
   # Not all of these will be referenced in all toolchains.
   not_needed(_library_params)
 
-  config_group("${_library_name}.headers") {
-    include_dirs = [ "include" ]
-    forward_variables_from(invoker,
-                           [
-                             "public_deps",
-                             "testonly",
-                             "visibility",
-                           ])
-    if (defined(visibility)) {
-      if (is_kernel) {
-        visibility += [ _library_name ]
-      } else {
-        visibility += [
-          ":${_library_name}.sources",
-          ":${_library_name}.static",
-          ":${_library_name}.shared",
-        ]
-      }
-    }
-  }
-
+  targets = false
   if (is_kernel) {
     if (kernel) {
+      targets = true
       source_set(_library_name) {
         forward_variables_from(invoker, "*", _library_params)
         if (!defined(public_deps)) {
@@ -274,6 +257,7 @@ template("library") {
     }
   } else if (is_host) {
     if (host) {
+      targets = true
       static_library(_library_name) {
         forward_variables_from(invoker, "*", _library_params)
         if (!defined(public_deps)) {
@@ -283,14 +267,16 @@ template("library") {
       }
     }
   } else if (static || shared) {
+    targets = true
     source_set("${_library_name}._sources") {
       visibility = [
-        "${_library_name}.static",
-        "${_library_name}.shared",
+        ":${_library_name}.static",
+        ":${_library_name}.shared",
       ]
       forward_variables_from(invoker,
                              "*",
                              _library_params + [
+                                   "install_path",
                                    "public_deps",
                                    "visibility",
                                  ])
@@ -314,6 +300,8 @@ template("library") {
       }
     }
     if (shared) {
+      #TODO
+      not_needed(invoker, [ "install_path" ])
       shared_library("${_library_name}.shared") {
         forward_variables_from(invoker,
                                [
@@ -343,6 +331,37 @@ template("library") {
       } else {
         public_deps = [
           ":${_library_name}.static",
+        ]
+      }
+    }
+  }
+
+  if (!targets) {
+    # In this toolchain there are no actual targets, only the headers.
+    not_needed(invoker, "*")
+  }
+
+  config_group("${_library_name}.headers") {
+    include_dirs = [ "include" ]
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
+                             "visibility",
+                           ])
+    if (targets) {
+      # If this is within a toolchain where this library is built, then
+      # the public_deps apply normally.  If this is a cross-toolchain
+      # dependency on headers, it's only for include_dirs.
+      forward_variables_from(invoker, [ "public_deps" ])
+    }
+    if (defined(visibility)) {
+      if (is_kernel) {
+        visibility += [ _library_name ]
+      } else {
+        visibility += [
+          ":${_library_name}.sources",
+          ":${_library_name}.static",
+          ":${_library_name}.shared",
         ]
       }
     }
@@ -412,7 +431,7 @@ template("host_tool") {
   }
 }
 
-if (false){
+if (false) {
   # Just wrap these to inject assert_no_legacy_configs().
   foreach(target_type,
           [

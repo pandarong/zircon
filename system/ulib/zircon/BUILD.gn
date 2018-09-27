@@ -4,15 +4,22 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-# TODO(mcgrathr): Rename the source files.
+import("$zx/kernel/syscalls/abigen.gni")
+
+# TODO(mcgrathr): Rename the source files and the abigen switch.
 if (zircon_cpu == "x86") {
   zircon_cpu = "x86-64"
+  abigen_cpu = "x86"
+} else if (zircon_cpu == "arm64") {
+  abigen_cpu = "arm"
 }
 
 library("zircon") {
   shared = true
   static = false
-  #TODO: install_path = false
+
+  # The vDSO is never installed as a file, only baked into the kernel.
+  install_path = false
 
   sources = [
     "data.S",
@@ -32,5 +39,58 @@ library("zircon") {
     "zx_ticks_get.cpp",
     "zx_ticks_per_second.cpp",
     "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
+  ]
+  include_dirs = [ target_gen_dir ]
+  deps += [
+    ":generate",
+    "$zx/kernel/lib/vdso:headers",
+  ]
+  public_deps = [
+    ":generated-public-headers",
+  ]
+}
+
+config_group("generated-public-headers") {
+  include_dirs = [ root_gen_dir ]
+  deps = [
+    ":generate",
+  ]
+}
+
+# TODO(mcgrathr): Drop the zircon/ prefix from the files.
+# These are private.
+abigen("generate") {
+  visibility = [ ":*" ]
+  gen = [
+    {
+      args = [ "-user-header" ]
+      outputs = [
+        "$root_gen_dir/zircon/syscalls/definitions.h",
+      ]
+    },
+    {
+      args = [ "-rust" ]
+      outputs = [
+        "$root_gen_dir/zircon/syscalls/definitions.rs",
+      ]
+    },
+    {
+      args = [ "-vdso-header" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-vdso-definitions.h",
+      ]
+    },
+    {
+      args = [ "-vdso-wrappers" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscall-vdso-wrappers.inc",
+      ]
+    },
+    {
+      args = [ "-${abigen_cpu}-asm" ]
+      outputs = [
+        "$target_gen_dir/zircon/syscalls-$zircon_cpu.S",
+      ]
+    },
   ]
 }
