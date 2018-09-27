@@ -106,7 +106,7 @@ template("define_c_toolchain") {
       outfile,
     ]
     rspfile = "${outfile}.rsp"
-    switches = "{{ldflags}}"
+    switches = "-o $outfile {{ldflags}}"
     if (invoker.os == "mac") {
       rspfile_content = "{{inputs_newline}}"
       link_inputs = "-Wl,-filelist,'$rspfile'"

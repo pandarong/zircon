@@ -46,6 +46,7 @@ if (current_toolchain == default_toolchain) {
   # This is the top config for all kernel code.
   config_group("kernel_config") {
     public_deps = [
+      ":headers",
       ":lock_dep",
       ":standalone",
       ":warnings",
@@ -54,8 +55,6 @@ if (current_toolchain == default_toolchain) {
       # include/lib/counters.h and kernel.ld depend on -fdata-sections.
       "$zx/public/gn/config:data_sections",
     ]
-
-    include_dirs = [ "include" ]
 
     defines = kernel_defines
     defines += [
@@ -68,6 +67,10 @@ if (current_toolchain == default_toolchain) {
     ]
 
     cflags = [ "-fpie" ]
+  }
+
+  config_group("headers") {
+    include_dirs = [ "include" ]
   }
 
   # For any standalone static binary.

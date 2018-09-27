@@ -21,7 +21,10 @@ if (current_toolchain == default_toolchain) {
   # This is the top config for all code in the multiboot_toolchain.
   config_group("multiboot_config") {
     public_deps = [
-      "$zx/kernel:kernel_config",
+      "$zx/kernel:headers",
+      "$zx/kernel:standalone",
+      "$zx/kernel:warnings",
+      "$zx/kernel/arch/x86:kernel",
       "$zx/kernel/lib/libc:headers",
     ]
     cflags = [
@@ -30,7 +33,7 @@ if (current_toolchain == default_toolchain) {
       "-fno-pic",
     ]
     asmflags = cflags
-    ldflags = cflags
+    ldflags = cflags + [ "-Wl,--no-pie" ]
   }
 
   # We could make a Multiboot image meant to be loaded without ELF headers
