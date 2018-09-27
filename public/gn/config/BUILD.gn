@@ -185,6 +185,8 @@ config_group("default_warnings") {
     "-Werror=implicit-function-declaration",
     "-Wstrict-prototypes",
     "-Wwrite-strings",
+  ]
+  cflags_cc = [
     "-Wconversion",
     "-Wno-sign-conversion",
   ]
@@ -196,7 +198,6 @@ config_group("default_warnings") {
   } else {
     cflags += [
       "-Wno-address-of-packed-member",
-      "-Wthread-safety",
       "-Wimplicit-fallthrough",
     ]
   }
@@ -248,10 +249,12 @@ config_group("default_frame_pointers") {
 }
 
 config_group("frame_pointers") {
+  defines = [ "WITH_FRAME_POINTERS=1" ]
   cflags = [ "-fno-omit-frame-pointer" ]
 }
 
 config_group("no_frame_pointers") {
+  defines = [ "WITH_FRAME_POINTERS=0" ]
   cflags = [ "-fomit-frame-pointer" ]
 }
 

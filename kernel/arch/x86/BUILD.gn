@@ -49,6 +49,8 @@ config_group("kernel") {
     # USER_ASPACE_BASE from that value gives the value for USER_ASPACE_SIZE
     # below.
     "USER_ASPACE_SIZE=0x00007ffffefff000UL",
+
+    "KERNEL_LOAD_OFFSET=0x00100000",  # 1MB
   ]
 
   # For #include <arch/foo.h>.
