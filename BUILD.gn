@@ -5,16 +5,6 @@
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 
-group("default") {
-  deps = [
-    # TODO: ":tools",
-
-    # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?
-    # Add a buildarg to build multiple variants into complete ZBIs.
-    ":x64",
-  ]
-}
-
 # Build the native host tools intended for developer use.
 select_toolchain("host_dev_tools") {
   environment_label = "$zx/public/gn/toolchain:host"
@@ -23,23 +13,54 @@ select_toolchain("host_dev_tools") {
   ]
 }
 
-if (false) { #TODO: later
-# Install the host developer tools for the running host platform in the
-# "$root_build_dir/tools/" directory.
-copy("tools") {
-  sources = [
-    # TODO: get_metadata([ ":host_dev_tools" ], [ "tool_executables" ]),
-  ]
-  outputs = [
-    "$root_build_dir/tools/{{source_file_part}}",
-  ]
-}
+if (false) {  #TODO: later
+  # Install the host developer tools for the running host platform in the
+  # "$root_build_dir/tools/" directory.
+  copy("tools") {
+    sources = [
+      # TODO: get_metadata([ ":host_dev_tools" ], [ "tool_executables" ]),
+    ]
+    outputs = [
+      "$root_build_dir/tools/{{source_file_part}}",
+    ]
+  }
 }
 
+public_targets = [
+  "bootloader",
+  "kernel",
+]
+
+# Each cpu is a target name for all the public targets for that CPU.
 foreach(cpu, standard_fuchsia_cpus) {
   group(cpu) {
-    deps = [
-      "$zx/public/kernel:$cpu",
-    ]
+    deps = []
+    foreach(target, public_targets) {
+      deps += [ "$zx/public/$target:$cpu" ]
+    }
+  }
+}
+
+# Each public target is a target name for all the CPUs for that target.
+foreach(target, public_targets) {
+  group(target) {
+    deps = []
+    foreach(cpu, standard_fuchsia_cpus) {
+      deps += [ "$zx/public/$target:$cpu" ]
+    }
+  }
+}
+
+group("default") {
+  deps = [
+    # TODO: ":tools",
+
+    # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?
+    # Add a buildarg to build multiple variants into complete ZBIs.
+    ":x64",
+  ]
+
+  foreach(target, public_targets) {
+    #TODO: deps += [ "$target" ]
   }
 }

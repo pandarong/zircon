@@ -4,18 +4,43 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/public/gn/toolchain/environment.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
 # Gigaboot gets its own toolchains to build EFI code.
-if (toolchain.environment == "efi") {
+if (current_toolchain == default_toolchain) {
+  define_environment("efi") {
+    cpu = "x64"
+    os = "win"
+    public_deps += [ ":efi_config" ]
+    globals = {
+      is_kernel = true
+    }
+
+    # TODO: crufty code
+    public_deps -= [ "$zx/public/gn/config:default_warnings" ]
+
+    # TODO: harmless, but just to match build.mk
+    public_deps -= [
+      "$zx/public/gn/config:default_frame_pointers",
+#      "$zx/public/gn/config:opt_level",
+    ]
+
+    # TODO: strip = true
+  }
+} else if (toolchain.environment == "efi") {
   # This is the top config for all code in the efi_toolchain.
   config_group("efi_config") {
     public_deps = [
       "$zx/kernel:standalone",
-      "$zx/kernel:warnings",
+      "$zx/public/gn/config:no_sanitizers",
+
+      # TODO: "$zx/kernel:warnings",
     ]
+    include_dirs = [ "include" ]
     cflags = [
       "-std=c99",
       "-fshort-wchar",
-      "-fno-stack-protector",
     ]
     if (current_cpu == "x64") {
       cflags += [ "-mno-red-zone" ]
@@ -23,33 +48,34 @@ if (toolchain.environment == "efi") {
   }
 
   executable("bootloader") {
+    output_dir = root_out_dir
+    output_name = "boot${current_cpu}"
+    output_extension = "efi"
+    pdb = "$output_dir/$output_name.pdb"
     deps += [
-      ":lib",
-      ":src",
+      "lib",
+      "src",
     ]
     ldflags = [
-      "/subsystem:efi_application",
-      "/entry:efi_main",
+      "-nostdlib",
+      "-Wl,/subsystem:efi_application",
+      "-Wl,/entry:efi_main",
+
+      # TODO: teach the toolchain to do this
+      # ??? This produces the .pdb file, but it doesn't seem
+      # to get the DWARF data out of the main output file.
+      "-Wl,/pdb:" + rebase_path(pdb, root_build_dir),
+
+      # What exactly does this do???
+      "-Wl,/debug",
     ]
   }
 } else {
   # In any other toolchain, just redirect to the proper toolchain.
-  group("bootloader") {
-    public_deps = [
-      ":bootloader($efi_toolchain)",
+  select_toolchain("bootloader") {
+    environment_label = ":efi"
+    deps = [
+      ":bootloader",
     ]
-  }
-
-  # Define the special toolchain itself only in the default toolchain.
-  if (current_toolchain == default_toolchain) {
-    define_environment("efi") {
-      cpu = "x64"
-      os = "win"
-      public_deps += [ ":efi_config" ]
-      globals = {
-        is_kernel = true
-      }
-      targets = [ ":bootloader" ]
-    }
   }
 }

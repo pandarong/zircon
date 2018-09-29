@@ -6,7 +6,7 @@
 
 assert(toolchain.environment == "efi")
 
-source_set("src") {
+source_set("lib") {
   sources = [
     "console-printf.c",
     "ctype.c",

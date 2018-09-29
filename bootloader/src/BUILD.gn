@@ -20,4 +20,6 @@ source_set("src") {
     "pci.c",
     "zircon.c",
   ]
+  include_dirs = [ "." ]
+  deps += [ "$zx/system/ulib/tftp" ]
 }
