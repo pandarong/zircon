@@ -1,0 +1,82 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/public/gn/toolchain/c_utils.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+boards = [
+  "hikey960",
+  "mt8167s_ref",
+  "qemu",
+]
+
+group("boot-shim") {
+  deps = []
+  foreach(board, boards) {
+    deps += [ ":$board" ]
+  }
+}
+
+# The boot shims need to be compiled in the special environment for running
+# in physical memory with the MMU disabled.
+if (toolchain.environment == "physmem") {
+  assert(current_cpu == "arm64")
+
+  source_set("common") {
+    visibility = [ ":*" ]
+    sources = [
+      "boot-shim.S",
+      "debug.c",
+      "devicetree.c",
+      "util.c",
+    ]
+    deps += [ "$zx/kernel/lib/libc/string" ]
+    public_deps = [
+      "$zx/system/ulib/ddk:headers",
+      "$zx/system/ulib/libzbi",
+    ]
+  }
+
+  foreach(board, boards) {
+    executable("${board}-boot-shim.elf") {
+      sources = [
+        "${board}-uart.c",
+        "boot-shim.c",
+      ]
+      defines = [ "KERNEL_ALIGN=0x10000" ]
+      include_dirs = [ "$zx/kernel/target/arm64/board/$board" ]
+      deps += [ ":common" ]
+      inputs = [
+        "boot-shim.ld",
+      ]
+      ldflags = [
+        "-Wl,-T," + rebase_path("boot-shim.ld", root_build_dir),
+        "-Wl,-defsym," + defines[0],
+      ]
+    }
+    image_binary(board) {
+      deps = [
+        ":${board}-boot-shim.elf",
+      ]
+      outputs = [
+        "$root_out_dir/${board}-boot.shim.bin",
+      ]
+      sources = [
+        "$target_out_dir/${board}-boot-shim.elf",
+      ]
+    }
+  }
+} else {
+  foreach(board, boards) {
+    select_toolchain(board) {
+      cpu = "arm64"
+      environment_label = "$zx/kernel/arch/arm64:physmem"
+      deps = [
+        ":$board",
+      ]
+    }
+  }
+}
