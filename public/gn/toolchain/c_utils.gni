@@ -76,9 +76,9 @@ template("toolchain_utils_action") {
     if (defined(script)) {
       args = utils_paths + invoker.args
     } else {
-      script = utils_paths[0]
+      script = rebase_path(utils_paths[0], "", root_build_dir)
       assert(
-          utils_paths == [ script ],
+          utils_paths == [ utils_paths[0] ],
           "toolchain_utils_action(\"$target_name\") without `script` must have exactly one element in `utils`")
       args = invoker.args
     }

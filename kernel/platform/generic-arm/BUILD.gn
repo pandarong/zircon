@@ -4,10 +4,13 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/kernel/params.gni")
+
 source_set("generic-arm") {
   sources = [
     "platform.cpp",
   ]
+  defines = [ "SMP_CPU_MAX_CLUSTERS=$smp_max_clusters" ]
   deps += [
     "$zx/kernel/dev/hdcp/amlogic_s912",
     "$zx/kernel/dev/hw_rng",

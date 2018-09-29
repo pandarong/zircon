@@ -92,6 +92,13 @@ if (current_toolchain == default_toolchain) {
       # the `.cfi_sections` directive.
       "-fno-unwind-tables",
     ]
+
+    if (!is_gcc) {
+      # In the Fuchsia-target toolchains there's no way to prevent the
+      # compiler driver from passing -pie, so negate it.  BFD ld doesn't
+      # have --no-pie, but arm64-elf-gcc doesn't pass -pie either.
+      ldflags = [ "-Wl,--no-pie" ]
+    }
   }
 
   config_group("warnings") {

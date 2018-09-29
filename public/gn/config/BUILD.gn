@@ -271,12 +271,16 @@ config_group("no_stack_protector") {
 
 config_group("no_safestack") {
   cflags = [ "-fno-sanitize=safe-stack" ]
-  public_deps = [ ":no_stack_protector" ]
+  public_deps = [
+    ":no_stack_protector",
+  ]
 }
 
 config_group("no_sanitizers") {
   cflags = [ "-fno-sanitize=all" ]
-  public_deps = [ ":no_stack_protector" ]
+  public_deps = [
+    ":no_stack_protector",
+  ]
 }
 
 # Compile code appropriately to be linked into a shared library.
@@ -297,4 +301,8 @@ config_group("no_undefined_symbols") {
   } else {
     ldflags = [ "-Wl,-z,defs" ]
   }
+}
+
+config_group("visibility_hidden") {
+  cflags = [ "-fvisibility=hidden" ]
 }
