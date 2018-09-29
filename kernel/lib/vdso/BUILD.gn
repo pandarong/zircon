@@ -72,7 +72,6 @@ action("gen-vdso-valid-sysret") {
 
 # Redirect to the userland vDSO shared library target.
 select_toolchain("userland") {
-  visibility = [ ":*" ]
   environment_label = "$zx/public/gn/toolchain:user"
   deps = [
     "$zx/system/ulib/zircon",
@@ -84,6 +83,7 @@ if (false) {
   # where the segment boundaries and entry points are.
   rodso_code_header("gen-vdso-code-header") {
     visibility = [ ":*" ]
+    name = "VDSO"
     outputs = [
       "$target_gen_dir/vdso-code.h",
     ]

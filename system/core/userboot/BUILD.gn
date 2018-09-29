@@ -1,0 +1,112 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/public/gn/toolchain/c_utils.gni")
+import("$zx/public/gn/toolchain/environment.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+# userboot gets its own toolchain for its special build requirements.
+if (current_toolchain == default_toolchain) {
+  # Define the special toolchain itself only in the default toolchain.
+  define_environment("userboot") {
+    public_deps += standard_fuchsia_configs + [ ":userboot_config" ]
+  }
+} else if (toolchain.environment == "userboot") {
+  # Everything in userboot gets compiled this way.
+  config_group("userboot_config") {
+    public_deps = [
+      "$zx/public/gn/config:no_sanitizers",
+    ]
+
+    # Everything is statically linked together with no PLT or GOT.
+    cflags = [
+      "-include",
+      "$zx/kernel/include/hidden.h",
+    ]
+  }
+
+  vdso_syms_ld = "$target_gen_dir/vdso-syms.ld"
+
+  loadable_module("userboot") {
+    sources = [
+      "bootdata.c",
+      "bootfs.c",
+      "loader-service.c",
+      "option.c",
+      "start.c",
+      "userboot-elf.c",
+      "util.c",
+    ]
+    libs = [ vdso_syms_ld ]
+    deps = [
+      ":gen-vdso-syms",
+      "$zx/system/ulib/bootdata",
+      "$zx/system/ulib/elfload",
+      "$zx/system/ulib/ldmsg",
+      "$zx/system/ulib/runtime",
+      "$zx/system/ulib/zircon:headers",
+      "$zx/third_party/ulib/lz4",
+
+      # TODO: string functions
+    ]
+  }
+
+  # This generated header lists all the ABI symbols in the vDSO with their
+  # addresses.  It's used to generate vdso-syms.ld, below.
+  toolchain_utils_action("gen-vdso-syms-header") {
+    visibility = [ ":gen-vdso-syms-ld" ]
+    deps = [
+      "$zx/system/ulib/zircon",
+    ]
+    sources = [
+      get_metadata(deps, [ "link_output" ]),
+    ]
+    outputs = [
+      vdso_syms_ld,
+    ]
+    utils = [ "nm" ]
+    script = "$zx/scripts/shlib-symbols"
+    args = [
+      "-a",
+      get_metadata(deps, [ "link_output_arg" ]),
+    ]
+  }
+
+  # This generated linker script defines symbols for each vDSO entry point
+  # giving the relative address where it will be found at runtime.  With
+  # this hack, the userboot code doesn't need to do any special work to
+  # find the vDSO and its entry points, keeping the code far simpler.
+  toolchain_utils_action("gen-vdso-syms-ld") {
+    visibility = [ ":userboot" ]
+    outputs = [
+      "$target_gen_dir/vdso-syms.ld",
+    ]
+    deps = [
+      ":gen-vdso-syms-header",
+    ]
+    sources = get_target_outputs(deps[0])
+    inputs = [
+      "vdso-syms.ld.h",
+    ]
+    utils = [ "cc" ]
+    args = [
+      "-o",
+      rebase_path(outputs[0], root_build_dir),
+      "-E",
+      "-P",
+      "-include",
+      rebase_path(inputs[0], root_build_dir),
+    ]
+  }
+} else {
+  # In any other toolchain, just redirect to the proper toolchain.
+  select_toolchain("userboot") {
+    environment_label = ":userboot"
+    deps = [
+      ":userboot",
+    ]
+  }
+}

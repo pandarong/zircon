@@ -10,10 +10,6 @@ source_set("userboot") {
     "userboot.cpp",
   ]
 
-  # userboot-image.S includes the userboot contents and so must be
-  # reassembled when that changes.
-  #inputs = [ get_metadata(["$zx/system/core/userboot"],["link_output"]) ]
-
   include_dirs = [ target_gen_dir ]
   deps += [
     #":gen-userboot-code-header",
@@ -21,20 +17,28 @@ source_set("userboot") {
     "$zx/kernel/lib/vdso",
   ]
 
-  #  inputs = [
-  #    get_metadata([ "$zx/system/core/userboot" ], [ "gen_rodso_code_inputs" ]),
-  #  ]
+  if (false) {  #TODO
+    inputs = [
+      # userboot-image.S includes the userboot contents and so must be
+      # reassembled when that changes.  Note we can't have core/userboot in
+      # deps here because that would try to link it into the kernel.
+      get_metadata([ "$zx/system/core/userboot" ],
+                   [ "link_output" ],
+                   [ "link_barrier" ]),
+    ]
+  }
 }
 
-if (false) {
+if (false) {  #TODO
   template("rodso_code_header") {
     toolchain_utils_action(target_name) {
       outputs = invoker.outputs
-      assert(outputs == [ outputs[0] ], "outputs must have exactly one element")
+      assert(outputs == [ outputs[0] ],
+             "rodso_code_header() outputs must have exactly one element")
 
       deps = invoker.deps
       sources = [
-        get_metadata(deps, [ "gen_rodso_code_inputs" ]),
+        get_metadata(deps, [ "link_output" ], [ "link_barrier" ]),
       ]
 
       script = "$zx/scripts/gen-rodso-code.sh"
@@ -44,7 +48,8 @@ if (false) {
       ]
       args = [
         rebase_path(outputs[0], root_build_dir),
-        get_metadata(deps, [ "gen_rodso_code_args" ]),
+        invoker.name,
+        get_metadata(deps, [ "link_output_arg" ], [ "link_barrier" ]),
       ]
     }
   }
@@ -52,6 +57,8 @@ if (false) {
   # The userboot-code.h generated header file tells the userboot.cpp code
   # where the segment boundaries and entry points are.
   rodso_code_header("gen-userboot-code-header") {
+    visibility = [ ":*" ]
+    name = "USERBOOT"
     outputs = [
       "$target_gen_dir/userboot-code.h",
     ]

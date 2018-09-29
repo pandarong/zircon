@@ -44,5 +44,6 @@ foreach(cpu, standard_fuchsia_cpus) {
     cpu = cpu
     public_deps += standard_fuchsia_configs
     shlib = true
+    #TODO: strip = true
   }
 }

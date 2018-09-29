@@ -57,11 +57,10 @@ config_group("generated-public-headers") {
   ]
 }
 
-# TODO(mcgrathr): Drop the zircon/ prefix from the files.
-# These are private.
 abigen("generate") {
   visibility = [ ":*" ]
   gen = [
+    # These are the public headers.
     {
       args = [ "-user-header" ]
       outputs = [
@@ -74,6 +73,9 @@ abigen("generate") {
         "$root_gen_dir/zircon/syscalls/definitions.rs",
       ]
     },
+
+    # TODO(mcgrathr): Drop the zircon/ prefix from the remaining files.
+    # These are private.
     {
       args = [ "-vdso-header" ]
       outputs = [

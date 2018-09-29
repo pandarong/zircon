@@ -33,7 +33,12 @@ template("toolchain_utils_action") {
   if (toolchain.tool_dir != "") {
     # The toolchain binaries are in a specified location (e.g. a prebuilt).
     foreach(util, invoker.utils) {
-      util = "${toolchain.tool_dir}/${toolchain.tool_prefix}${util}"
+      if (util == "cc") {
+        util = toolchain.cc
+      } else {
+        util = "${toolchain.tool_prefix}${util}"
+      }
+      util = "${toolchain.tool_dir}/${util}"
       utils_inputs += [ util ]
       utils_paths += [ rebase_path(util, root_build_dir) ]
     }
@@ -47,7 +52,12 @@ template("toolchain_utils_action") {
       script = "/usr/bin/env"
     }
     foreach(util, invoker.utils) {
-      utils_paths += [ "${toolchain.tool_prefix}${util}" ]
+      if (util == "cc") {
+        util = toolchain.cc
+      } else {
+        util = "${toolchain.tool_prefix}${util}"
+      }
+      utils_paths += [ util ]
     }
   }
 
@@ -68,8 +78,8 @@ template("toolchain_utils_action") {
     } else {
       script = utils_paths[0]
       assert(
-        utils_paths == [ script ],
-        "toolchain_utils_action(\"$target_name\") without `script` must have exactly one element in `utils`")
+          utils_paths == [ script ],
+          "toolchain_utils_action(\"$target_name\") without `script` must have exactly one element in `utils`")
       args = invoker.args
     }
   }
