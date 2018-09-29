@@ -72,11 +72,11 @@ template("define_c_toolchain") {
   }
 
   if (use_gcc) {
-    cc = "${tc.tool_prefix}gcc"
-    cxx = "${tc.tool_prefix}g++"
+    tc.cc = "${tc.tool_prefix}gcc"
+    tc.cxx = "${tc.tool_prefix}g++"
   } else {
-    cc = "clang"
-    cxx = "clang++"
+    tc.cc = "clang"
+    tc.cxx = "clang++"
   }
 
   if (tc.tool_dir == "") {
@@ -85,8 +85,8 @@ template("define_c_toolchain") {
     dir_prefix = rebase_path(tc.tool_dir, root_build_dir) + "/"
   }
 
-  cc = "$compiler_prefix$dir_prefix$cc"
-  cxx = "$compiler_prefix$dir_prefix$cxx"
+  cc = "$compiler_prefix$dir_prefix${tc.cc}"
+  cxx = "$compiler_prefix$dir_prefix${tc.cxx}"
   ld = cxx
   ar = "$dir_prefix${tc.tool_prefix}ar"
 
@@ -185,6 +185,10 @@ template("define_c_toolchain") {
     ]
 
     if (defined(invoker.shlib) && invoker.shlib) {
+      # We don't support building shared libraries for host tools.
+      assert(invoker.os == "fuchsia",
+             "shared library creation not supported for ${invoker.os}")
+
       # TODO: strip
 
       tools += [
@@ -240,11 +244,11 @@ template("define_c_toolchain") {
         name = target_name
         label = get_label_info(":$target_name", "label_no_toolchain")
 
-        # These are provided by $zx/public/gn/buildconfig/toolchain.gni so
-        # they are expected in every toolchain.
+        # These are provided by BUILDCONFIG.gn so they are expected in
+        # every toolchain.
         globals = {
         }
-        imports = []
+        public_deps = []
 
         # This gets `tool_dir` et al as expected by c_utils.gni (set above).
         forward_variables_from(tc, "*")

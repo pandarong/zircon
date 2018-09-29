@@ -48,13 +48,13 @@ if (current_cpu == "x64") {
   zircon_cpu = current_cpu
 }
 
-# Shorthand for `current_os == "fuchsia".
+# Shorthand for `current_os == "fuchsia"`.
 is_fuchsia = current_os == "fuchsia"
 
-# Shorthand for `current_os == "linux".
+# Shorthand for `current_os == "linux"`.
 is_linux = current_os == "linux"
 
-# Shorthand for `current_os == "mac".
+# Shorthand for `current_os == "mac"`.
 is_mac = current_os == "mac"
 
 if (!defined(is_gcc)) {
@@ -77,14 +77,14 @@ if (!defined(is_kernel)) {
 
 # Assert in a template that its invoker doesn't use legacy configs.
 #
-# Always invoked: `assert_no_legacy_configs(target_name) { target_type = ... }`
+# Always invoked: `assert_no_legacy_configs(target_name) { type = "..." }`
 #
 # Parameters
 #
 #   invoker
 #     Required: Implicitly set in every template() scope.
 #
-#   target_type
+#   type
 #     Required: The name of the calling template().
 #
 template("assert_no_legacy_configs") {
