@@ -20,7 +20,7 @@ template("define_c_toolchain") {
   if (invoker.os == "mac") {
     tc_target += "-darwin"
   } else if (invoker.os == "win") {
-    tc_target += "-windows"
+    tc_target += "-windows-msvc"
   } else {
     tc_target += "-${invoker.os}"
   }
@@ -114,10 +114,14 @@ template("define_c_toolchain") {
     } else {
       rspfile_content = "{{inputs}}"
       link_inputs = "@'$rspfile'"
-      link_libs = "-Wl,--start-group {{libs}} -Wl,--end-group {{solibs}}"
-      mapfile = "${outfile}.map"
-      outputs += [ mapfile ]
-      switches += " -Wl,-Map,$mapfile"
+      if (invoker.os == "win") {
+        link_libs = "{{libs}} {{solibs}}"
+      } else {
+        link_libs = "-Wl,--start-group {{libs}} -Wl,--end-group {{solibs}}"
+        mapfile = "${outfile}.map"
+        outputs += [ mapfile ]
+        switches += " -Wl,-Map,$mapfile"
+      }
     }
 
     # TODO: strip

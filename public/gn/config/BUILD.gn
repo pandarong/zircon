@@ -9,6 +9,9 @@ config_group("compiler") {
   # For Clang, there's a single compiler command that takes `--target`.
   if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
     compiler_flags = [ "--target=${toolchain.target_tuple}" ]
+
+    # Always use lld with Clang.
+    ldflags = [ "-fuse-ld=lld" ]
   }
 
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
@@ -90,6 +93,8 @@ config_group("linker_gc") {
   ldflags = cflags
   if (current_os == "mac") {
     ldflags += [ "-Wl,-dead_strip" ]
+  } else if (current_os == "win") {
+    ldflags += [ "-Wl,/opt:ref" ]
   } else {
     ldflags += [ "-Wl,--gc-sections" ]
   }
@@ -97,10 +102,10 @@ config_group("linker_gc") {
 
 config_group("assert_level") {
   assert(assert_level >= 0)
-  defines = [
-    "LK_DEBUGLEVEL=$assert_level",
-    "ZX_DEBUGLEVEL=$assert_level",
-  ]
+  defines = [ "ZX_DEBUGLEVEL=$assert_level" ]
+  if (is_kernel) {
+    defines += [ "LK_DEBUGLEVEL=$assert_level" ]
+  }
   if (assert_level == 0) {
     defines += [ "NDEBUG=1" ]
   }
@@ -134,7 +139,7 @@ config_group("opt_level") {
   }
 
   # TODO(mcgrathr): Kernel can't be built without --gc-sections.
-  if (opt_level > 0 || is_kernel) {
+  if (opt_level > 0 || toolchain.environment == "kernel") {
     compiler_flags += [ "-finline-functions" ]
     public_deps += [ ":linker_gc" ]
   }
@@ -169,6 +174,10 @@ config_group("werror") {
 
     # Do not add additional `-Wno-error=...` switches to this config!
   ]
+
+  if (current_os == "win") {
+    ldflags = [ "/WX" ]
+  }
 }
 
 config_group("default_warnings") {
@@ -206,7 +215,11 @@ config_group("default_warnings") {
 config_group("icf") {
   # This changes C/C++ semantics and might be incompatible with third-party
   # code that relies on function pointers comparison.
-  ldflags = [ "-Wl,--icf=all" ]
+  if (current_os == "win") {
+    ldflags = [ "-Wl,/opt:icf=all" ]
+  } else {
+    ldflags = [ "-Wl,--icf=all" ]
+  }
 }
 
 config_group("exceptions") {
