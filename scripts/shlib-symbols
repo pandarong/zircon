@@ -35,6 +35,18 @@ else
   set -o pipefail -e
 fi
 
+usage() {
+  echo >&2 "Usage: $0 NM [-a] [-z] DSO OUTPUT"
+  exit 2
+}
+
+if [ $# -lt 3 ]; then
+  usage
+fi
+
+NM="$1"
+shift
+
 show_address=false
 zero_function_size=false
 while [ $# -gt 0 ]; do
@@ -47,12 +59,10 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $# -ne 2 ]; then
-  echo >&2 "Usage: $0 [-a] [-z] NM DSO"
-  exit 2
 fi
 
-NM="$1"
-DSO="$2"
+DSO="$1"
+OUTPUT="$2"
 
 dump_names() {
   "$NM" -P -g -D -S "$DSO"
@@ -111,4 +121,5 @@ massage() {
   done
 }
 
-dump_names | massage
+trap 'rm -f "$OUTPUT"' ERR HUP INT TERM
+dump_names | massage > "$OUTPUT"
