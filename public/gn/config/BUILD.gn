@@ -155,15 +155,21 @@ config_group("opt_level") {
     public_deps += [ ":icf" ]
   }
 
-  # TODO(mcgrathr): Kernel can't be built without --gc-sections.
-  if (opt_level > 0 || toolchain.environment == "kernel") {
+  if (opt_level > 0) {
     compiler_flags += [ "-finline-functions" ]
-    public_deps += [ ":linker_gc" ]
   }
 
   if (opt_level > 2) {
     # Enable optimal string merging.
     ldflags = [ "-Wl,-O2" ]
+  }
+}
+
+# This is separate from opt_level so it can be removed.
+config_group("default_linker_gc") {
+  # TODO(mcgrathr): Kernel can't be built without --gc-sections.
+  if (opt_level > 0 || toolchain.environment == "kernel") {
+    public_deps = [ ":linker_gc" ]
   }
 }
 

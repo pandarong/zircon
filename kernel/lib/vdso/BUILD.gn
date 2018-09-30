@@ -6,6 +6,7 @@
 
 import("$zx/kernel/syscalls/abigen.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
+import("rodso.gni")
 
 library("vdso") {
   kernel = true
@@ -24,19 +25,21 @@ library("vdso") {
   # is reassembled with the new vDSO contents.
   #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
   include_dirs = [ target_gen_dir ]
-  deps += [
-    ":gen-categories",
-    ":gen-vdso-code-header",
-    ":rodso",
-    "$zx/kernel/lib/version:config-buildid-header",
-    "$zx/system/ulib/fbl",
-  ]
-  public_deps = [
-    ":vdso-valid-sysret",
+  if (is_kernel) {
+    deps += [
+      ":gen-categories",
+      ":gen-vdso-code-header",
+      ":rodso",
+      "$zx/kernel/lib/version:config-buildid-header",
+      "$zx/system/ulib/fbl",
+    ]
+    public_deps = [
+      ":vdso-valid-sysret",
 
-    # <lib/rodso.h> has #include <object/handle.h>.
-    "$zx/kernel/object",
-  ]
+      # <lib/rodso.h> has #include <object/handle.h>.
+      "$zx/kernel/object",
+    ]
+  }
 }
 
 source_set("rodso") {
@@ -78,29 +81,24 @@ select_toolchain("userland") {
   ]
 }
 
-if (false) {
-  # This generated header file tells the vdso.cpp code
-  # where the segment boundaries and entry points are.
-  rodso_code_header("gen-vdso-code-header") {
-    visibility = [ ":*" ]
-    name = "VDSO"
-    outputs = [
-      "$target_gen_dir/vdso-code.h",
-    ]
-    deps = [
-      ":userland",
-    ]
-  }
-} else {
-  action("gen-vdso-code-header") {
-    outputs = [
-      "$target_gen_dir/vdso-code.h",
-    ]
-    script = "/bin/true"
-    deps = [
-      ":userland",
-    ]
-  }
+# This generated header file tells the vdso.cpp code
+# where the segment boundaries and entry points are.
+rodso_code_header("gen-vdso-code-header") {
+  visibility = [ ":*" ]
+  name = "VDSO"
+  outputs = [
+    "$target_gen_dir/vdso-code.h",
+  ]
+  deps = [
+    ":userland",
+  ]
+
+  # TODO: should be automatic via metadata; breaks variants, etc.
+  inputs = [
+    get_label_info(
+            "$zx/system/ulib/zircon:zircon.shared($zx/public/gn/toolchain:user-${current_cpu}-clang.shlib)",
+            "target_out_dir") + "/libzircon.so",
+  ]
 }
 
 abigen("gen-categories") {

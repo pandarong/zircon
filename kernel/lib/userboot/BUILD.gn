@@ -4,6 +4,8 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/kernel/lib/vdso/rodso.gni")
+
 source_set("userboot") {
   sources = [
     "userboot-image.S",
@@ -12,7 +14,7 @@ source_set("userboot") {
 
   include_dirs = [ target_gen_dir ]
   deps += [
-    #":gen-userboot-code-header",
+    ":gen-userboot-code-header",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/vdso",
   ]
@@ -29,41 +31,21 @@ source_set("userboot") {
   }
 }
 
-if (false) {  #TODO
-  template("rodso_code_header") {
-    toolchain_utils_action(target_name) {
-      outputs = invoker.outputs
-      assert(outputs == [ outputs[0] ],
-             "rodso_code_header() outputs must have exactly one element")
+# The userboot-code.h generated header file tells the userboot.cpp code
+# where the segment boundaries and entry points are.
+rodso_code_header("gen-userboot-code-header") {
+  visibility = [ ":*" ]
+  name = "USERBOOT"
+  outputs = [
+    "$target_gen_dir/userboot-code.h",
+  ]
+  deps = [
+    "$zx/system/core/userboot",
+  ]
 
-      deps = invoker.deps
-      sources = [
-        get_metadata(deps, [ "link_output" ], [ "link_barrier" ]),
-      ]
-
-      script = "$zx/scripts/gen-rodso-code.sh"
-      utils = [
-        "nm",
-        "readelf",
-      ]
-      args = [
-        rebase_path(outputs[0], root_build_dir),
-        invoker.name,
-        get_metadata(deps, [ "link_output_arg" ], [ "link_barrier" ]),
-      ]
-    }
-  }
-
-  # The userboot-code.h generated header file tells the userboot.cpp code
-  # where the segment boundaries and entry points are.
-  rodso_code_header("gen-userboot-code-header") {
-    visibility = [ ":*" ]
-    name = "USERBOOT"
-    outputs = [
-      "$target_gen_dir/userboot-code.h",
-    ]
-    deps = [
-      "$zx/system/core/userboot",
-    ]
-  }
+  # TODO: should be automatic via metadata; breaks variants, etc.
+  inputs = [
+    get_label_info("${deps[0]}(${deps[0]}-${current_cpu}-clang)",
+                   "target_out_dir") + "/userboot.so",
+  ]
 }
