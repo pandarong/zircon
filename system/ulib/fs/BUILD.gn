@@ -1,0 +1,36 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("fs") {
+  host = true
+  sources = [
+    "block-txn.cpp",
+    "vfs.cpp",
+    "vnode.cpp",
+  ]
+  if (is_fuchsia) {
+    sources += [
+      "connection.cpp",
+      "fvm.cpp",
+      "lazy-dir.cpp",
+      "managed-vfs.cpp",
+      "mount.cpp",
+      "pseudo-dir.cpp",
+      "pseudo-file.cpp",
+      "remote-dir.cpp",
+      "service.cpp",
+      "synchronous-vfs.cpp",
+      "unmount.cpp",
+      "vmo-file.cpp",
+      "watcher.cpp",
+    ]
+  }
+  public_deps = [
+    "$zx/system/ulib/fdio:headers",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon-internal",
+  ]
+}

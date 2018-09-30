@@ -100,6 +100,8 @@ template("define_c_toolchain") {
   }
 
   _link_common = {
+    lib_switch = "-l"
+    lib_dir_switch = "-L"
     default_output_dir = "{{target_out_dir}}"
     outfile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
     outputs = [

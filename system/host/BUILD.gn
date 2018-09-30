@@ -1,0 +1,21 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This covers all the host tools intended to be used directly by developers.
+group("tools") {
+  testonly = true
+  deps = [
+    "$zx/third_party/uapp/mkfs-msdosfs",
+    "blobfs",
+    "bootserver",
+    "kernel-buildsig",
+    "loglistener",
+    "merkleroot",
+    "minfs",
+    "runtests",
+    "zbi",
+
+    #TODO: "fidl"
+  ]
+}

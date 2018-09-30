@@ -7,9 +7,20 @@
 # TODO(mcgrathr): Add non-kernel case.
 library("fbl") {
   kernel = true
+  host = true
+
   sources = [
     "alloc_checker.cpp",
   ]
+  if (!is_kernel) {
+    sources += [
+      "string.cpp",
+      "string_buffer.cpp",
+      "string_piece.cpp",
+      "string_printf.cpp",
+    ]
+  }
+
   if (toolchain.environment == "kernel") {
     # Avoid circularity.
     deps -= [ "$zx/kernel/vm:headers" ]

@@ -6,17 +6,21 @@
 
 library("bitmap") {
   kernel = true
+  host = true
   sources = [
     "raw-bitmap.cpp",
     "rle-bitmap.cpp",
   ]
-  if (!is_kernel) {
+  public_deps = [
+    "$zx/system/ulib/fbl:headers",
+  ]
+  if (!is_kernel && !is_host) {
     deps += [
-      "$system/ulib/c",
-      "$system/ulib/fbl",
-      "$system/ulib/zircon",
-      "$system/ulib/zx",
-      "$system/ulib/zxcpp",
+      "$zx/system/ulib/c",
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/zircon",
+      "$zx/system/ulib/zx",
+      "$zx/system/ulib/zxcpp",
     ]
   }
 }

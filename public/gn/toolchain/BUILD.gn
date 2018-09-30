@@ -26,6 +26,9 @@ foreach(host, standard_build_hosts) {
   define_environment("host") {
     cpu = host.cpu
     os = host.os
+    globals = {
+      is_host = true
+    }
   }
   if (host.cpu == host_cpu && host.os == host_os) {
     standard_host = true
@@ -44,6 +47,7 @@ foreach(cpu, standard_fuchsia_cpus) {
     cpu = cpu
     public_deps += standard_fuchsia_configs
     shlib = true
+
     #TODO: strip = true
   }
 }

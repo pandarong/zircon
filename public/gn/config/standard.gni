@@ -5,6 +5,7 @@
 # Universal configs apply to all code in the build.
 standard_configs = [
   "$zx/public/gn/config:compiler",
+  "$zx/public/gn/config:language",
   "$zx/public/gn/config:relative_paths",
   "$zx/public/gn/config:assert_level",
   "$zx/public/gn/config:opt_level",

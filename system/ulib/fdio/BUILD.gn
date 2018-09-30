@@ -1,0 +1,35 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("fdio") {
+  shared = true
+  sources = [
+    "bsdsocket.c",
+    "debug.c",
+    "fidl.c",
+    "get-vmo.c",
+    "logger.c",
+    "namespace.c",
+    "null.c",
+    "output.c",
+    "pipe.c",
+    "remoteio.c",
+    "service.c",
+    "socket.c",
+    "spawn.c",
+    "stubs.c",
+    "uname.c",
+    "unistd.c",
+    "vmofile.c",
+    "waitable.c",
+    "watcher.c",
+  ]
+  deps += [
+    "$zx/system/ulib/c",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/zircon",
+  ]
+}
