@@ -1,0 +1,44 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+import("$zx/public/gn/toolchain/c_utils.gni")
+
+template("rodso_code_header") {
+  toolchain_utils_action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
+                             "visibility",
+                           ])
+
+    outputs = invoker.outputs
+    assert(outputs == [ outputs[0] ],
+           "rodso_code_header() outputs must have exactly one element")
+
+    deps = invoker.deps
+    if (false) {  #TODO
+      sources = [
+        get_metadata(deps, [ "link_output" ], [ "link_barrier" ]),
+      ]
+    } else {
+      sources = invoker.inputs
+      assert(sources == [ sources[0] ])
+    }
+
+    script = "$zx/scripts/gen-rodso-code.sh"
+    utils = [
+      "nm",
+      "readelf",
+    ]
+    args = [
+      rebase_path(outputs[0], root_build_dir),
+      invoker.name,
+
+      #TODO: get_metadata(deps, [ "link_output_arg" ], [ "link_barrier" ]),
+      rebase_path(sources[0], root_build_dir),
+    ]
+  }
+}

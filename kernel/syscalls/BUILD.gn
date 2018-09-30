@@ -40,6 +40,7 @@ source_set("syscalls") {
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
+    "$zx/kernel/lib/gfxconsole",
     "$zx/kernel/lib/pci",
     "$zx/kernel/lib/user_copy",
     "$zx/kernel/object",

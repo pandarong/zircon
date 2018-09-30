@@ -59,6 +59,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $# -ne 2 ]; then
+  usage
 fi
 
 DSO="$1"
