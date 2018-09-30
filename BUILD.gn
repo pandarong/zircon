@@ -52,8 +52,19 @@ foreach(target, public_targets) {
   }
 }
 
+group("all-cpu") {
+  testonly = true
+  deps = []
+  foreach(cpu, standard_fuchsia_cpus) {
+    deps += [ ":$cpu" ]
+  }
+}
+
 group("default") {
+  testonly = true
   deps = [
+    ":host_dev_tools",
+
     # TODO: ":tools",
 
     # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?

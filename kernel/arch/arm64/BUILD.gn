@@ -99,6 +99,7 @@ if (current_toolchain == default_toolchain) {
       "$zx/kernel/lib/console",
       "$zx/kernel/lib/crashlog",
       "$zx/kernel/object",
+      "$zx/kernel/syscalls:syscall-abi",
       "$zx/system/ulib/bitmap",
     ]
     data_deps = [

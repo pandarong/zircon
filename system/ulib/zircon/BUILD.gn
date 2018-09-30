@@ -21,9 +21,6 @@ library("zircon") {
   # The vDSO is never installed as a file, only baked into the kernel.
   install_path = false
 
-# This library should not depend on libc.
-  cflags = [ "-ffreestanding" ]
-
   sources = [
     "data.S",
     "syscall-wrappers.cpp",
@@ -41,15 +38,28 @@ library("zircon") {
     "zx_ticks_per_second.cpp",
   ]
 
-  include_dirs = [ target_gen_dir ]
-
   deps += [
-    ":generate",
+    ":config",
     ":syscall-asm",
     "$zx/kernel/lib/vdso:headers",
   ]
   public_deps = [
     ":generated-public-headers",
+  ]
+}
+
+config_group("config") {
+  visibility = [ ":*" ]
+
+  # This library should not depend on libc.
+  cflags = [ "-ffreestanding" ]
+  public_deps = [
+    "$zx/public/gn/config:no_sanitizers",
+  ]
+
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":generate",
   ]
 }
 
@@ -59,8 +69,10 @@ source_set("syscall-asm") {
     "zx_futex_wake_handle_close_thread_exit-$zircon_cpu.S",
     "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
   ]
-  include_dirs = [ target_gen_dir ]
-  deps += [ "$zx/kernel/syscalls:syscall-abi" ]
+  deps += [
+    ":config",
+    "$zx/kernel/syscalls:syscall-abi",
+  ]
 }
 
 config_group("generated-public-headers") {
