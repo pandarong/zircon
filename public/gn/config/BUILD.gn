@@ -28,6 +28,23 @@ config_group("compiler") {
     ":color_diagnostics",
     # TODO: "$current_os:compiler",
   ]
+
+  # TODO: host sysroot
+
+  if (current_os == "linux") {
+    ldflags = [ "-static-libstdc++" ]
+
+    # TODO(TC-74) The implicitly linked static libc++.a depends on these.
+    libs = [
+      "dl",
+      "pthread",
+    ]
+  }
+}
+
+config_group("language") {
+  cflags_c = [ "-std=c11" ]
+  cflags_cc = [ "-std=c++17" ]
 }
 
 config_group("color_diagnostics") {

@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("unittest") {
+  testonly = true
+  host = true
+  shared = true
+  sources = [
+    "all-tests.cpp",
+    "unittest.cpp",
+    "watchdog.cpp",
+  ]
+  deps += [ "$zx/system/ulib/pretty" ]
+  if (is_fuchsia) {
+    sources += [
+      "crash-handler.cpp",
+      "crash-list.cpp",
+    ]
+    deps += [
+      "$zx/system/ulib/c",
+      "$zx/system/ulib/zx",
+    ]
+  }
+}
