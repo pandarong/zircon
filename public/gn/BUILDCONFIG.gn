@@ -19,24 +19,25 @@ declare_args() {
 # is fully cleaned up, this should not matter.
 zircon_standalone = zx == "/"
 
-# The default toolchain is a very boring one.  It can only be used for
-# action and copy rules where current_cpu et al don't matter.  Doing
-# anything else happens in another toolchain.
-set_default_toolchain("$zx/public/gn/toolchain:stub")
-
-# The rest of this file pertains to what happens in other toolchains
-# defined by define_environment().
-
 declare_args() {
   # *This must never be set as a build argument.*
   # It exists only to be set via define_toolchain().
   # See define_environment() for more information.
   toolchain = {
+    label = "$zx/public/gn/toolchain:stub"
     globals = {
     }
     public_deps = []
   }
 }
+
+# The default toolchain is a very boring one.  It can only be used for
+# action and copy rules where current_cpu et al don't matter.  Doing
+# anything else happens in another toolchain.
+set_default_toolchain(toolchain.label)
+
+# The rest of this file pertains to what happens in other toolchains
+# defined by define_environment().
 
 # The toolchain can specify pervasive globals.
 forward_variables_from(toolchain.globals, "*")
@@ -291,6 +292,7 @@ template("library") {
     }
     if (static) {
       target(static_library, "${_library_name}.static") {
+        output_name = _library_name
         forward_variables_from(invoker,
                                [
                                  "public_deps",
@@ -311,8 +313,10 @@ template("library") {
         not_needed(invoker, [ "install_path" ])
       }
       shared_library("${_library_name}.shared") {
+        output_name = _library_name
         forward_variables_from(invoker,
                                [
+                                 "ldflags",
                                  "public_deps",
                                  "testonly",
                                  "visibility",
@@ -324,6 +328,13 @@ template("library") {
         deps = [
           ":${_library_name}._sources",
         ]
+
+        # TODO: This is wrong.  It's working around the fact that
+        # ldflags don't propagate up from (non-public) configs.
+        # The _sources set has the set_defaults deps->configs that
+        # include e.g. :compiler.  But those aren't in its public_deps
+        # so nothing gives them to the shared_library here.
+        deps += toolchain.public_deps
       }
     }
     group(_library_name) {

@@ -191,6 +191,8 @@ template("define_c_toolchain") {
     ]
 
     if (defined(invoker.shlib) && invoker.shlib) {
+      propagates_configs = true
+
       # We don't support building shared libraries for host tools.
       assert(invoker.os == "fuchsia",
              "shared library creation not supported for ${invoker.os}")
@@ -205,9 +207,10 @@ template("define_c_toolchain") {
           description = "LINK_SHLIB $outfile"
 
           output_prefix = "lib"
-          soname = "${output_prefix}{{target_output_name}}{{output_extension}}"
+          default_output_extension = ".so"
 
           # Put the automatic -soname first so that ldflags can override it.
+          soname = "{{target_output_name}}{{output_extension}}"
           switches = "-shared -Wl,-soname,$soname $switches"
 
           command = "$ld $switches $link_inputs $link_libs"
