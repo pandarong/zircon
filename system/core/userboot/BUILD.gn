@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+#TODO(crbug.com/gn/11): iwyu import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/environment.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
@@ -11,8 +12,15 @@ import("$zx/public/gn/toolchain/select_toolchain.gni")
 # userboot gets its own toolchain for its special build requirements.
 if (current_toolchain == default_toolchain) {
   # Define the special toolchain itself only in the default toolchain.
-  define_environment("userboot") {
-    public_deps += standard_fuchsia_configs + [ ":userboot_config" ]
+  foreach(cpu, standard_fuchsia_cpus) {
+    define_environment("userboot") {
+      cpu = cpu
+      public_deps += standard_fuchsia_configs + [ ":userboot_config" ]
+
+      # This doesn't get a separate shlib sub-toolchain, but the main one
+      # can do loadable_module().
+      solink = true
+    }
   }
 } else if (toolchain.environment == "userboot") {
   # Everything in userboot gets compiled this way.
@@ -41,8 +49,8 @@ if (current_toolchain == default_toolchain) {
       "util.c",
     ]
     libs = [ vdso_syms_ld ]
-    deps = [
-      ":gen-vdso-syms",
+    deps += [
+      ":gen-vdso-syms-ld",
       "$zx/system/ulib/bootdata",
       "$zx/system/ulib/elfload",
       "$zx/system/ulib/ldmsg",
@@ -59,19 +67,39 @@ if (current_toolchain == default_toolchain) {
   toolchain_utils_action("gen-vdso-syms-header") {
     visibility = [ ":gen-vdso-syms-ld" ]
     deps = [
-      "$zx/system/ulib/zircon",
+      ":vdso",
     ]
-    sources = [
-      get_metadata(deps, [ "link_output" ]),
-    ]
+    if (false) {  #TODO
+      sources = [
+        get_metadata(deps, [ "link_output" ]),
+      ]
+    } else {
+      sources = [
+        get_label_info(
+                "$zx/system/ulib/zircon:zircon.shared($zx/public/gn/toolchain:user-${current_cpu}-clang.shlib)",
+                "target_out_dir") + "/libzircon.so",
+      ]
+    }
     outputs = [
-      vdso_syms_ld,
+      "$target_gen_dir/vdso-syms.h",
     ]
     utils = [ "nm" ]
     script = "$zx/scripts/shlib-symbols"
     args = [
       "-a",
-      get_metadata(deps, [ "link_output_arg" ]),
+
+      #TODO: get_metadata(deps, [ "link_output_arg" ]),
+      rebase_path(sources[0], root_build_dir),
+
+      rebase_path(outputs[0], root_build_dir),
+    ]
+  }
+
+  # Redirect to the normal user environment vDSO shared library target.
+  select_toolchain("vdso") {
+    environment_label = "$zx/public/gn/toolchain:user"
+    deps = [
+      "$zx/system/ulib/zircon",
     ]
   }
 
@@ -82,7 +110,7 @@ if (current_toolchain == default_toolchain) {
   toolchain_utils_action("gen-vdso-syms-ld") {
     visibility = [ ":userboot" ]
     outputs = [
-      "$target_gen_dir/vdso-syms.ld",
+      vdso_syms_ld,
     ]
     deps = [
       ":gen-vdso-syms-header",
@@ -99,6 +127,7 @@ if (current_toolchain == default_toolchain) {
       "-P",
       "-include",
       rebase_path(inputs[0], root_build_dir),
+      rebase_path(sources[0], root_build_dir),
     ]
   }
 } else {

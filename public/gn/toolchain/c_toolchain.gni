@@ -224,6 +224,8 @@ template("define_c_toolchain") {
           name = "solink_module"
           description = "LINK_MODULE $outfile"
 
+          default_output_extension = ".so"
+
           switches = "-shared $switches"
           command = "$ld $switches $link_inputs $link_libs"
         },

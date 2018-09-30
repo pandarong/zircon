@@ -46,6 +46,10 @@ library("zircon") {
   public_deps = [
     ":generated-public-headers",
   ]
+
+  # --gc-sections eats hidden CODE_* functions we need to preserve for
+  # the kernel to redirect to.
+  deps -= [ "$zx/public/gn/config:default_linker_gc" ]
 }
 
 config_group("config") {

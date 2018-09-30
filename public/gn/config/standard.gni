@@ -13,6 +13,7 @@ standard_configs = [
   "$zx/public/gn/config:default_warnings",
   "$zx/public/gn/config:default_include_dirs",
   "$zx/public/gn/config:default_frame_pointers",
+  "$zx/public/gn/config:default_linker_gc",
   "$zx/public/gn/config:no_exceptions",
   "$zx/public/gn/config:no_rtti",
   "$zx/public/gn/config:thread_safety_annotations",
@@ -22,7 +23,6 @@ standard_configs = [
 
 # Additional configs apply to code built for Fuchsia but not to host code.
 standard_fuchsia_configs = [
-  "$zx/public/gn/config:default_warnings",
   "$zx/public/gn/config:nostdlib",
   "$zx/public/gn/config:werror",
 ]
