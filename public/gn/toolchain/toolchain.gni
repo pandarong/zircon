@@ -14,6 +14,7 @@
 #
 #   deps (optional)
 #   toolchain_args (optional)
+#   propagates_configs (optional)
 #     Same as for toolchain().
 #
 template("define_toolchain") {
@@ -27,6 +28,7 @@ template("define_toolchain") {
     forward_variables_from(invoker,
                            [
                              "deps",
+                             "propagates_configs",
                              "toolchain_args",
                            ])
 
