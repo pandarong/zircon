@@ -14,6 +14,7 @@ template("_host_tool_action_target") {
   # Dispatch to a host toolchain to get the tool built.
   select_toolchain("_tool.$action_target") {
     visibility = [ ":$action_target" ]
+    environment_label = "$zx/public/gn/toolchain:host"
     cpu = host_cpu
     os = host_os
     deps = [
