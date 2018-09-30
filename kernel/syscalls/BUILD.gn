@@ -66,15 +66,15 @@ source_set("dispatch") {
 config_group("syscall-abi") {
   visibility = [
     ":*",
-    "$zx/kernel/arch/$zircon_cpu",
-    "$zx/system/ulib/zircon",
-    "$zx/system/utest/core/bad-syscall",
+    "$zx/kernel/arch/$zircon_cpu:*",
+    "$zx/system/ulib/zircon:*",
+    "$zx/system/utest/core/bad-syscall:*",
   ]
 
   include_dirs = [ target_gen_dir ]
 
   deps = [
-    #":generate-syscall-abi",
+    ":generate-syscall-abi",
   ]
 }
 

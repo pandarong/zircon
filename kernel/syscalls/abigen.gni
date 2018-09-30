@@ -7,15 +7,15 @@
 import("$zx/public/gn/host_tool_action.gni")
 
 template("abigen") {
-  action(target_name) {
+  host_tool_action(target_name) {
     forward_variables_from(invoker,
                            [
                              "testonly",
                              "visibility",
                            ])
 
-    #tool = "$zx/system/host/abigen"
-    script = "/bin/true"
+    tool = "$zx/system/host/abigen"
+    #script = "/bin/true"
 
     outputs = []
     args = []

@@ -24,7 +24,7 @@ if (current_toolchain == default_toolchain) {
     # Everything is statically linked together with no PLT or GOT.
     cflags = [
       "-include",
-      "$zx/kernel/include/hidden.h",
+      rebase_path("$zx/kernel/include/hidden.h", root_build_dir),
     ]
   }
 
