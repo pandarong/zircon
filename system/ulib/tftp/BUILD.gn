@@ -13,7 +13,7 @@ library("tftp") {
   } else if (is_host) {
     defines = [ "TFTP_HOSTLIB" ]
   }
-  if (!is_kernel) {
+  if (!is_kernel && is_fuchsia) {
     deps += [
       "$zx/system/ulib/c",
       "$zx/system/ulib/zircon",
@@ -22,7 +22,8 @@ library("tftp") {
 }
 
 if (!is_kernel) {
-  test("tftp-test") {
+  #TODO: test()
+  executable("tftp-test") {
     sources = [
       "tftp-file-test.cpp",
       "tftp-test.cpp",
@@ -33,8 +34,6 @@ if (!is_kernel) {
     sources = [
       "tftp-example.c",
     ]
-    deps = [
-      ":tftp",
-    ]
+    deps += [ ":tftp" ]
   }
 }

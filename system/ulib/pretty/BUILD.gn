@@ -6,14 +6,16 @@
 
 library("pretty") {
   kernel = true
+  host = true
+  static = true
   sources = [
     "hexdump.c",
     "sizes.c",
   ]
-  if (!is_kernel) {
+  if (!is_kernel && is_fuchsia) {
     deps += [
-      "$system/ulib/c",
-      "$system/ulib/fdio",
+      "$zx/system/ulib/c",
+      "$zx/system/ulib/fdio",
     ]
   }
 }

@@ -4,8 +4,16 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-library("zircon-internal") {
-  kernel = true
+library("digest") {
   host = true
-  sources = []
+
+  sources = [
+    "digest.cpp",
+    "merkle-tree.cpp",
+  ]
+
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/third_party/ulib/uboringssl",
+  ]
 }

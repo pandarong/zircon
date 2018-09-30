@@ -7,9 +7,10 @@ import("$zx/public/gn/toolchain/select_toolchain.gni")
 
 # Build the native host tools intended for developer use.
 select_toolchain("host_dev_tools") {
+  testonly = true
   environment_label = "$zx/public/gn/toolchain:host"
   deps = [
-    # TODO: "$zx/system/host:tools"
+    "$zx/system/host:tools",
   ]
 }
 

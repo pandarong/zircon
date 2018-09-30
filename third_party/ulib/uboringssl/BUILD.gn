@@ -6,19 +6,102 @@
 
 library("uboringssl") {
   kernel = true
+  host = true
+  static = true
+
   sources = [
     "crypto/chacha/chacha.c",
     "crypto/fipsmodule/sha/sha256.c",
     "crypto/fipsmodule/sha/sha512.c",
   ]
 
-  # TODO(mcgrathr): needs comment
-  defines = [ "OPENSSL_NO_ASM" ]
+  if (!is_kernel) {
+    sources += [
+      "crypto/cipher_extra/e_aesgcmsiv.c",
+      "crypto/cpu-aarch64-fuchsia.c",
+      "crypto/cpu-arm.c",
+      "crypto/cpu-intel.c",
+      "crypto/crypto.c",
+      "crypto/err/err.c",
+      "crypto/fipsmodule/aes/aes.c",
+      "crypto/fipsmodule/aes/mode_wrappers.c",
+      "crypto/fipsmodule/cipher/aead.c",
+      "crypto/fipsmodule/cipher/cipher.c",
+      "crypto/fipsmodule/cipher/e_aes.c",
+      "crypto/fipsmodule/digest/digest.c",
+      "crypto/fipsmodule/digest/digests.c",
+      "crypto/fipsmodule/hmac/hmac.c",
+      "crypto/fipsmodule/md4/md4.c",
+      "crypto/fipsmodule/md5/md5.c",
+      "crypto/fipsmodule/modes/cbc.c",
+      "crypto/fipsmodule/modes/cfb.c",
+      "crypto/fipsmodule/modes/ctr.c",
+      "crypto/fipsmodule/modes/gcm.c",
+      "crypto/fipsmodule/modes/ofb.c",
+      "crypto/fipsmodule/modes/polyval.c",
+      "crypto/fipsmodule/rand/ctrdrbg.c",
+      "crypto/fipsmodule/rand/rand.c",
+      "crypto/fipsmodule/sha/sha1.c",
+      "crypto/hkdf/hkdf.c",
+      "crypto/mem.c",
+      "crypto/rand_extra/forkunsafe.c",
+      "crypto/rand_extra/fuchsia.c",
+      "crypto/thread_none.c",
+
+      # TODO(aarongreen): Replace or get upstream to support more fully.
+      "decrepit/xts/xts.c",
+
+      # Auto-generated sources.
+      "err_data.c",
+    ]
+  }
+
+  if (is_kernel || is_host || current_cpu == "arm64") {
+    # TODO(mcgrathr,aarongreen): needs comment for kernel, host cases
+    # TODO(aarongreen): For arm64 user: Workaround for the non-hidden
+    # OPENSSL_armcap_P symbol, which causes arm/clang to fail to link.
+    # Remove when resolved upstream.
+    defines = [ "OPENSSL_NO_ASM" ]
+  }
+
+  if (is_host) {
+    defines += [ "OPENSSL_NO_THREADS" ]
+  }
+
+  if (current_cpu == "arm64") {
+    sources += [
+      "linux-aarch64/crypto/chacha/chacha-armv8.S",
+      "linux-aarch64/crypto/fipsmodule/aesv8-armx64.S",
+      "linux-aarch64/crypto/fipsmodule/ghashv8-armx64.S",
+      "linux-aarch64/crypto/fipsmodule/sha1-armv8.S",
+      "linux-aarch64/crypto/fipsmodule/sha256-armv8.S",
+      "linux-aarch64/crypto/fipsmodule/sha512-armv8.S",
+    ]
+  } else if (current_cpu == "x64") {
+    sources += [
+      "linux-x86_64/crypto/chacha/chacha-x86_64.S",
+      "linux-x86_64/crypto/cipher_extra/aes128gcmsiv-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/aes-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/aesni-gcm-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/aesni-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/bsaes-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/ghash-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/md5-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/rdrand-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/sha1-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/sha256-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/sha512-x86_64.S",
+      "linux-x86_64/crypto/fipsmodule/vpaes-x86_64.S",
+    ]
+  }
 
   if (is_kernel) {
     # Avoid circularity.
     deps -= [ "$zx/kernel/vm:headers" ]
-  } else {
-    # TODO(mcgrathr): Add the rest.
+  } else if (is_fuchsia) {
+    deps += [
+      "$zx/system/ulib/c",
+      "$zx/system/ulib/fdio",
+    ]
   }
 }

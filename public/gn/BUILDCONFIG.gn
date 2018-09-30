@@ -243,6 +243,13 @@ template("library") {
   # Not all of these will be referenced in all toolchains.
   not_needed(_library_params)
 
+  if (invoker.sources == []) {
+    static_library = "source_set"
+  } else {
+    static_library = "static_library"
+  }
+  not_needed([ "static_library" ])
+
   targets = false
   if (is_kernel) {
     if (kernel) {
@@ -258,7 +265,7 @@ template("library") {
   } else if (is_host) {
     if (host) {
       targets = true
-      static_library(_library_name) {
+      target(static_library, _library_name) {
         forward_variables_from(invoker, "*", _library_params)
         if (!defined(public_deps)) {
           public_deps = []
@@ -283,7 +290,7 @@ template("library") {
       deps += [ ":${_library_name}.headers" ]
     }
     if (static) {
-      static_library("${_library_name}.static") {
+      target(static_library, "${_library_name}.static") {
         forward_variables_from(invoker,
                                [
                                  "public_deps",
@@ -300,8 +307,9 @@ template("library") {
       }
     }
     if (shared) {
-      #TODO
-      not_needed(invoker, [ "install_path" ])
+      if (defined(invoker.install_path)) {  #TODO
+        not_needed(invoker, [ "install_path" ])
+      }
       shared_library("${_library_name}.shared") {
         forward_variables_from(invoker,
                                [
@@ -422,8 +430,10 @@ template("_target_no_legacy_configs") {
 }
 
 template("host_tool") {
-  _target_no_legacy_configs(target_name) {
-    type = "host_tool"
+  if (false) {  #TODO(crbug.com/gn/12): gn crash
+    _target_no_legacy_configs(target_name) {
+      type = "host_tool"
+    }
   }
   executable(target_name) {
     forward_variables_from(invoker, "*", [ "visibility" ])
@@ -481,12 +491,12 @@ _compile_target_types = [
   # TODO: "driver",
 
   "executable",
+  "host_tool",
   "library",
   "loadable_module",
   "shared_library",
   "source_set",
   "static_library",
-  "tool",
 ]
 
 # ${toolchain.public_deps} gives the initial `deps` set for every compile
@@ -498,5 +508,11 @@ _compile_target_types = [
 foreach(target_type, _compile_target_types) {
   set_defaults(target_type) {
     deps = toolchain.public_deps
+    if (is_fuchsia && target_type == "host_tool") {
+      deps += [
+        "$zx/system/ulib/c",
+        "$zx/system/ulib/fdio",
+      ]
+    }
   }
 }
