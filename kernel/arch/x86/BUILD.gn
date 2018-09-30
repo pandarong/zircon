@@ -92,7 +92,6 @@ library("x86") {
     "pvclock.cpp",
     "registers.cpp",
     "start.S",
-    "syscall.S",
     "thread.cpp",
     "timer_freq.cpp",
     "tsc.cpp",
@@ -101,6 +100,7 @@ library("x86") {
     "uspace_entry.S",
   ]
   deps += [
+    ":syscall",
     ":tests",
     "$zx/kernel/dev/hw_rng",
     "$zx/kernel/dev/iommu/dummy",
@@ -131,6 +131,13 @@ library("x86") {
     # <arch/x86/acpi.h> has #include <acpica/acpi.h>.
     "$zx/third_party/lib/acpica:headers",
   ]
+}
+
+source_set("syscall") {
+  sources = [
+    "syscall.S",
+  ]
+  deps += [ "$zx/kernel/syscalls:syscall-abi" ]
 }
 
 source_set("tests") {
