@@ -24,6 +24,7 @@
 
 #include <threads.h>
 
+#include "dwc3-fifo.h"
 #include "dwc3-types.h"
 
 // physical endpoint numbers for ep0
