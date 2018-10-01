@@ -16,6 +16,7 @@ standard_configs = [
   "$zx/public/gn/config:default_linker_gc",
   "$zx/public/gn/config:no_exceptions",
   "$zx/public/gn/config:no_rtti",
+  "$zx/public/gn/config:no_threadsafe_statics",
   "$zx/public/gn/config:thread_safety_annotations",
 
   # TODO: "$zx/public/gn/config:symbol_visibility_hidden",

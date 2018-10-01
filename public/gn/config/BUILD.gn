@@ -265,6 +265,11 @@ config_group("no_rtti") {
   cflags_objcc = cflags_cc
 }
 
+config_group("no_threadsafe_statics") {
+  cflags_cc = [ "-fno-threadsafe-statics" ]
+  cflags_objcc = cflags_cc
+}
+
 config_group("default_include_dirs") {
   include_dirs = [
     "$zx/system/public",
