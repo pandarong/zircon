@@ -17,8 +17,10 @@ source_set("hypervisor") {
   ]
   deps += [
     "$zx/kernel/dev/interrupt/arm_gic/common",
+    "$zx/kernel/dev/timer/arm_generic",
     "$zx/kernel/dev/interrupt/arm_gic/v2",
     "$zx/kernel/dev/interrupt/arm_gic/v3",
-    "$zx/kernel/lib/hypervisor",
+    "$zx/kernel/dev/psci",
+    "$zx/kernel/lib/hypervisor:headers",
   ]
 }
