@@ -14,7 +14,7 @@ library("hypervisor") {
     "trap_map.cpp",
   ]
   deps += [
-    #"$zx/kernel/arch/$zircon_cpu/hypervisor",
+    "$zx/kernel/arch/$zircon_cpu/hypervisor",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/unittest",
     "$zx/system/ulib/bitmap",

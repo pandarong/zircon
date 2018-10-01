@@ -135,6 +135,8 @@ find_segments() {
   }; then : ; fi
 }
 
+trap 'rm -f "$OUTFILE"' ERR HUP INT TERM
+
 while [ $# -gt 0 ]; do
   if [ $# -lt 2 ]; then
     usage

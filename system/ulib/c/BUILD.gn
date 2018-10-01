@@ -2,6 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO: temporary hack is enough to compile userboot
+config_group("headers") {
+  include_dirs = [ "$zx/third_party/ulib/musl/include" ]
+}
+
 group("c") {
-  # TODO
+  public_deps = [ ":headers" ]
 }

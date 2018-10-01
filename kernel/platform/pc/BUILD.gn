@@ -36,6 +36,7 @@ library("pc") {
     "$zx/kernel/lib/version",
     "$zx/system/ulib/libzbi",
     "$zx/system/ulib/smbios",
+    "$zx/third_party/lib/acpica",
     "$zx/third_party/ulib/cksum",
   ]
   public_deps = [
