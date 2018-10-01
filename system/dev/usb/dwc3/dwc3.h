@@ -10,6 +10,11 @@
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/usb-dci.h>
 #include <ddk/protocol/usb-mode-switch.h>
+
+#include <ddktl/device.h>
+#include <ddktl/protocol/usb-dci.h>
+#include <ddktl/protocol/usb-mode-switch.h>
+
 #include <fbl/mutex.h>
 #include <lib/zx/handle.h>
 #include <lib/zx/interrupt.h>
@@ -166,6 +171,45 @@ void dwc3_events_stop(dwc3_t* dwc);
 // Utils
 void dwc3_wait_bits(volatile uint32_t* ptr, uint32_t bits, uint32_t expected);
 void dwc3_print_status(dwc3_t* dwc);
+
+namespace dwc3 {
+
+class Dwc3;
+using Dwc3Type = ddk::Device<Dwc3>;
+
+// This is the main class for the platform bus driver.
+class Dwc3 : public Dwc3Type, public ddk::UsbDciProtocol<Dwc3>,
+             public ddk::UmsProtocol<Dwc3> {
+public:
+    explicit Dwc3(zx_device_t* parent)
+        : Dwc3Type(parent), usb_mode_(USB_MODE_NONE) {}
+
+    static zx_status_t Create(zx_device_t* parent);
+
+    // Device protocol implementation.
+    void DdkRelease();
+
+    // USB DCI protocol implementation.
+     void UsbDciRequestQueue(usb_request_t* req);
+     zx_status_t UsbDciSetInterface(const usb_dci_interface_t* interface);
+     zx_status_t UsbDciConfigEp(const usb_endpoint_descriptor_t* ep_desc, const
+                                usb_ss_ep_comp_descriptor_t* ss_comp_desc);
+     zx_status_t UsbDciDisableEp(uint8_t ep_address);
+     zx_status_t UsbDciEpSetStall(uint8_t ep_address);
+     zx_status_t UsbDciEpClearStall(uint8_t ep_address);
+     zx_status_t UsbDciGetBti(zx_handle_t* out_bti);
+
+    // USB mode switch protocol implementation.
+    zx_status_t UmsSetMode(usb_mode_t mode);
+
+private:
+    DISALLOW_COPY_ASSIGN_AND_MOVE(Dwc3);
+
+    usb_mode_t usb_mode_;
+};
+
+} // namespace dwc3
+
 
 __BEGIN_CDECLS
 zx_status_t dwc3_bind(void* ctx, zx_device_t* parent);
