@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+namespace dwc3 {
+
 static void dwc3_handle_ep_event(dwc3_t* dwc, uint32_t event) {
     uint32_t type = DEPEVT_TYPE(event);
     uint32_t ep_num = DEPEVT_PHYS_EP(event);
@@ -236,3 +238,5 @@ void dwc3_events_stop(dwc3_t* dwc) {
     dwc->irq_handle.destroy();
     thrd_join(dwc->irq_thread, nullptr);
 }
+
+} // namespace dwc3

@@ -18,9 +18,7 @@
 
 #define EP_FIFO_SIZE    PAGE_SIZE
 
-static zx_paddr_t dwc3_ep_trb_phys(dwc3_endpoint_t* ep, dwc3_trb_t* trb) {
-    return io_buffer_phys(&ep->fifo.buffer) + (trb - ep->fifo.first) * sizeof(*trb);
-}
+namespace dwc3 {
 
 static void dwc3_enable_ep(dwc3_t* dwc, unsigned ep_num, bool enable) {
     volatile void* reg = dwc3_mmio(dwc) + DALEPENA;
@@ -41,37 +39,14 @@ static void dwc3_enable_ep(dwc3_t* dwc, unsigned ep_num, bool enable) {
 zx_status_t dwc3_ep_fifo_init(dwc3_t* dwc, unsigned ep_num) {
     ZX_DEBUG_ASSERT(ep_num < countof(dwc->eps));
     dwc3_endpoint_t* ep = &dwc->eps[ep_num];
-    dwc3_fifo_t* fifo = &ep->fifo;
 
-    static_assert(EP_FIFO_SIZE <= PAGE_SIZE, "");
-    zx_status_t status = io_buffer_init(&fifo->buffer, dwc->bti_handle.get(), EP_FIFO_SIZE,
-                                        IO_BUFFER_RW | IO_BUFFER_CONTIG);
-    if (status != ZX_OK) {
-        return status;
-    }
-
-    fifo->first = static_cast<dwc3_trb_t*>(io_buffer_virt(&fifo->buffer));
-    fifo->next = fifo->first;
-    fifo->current = nullptr;
-    fifo->last = fifo->first + (EP_FIFO_SIZE / sizeof(dwc3_trb_t)) - 1;
-
-    // set up link TRB pointing back to the start of the fifo
-    dwc3_trb_t* trb = fifo->last;
-    zx_paddr_t trb_phys = io_buffer_phys(&fifo->buffer);
-    trb->ptr_low = (uint32_t)trb_phys;
-    trb->ptr_high = (uint32_t)(trb_phys >> 32);
-    trb->status = 0;
-    trb->control = TRB_TRBCTL_LINK | TRB_HWO;
-    io_buffer_cache_flush(&ep->fifo.buffer, (trb - ep->fifo.first) * sizeof(*trb), sizeof(*trb));
-
-    return ZX_OK;
+    return ep->fifo.Init(EP_FIFO_SIZE, zx::unowned_handle(dwc->bti_handle));
 }
 
 void dwc3_ep_fifo_release(dwc3_t* dwc, unsigned ep_num) {
     ZX_DEBUG_ASSERT(ep_num < countof(dwc->eps));
     dwc3_endpoint_t* ep = &dwc->eps[ep_num];
-
-    io_buffer_release(&ep->fifo.buffer);
+    ep->fifo.Release();
 }
 
 void dwc3_ep_start_transfer(dwc3_t* dwc, unsigned ep_num, unsigned type, zx_paddr_t buffer,
@@ -81,13 +56,7 @@ void dwc3_ep_start_transfer(dwc3_t* dwc, unsigned ep_num, unsigned type, zx_padd
     // special case: EP0_OUT and EP0_IN use the same fifo
     dwc3_endpoint_t* ep = (ep_num == EP0_IN ? &dwc->eps[EP0_OUT] : &dwc->eps[ep_num]);
 
-    dwc3_trb_t* trb = ep->fifo.next++;
-    if (ep->fifo.next == ep->fifo.last) {
-        ep->fifo.next = ep->fifo.first;
-    }
-    if (ep->fifo.current == nullptr) {
-        ep->fifo.current = trb;
-    }
+    auto* trb = ep->fifo.Next(true);
 
     trb->ptr_low = (uint32_t)buffer;
     trb->ptr_high = (uint32_t)(buffer >> 32);
@@ -97,21 +66,18 @@ void dwc3_ep_start_transfer(dwc3_t* dwc, unsigned ep_num, unsigned type, zx_padd
     } else {
         trb->control = type | TRB_LST | TRB_IOC | TRB_HWO;
     }
-    io_buffer_cache_flush(&ep->fifo.buffer, (trb - ep->fifo.first) * sizeof(*trb), sizeof(*trb));
+    ep->fifo.FlushTrb(trb);
 
     if (send_zlp) {
-        dwc3_trb_t* zlp_trb = ep->fifo.next++;
-        if (ep->fifo.next == ep->fifo.last) {
-            ep->fifo.next = ep->fifo.first;
-        }
+        dwc3_trb_t* zlp_trb = ep->fifo.Next(false);
         zlp_trb->ptr_low = 0;
         zlp_trb->ptr_high = 0;
         zlp_trb->status = TRB_BUFSIZ(0);
         zlp_trb->control = type | TRB_LST | TRB_IOC | TRB_HWO;
-        io_buffer_cache_flush(&ep->fifo.buffer, (zlp_trb - ep->fifo.first) * sizeof(*trb), sizeof(*trb));
+        ep->fifo.FlushInvalidateTrb(zlp_trb);
     }
 
-    dwc3_cmd_ep_start_transfer(dwc, ep_num, dwc3_ep_trb_phys(ep, trb));
+    dwc3_cmd_ep_start_transfer(dwc, ep_num, ep->fifo.GetTrbPhys(trb));
 }
 
 static void dwc3_ep_queue_next_locked(dwc3_t* dwc, dwc3_endpoint_t* ep) {
@@ -255,16 +221,6 @@ void dwc3_start_eps(dwc3_t* dwc) {
     }
 }
 
-static void dwc_ep_read_trb(dwc3_endpoint_t* ep, dwc3_trb_t* trb, dwc3_trb_t* out_trb) {
-    if (trb >= ep->fifo.first && trb < ep->fifo.last) {
-        io_buffer_cache_flush_invalidate(&ep->fifo.buffer, (trb - ep->fifo.first) * sizeof(*trb),
-                                         sizeof(*trb));
-        memcpy((void *)out_trb, (void *)trb, sizeof(*trb));
-    } else {
-        zxlogf(ERROR, "dwc_ep_read_trb: bad trb\n");
-    }
-}
-
 void dwc3_ep_xfer_started(dwc3_t* dwc, unsigned ep_num, unsigned rsrc_id) {
     dwc3_endpoint_t* ep = &dwc->eps[ep_num];
     fbl::AutoLock lock(&ep->lock);
@@ -305,8 +261,7 @@ void dwc3_ep_xfer_complete(dwc3_t* dwc, unsigned ep_num) {
 
         if (req) {
             dwc3_trb_t  trb;
-            dwc_ep_read_trb(ep, ep->fifo.current, &trb);
-            ep->fifo.current = nullptr;
+            ep->fifo.ReadAndClearCurrentTrb(&trb);
             if (trb.control & TRB_HWO) {
                 zxlogf(ERROR, "TRB_HWO still set in dwc3_ep_xfer_complete\n");
             }
@@ -360,3 +315,5 @@ void dwc3_ep_end_transfers(dwc3_t* dwc, unsigned ep_num, zx_status_t reason) {
         usb_request_complete(req, reason, 0);
     }
 }
+
+} // namespace dwc3

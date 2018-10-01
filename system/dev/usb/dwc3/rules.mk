@@ -15,6 +15,7 @@ MODULE_SRCS += \
     $(LOCAL_DIR)/dwc3-endpoints.cpp \
     $(LOCAL_DIR)/dwc3-ep0.cpp \
     $(LOCAL_DIR)/dwc3-events.cpp \
+    $(LOCAL_DIR)/dwc3-fifo.cpp \
 
 MODULE_STATIC_LIBS := \
     system/ulib/ddk  	 \

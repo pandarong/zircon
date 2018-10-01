@@ -5,7 +5,7 @@
 #pragma once
 
 // Transfer Request Block
-typedef volatile struct {
+typedef volatile struct dwc3_trb {
     uint32_t ptr_low;
     uint32_t ptr_high;
     uint32_t status;
