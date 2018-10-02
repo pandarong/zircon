@@ -151,7 +151,8 @@ config_group("opt_level") {
   }
 
   public_deps = []
-  if (opt_level > 1) {
+  # TODO(TC-229): --icf is broken for the kernel.
+  if (opt_level > 1 && !is_kernel) {
     public_deps += [ ":icf" ]
   }
 

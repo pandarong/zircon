@@ -62,7 +62,7 @@ if (toolchain.environment == "physmem") {
         ":${board}-boot-shim.elf",
       ]
       outputs = [
-        "$root_out_dir/${board}-boot.shim.bin",
+        "$root_out_dir/${board}-boot-shim.bin",
       ]
       sources = [
         "$target_out_dir/${board}-boot-shim.elf",
