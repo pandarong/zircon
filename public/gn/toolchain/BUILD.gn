@@ -2,11 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/config/standard.gni")
 import("environment.gni")
 import("toolchain.gni")
-
-# TODO(crbug.com/gn/11): can't iwyu because environment.gni does and {}!={}
-# import("standard.gni")
 
 assert(current_toolchain == default_toolchain,
        "Define toolchains only in `default_toolchain` $default_toolchain")

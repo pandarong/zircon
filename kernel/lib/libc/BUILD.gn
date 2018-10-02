@@ -10,7 +10,6 @@ library("libc") {
     "atexit.c",
     "atoi.c",
     "bsearch.c",
-    "ctype.c",
     "cxa_atexit.cpp",
     "eabi.c",
     "errno.c",
@@ -22,6 +21,7 @@ library("libc") {
     "strtoll.c",
   ]
   deps += [
+    ":ctype",
     "$zx/kernel/lib/heap",
     "$zx/kernel/lib/io",
     "string",
@@ -38,4 +38,10 @@ library("libc") {
     # Avoid circularity.
     deps -= [ get_label_info(":headers", "label_no_toolchain") ]
   }
+}
+
+source_set("ctype") {
+  sources = [
+    "ctype.c",
+  ]
 }

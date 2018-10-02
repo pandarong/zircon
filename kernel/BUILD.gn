@@ -4,10 +4,9 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/environment.gni")
-
-# TODO((crbug.com/gn/11)): import("$zx/public/gn/toolchain/standard.gni")
 import("params.gni")
 
 if (current_toolchain == default_toolchain) {

@@ -68,6 +68,7 @@ template("define_c_toolchain") {
     tc = {
       tool_dir = clang_tool_dir
       tool_prefix = "llvm-"
+      version_string = clang_version_string
     }
   }
 

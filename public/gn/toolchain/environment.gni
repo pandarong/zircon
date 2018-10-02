@@ -16,6 +16,53 @@ import("c_toolchain.gni")
 #  * `user` for user-mode programs running on top of Zircon/Fuchsia
 # Additional environments are defined for more specialized purposes.
 #
+# The expansion of ":$target_name" is the ${toolchain.environment_label}
+# value seen in these toolchains.  This is what must be suppled in
+# select_toolchain()'s `environment_label` parameter.
+#
+# Parameters
+#
+#   cpu
+#     Required: $current_cpu value in the new toolchains.
+#
+#   os
+#     Optional: $current_os value in the new toolchains.
+#     Default: "fuchsia"
+#
+#   shlib
+#     Optional: If this environment will supported shared_library() targets.
+#     Default: false
+#
+#   solink
+#     Optional: If this environment will be used *only* for shared_library()
+#     and/or loadable_module() targets.  Mutually exclusive with $shlib.
+#     Default: false
+#
+#   public_deps
+#     Preset: $standard_configs
+#     Required: List of labels, usually config_group() targets.
+#     These are the default `deps` in all compiling targets.
+#
+#   shlib_public_deps
+#     Preset: $standard_shlib_configs
+#     Required: List of labels, usually config_group() targets.
+#     Added to $public_deps in the `.shlib` companion toolchain.
+#     Ignored if $shlib is false.
+#
+#   globals
+#     Optional: A scope imported into the global scope in these toolchains.
+#     This is the place to define `is_...` variables.
+#
+#   toolchain_args
+#     Optional: A scope of build argument overrides for these toolchains.
+#     This is just like $toolchain_args passed to toolchain() in bare GN.
+#
+#   toolchain_vars
+#     Optional: A scope imported into the $toolchain scope in these toolchains.
+#     This can store useful toolchain-specific variables that should be
+#     available within the toolchain.  $toolchain automatically contains
+#     `tool_dir`, `tool_prefix`, `cc, and `cxx`, from define_c_toolchain().
+#
 template("define_environment") {
   # These are seen by define_c_toolchain, below.
   environment = target_name
@@ -76,6 +123,7 @@ template("define_environment") {
           os = "fuchsia"
         }
         shlib = shlib || (defined(invoker.solink) && invoker.solink)
+        forward_variables_from(invoker, [ "toolchain_args" ])
         toolchain_vars = {
           # ${toolchain.environment} and ${toolchain.environment_label}
           # will identify the environment within its own toolchains.

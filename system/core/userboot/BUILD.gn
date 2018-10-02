@@ -4,7 +4,8 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-#TODO(crbug.com/gn/11): iwyu import("$zx/public/gn/config/standard.gni")
+import("$zx/public/gn/config/levels.gni")
+import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/environment.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
@@ -20,6 +21,13 @@ if (current_toolchain == default_toolchain) {
       # This doesn't get a separate shlib sub-toolchain, but the main one
       # can do loadable_module().
       solink = true
+
+      if (opt_level < 2) {
+        # userboot doesn't stay sufficiently pure without optimization.
+        toolchain_args = {
+          opt_level = 2
+        }
+      }
     }
   }
 } else if (toolchain.environment == "userboot") {
@@ -35,7 +43,10 @@ if (current_toolchain == default_toolchain) {
       "-include",
       rebase_path("$zx/kernel/include/hidden.h", root_build_dir),
     ]
-    defines = [ "HIDDEN" ]
+    defines = [
+      "HIDDEN",
+      "WITH_LZ4_NOALLOC",
+    ]
   }
 
   vdso_syms_ld = "$target_gen_dir/vdso-syms.ld"

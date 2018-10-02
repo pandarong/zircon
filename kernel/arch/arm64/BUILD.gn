@@ -32,6 +32,8 @@ if (current_toolchain == default_toolchain) {
     cflags = [
       "-fpie",
 
+      "-mgeneral-regs-only",
+
       # With the MMU disabled, alignment checking is always enabled.  So make
       # sure the compiler doesn't use any unaligned memory accesses.
       "-mstrict-align",
