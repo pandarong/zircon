@@ -56,14 +56,14 @@ if (current_toolchain == default_toolchain) {
       "$zx/public/gn/config:data_sections",
     ]
 
-    defines = kernel_defines
+    defines = kernel_defines + kernel_extra_defines
     defines += [
-      "_KERNEL=1",
-      "LK=1",
-      "ENABLE_PANIC_SHELL=1",
-      "WITH_DEBUG_LINEBUFFER=1",
-      "WITH_KERNEL_PCIE=1",
-      "ZIRCON_TOOLCHAIN=1",
+      "_KERNEL",
+      "LK",
+      "ENABLE_PANIC_SHELL",
+      "WITH_DEBUG_LINEBUFFER",
+      "WITH_KERNEL_PCIE",
+      "ZIRCON_TOOLCHAIN",
     ]
 
     cflags = [ "-fpie" ]
@@ -98,7 +98,9 @@ if (current_toolchain == default_toolchain) {
       ldflags = [ "-Wl,--no-pie" ]
     }
 
-    public_deps = [ "$zx/public/gn/config:no_exceptions" ]
+    public_deps = [
+      "$zx/public/gn/config:no_exceptions",
+    ]
   }
 
   config_group("warnings") {
@@ -137,7 +139,10 @@ if (current_toolchain == default_toolchain) {
     # $zx/scripts/zircon.elf-gdb.py expects kernel symbols in "zircon.elf".
     output_extension = "elf"
 
-    ldflags = [ "-Wl,-T," + rebase_path("kernel.ld", root_build_dir) ]
+    ldflags = [
+      "-Wl,-T," + rebase_path("kernel.ld", root_build_dir),
+      "-Wl,--emit-relocs",
+    ]
     inputs = [
       "kernel.ld",
     ]
@@ -160,18 +165,9 @@ if (current_toolchain == default_toolchain) {
     }
   }
 
-  # XXX just for deps resolution for now
-  group("kernel") {
-    deps = [
-      ":zircon",
-    ]
-  }
-
   # Output file of that target.
   # TODO: zircon_elf = get_metadata([":zircon"], ["runtime_outputs"], [])
-  # zircon_elf_arg = get_metadata([":zircon"], ["runtime_outputs_args"], [])
-  zircon_elf = "$root_out_dir/zircon.elf"
-  zircon_elf_arg = rebase_path(zircon_elf, root_build_dir)
+  zircon_elf = "$target_out_dir/zircon.elf"
 
   # These are needed only in image.S and in the linker scripts.
   image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
@@ -195,90 +191,83 @@ if (current_toolchain == default_toolchain) {
     ]
   }
 
-  if (true) {
-    not_needed([
-                 "zircon_elf",
-                 "zircon_elf_arg",
-               ])
-  } else {
-    zircon_raw = "$target_out_dir/zircon.bin"
-    image_binary("raw") {
-      visibility = [
-        ":fixups",
-        ":image",
-      ]
-      deps = [
-        ":zircon",
-      ]
-      sources = [
-        zircon_elf,
-      ]
-      outputs = [
-        zircon_raw,
-      ]
-    }
+  zircon_raw = "$target_out_dir/zircon.bin"
+  image_binary("raw") {
+    visibility = [
+      ":fixups",
+      ":image",
+    ]
+    deps = [
+      ":zircon",
+    ]
+    sources = [
+      zircon_elf,
+    ]
+    outputs = [
+      zircon_raw,
+    ]
+  }
 
-    # Use the --emit-relocs records to extract the fixups needed to relocate
-    # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
-    # #include'd by "arch/$zircon_cpu/image.S".
-    toolchain_utils_action("fixups") {
-      visibility = [ ":image" ]
-      deps = [
-        ":raw",
-      ]
-      sources = [
-        zircon_raw,
-      ]
-      outputs = [
-        "$target_gen_dir/kernel-fixups.inc",
-      ]
+  # Use the --emit-relocs records to extract the fixups needed to relocate
+  # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
+  # #include'd by "arch/$zircon_cpu/image.S".
+  toolchain_utils_action("fixups") {
+    visibility = [ ":image" ]
+    deps = [
+      ":zircon",
+    ]
+    sources = [
+      zircon_elf,
+    ]
+    outputs = [
+      "$target_gen_dir/kernel-fixups.inc",
+    ]
 
-      # TODO(mcgrathr): Move the script to this dir as it's private to this use.
-      script = "$zx/scripts/gen-kaslr-fixups.sh"
-      utils = [
-        "readelf",
-        "objdump",
-      ]
-      args = [
-        rebase_path(sources[0], root_build_dir),
-        rebase_path(outputs[0], root_build_dir),
-      ]
-    }
+    # TODO(mcgrathr): Move the script to this dir as it's private to this use.
+    script = "$zx/scripts/gen-kaslr-fixups.sh"
+    utils = [
+      "readelf",
+      "objdump",
+    ]
+    args = [
+      rebase_path(sources[0], root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+    ]
+  }
 
-    executable("image") {
-      visibility = [ ":kernel" ]
-      deps += [
-        ":fixups",
-        ":kernel_defsym",
-        ":zircon_raw",
-      ]
-      include_dirs = [ target_gen_dir ]
-      defines = image_defines + [ "KERNEL_IMAGE=$zircon_elf_arg" ]
-      sources = [
-        "arch/$zircon_cpu/image.S",
-      ]
-      ldflags = [
-        "-Wl,--build-id=none",
-        "-Wl,-T," + rebase_path("image.ld", root_build_dir),
-        "-Wl,--just-symbols," +
-            rebase_path("$root_out_dir/zircon", root_build_dir),
-      ]
-      inputs = [
-        "image.ld",
-        "$root_out_dir/zircon",
-      ]
-    }
+  executable("image") {
+    visibility = [ ":kernel" ]
+    deps += [
+      ":fixups",
+      ":kernel_defsym",
+      ":raw",
+    ]
+    include_dirs = [ target_gen_dir ]
+    raw_path = rebase_path(zircon_raw, root_build_dir)
+    defines = image_defines + [ "KERNEL_IMAGE=\"${raw_path}\"" ]
+    sources = [
+      "arch/$zircon_cpu/image.S",
+    ]
+    ldflags = [
+      "-Wl,--build-id=none",
+      "-Wl,-T," + rebase_path("image.ld", root_build_dir),
+      "-Wl,--just-symbols," + rebase_path(zircon_elf, root_build_dir),
+    ]
+    inputs = [
+      "image.ld",
+      zircon_raw,
+    ]
+  }
 
-    image_binary("kernel") {
-      deps = [
-        ":image",
-      ]
-      outputs = [
-        "$root_out_dir/kernel.zbi",
-      ]
-      sources = [
-        "$root_out_dir/image",
-      ]
-    }
+  image_binary("kernel") {
+    deps = [
+      ":image",
+    ]
+    outputs = [
+      "$root_out_dir/kernel.zbi",
+    ]
+    sources = [
+      "$target_out_dir/image",
+    ]
   }
 }

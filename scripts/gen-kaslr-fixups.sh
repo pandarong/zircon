@@ -94,6 +94,7 @@ $1 == "Relocation" && $2 == "section" {
     next
 }
 NF == 0 || $1 == "Offset" { next }
+!secname { exit(1); }
 # Ignore standard non-allocated sections.
 secname ~ /^\.debug/ || secname == ".comment" { next }
 # .text.boot contains code that runs before fixups.
@@ -208,6 +209,6 @@ if [ -n "$BASH_VERSION" ]; then
   set -o pipefail
 fi
 
-trap 'rm -f "$OUTFILE"' ERR
+trap 'rm -f "$OUTFILE"' ERR INT HUP TERM
 
 LC_ALL=C "$READELF" -W -r "$KERNEL" | grok_fixups > "$OUTFILE"
