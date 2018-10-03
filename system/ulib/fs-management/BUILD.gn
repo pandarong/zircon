@@ -1,0 +1,29 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("fs-management") {
+  shared = true
+  sources = [
+    "fsck.cpp",
+    "fvm.cpp",
+    "launch.cpp",
+    "mkfs.cpp",
+    "mount.cpp",
+    "ram-nand.cpp",
+    "ramdisk.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fvm",
+    "$zx/system/ulib/fs",
+    "$zx/system/ulib/digest",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/gpt",
+    "$zx/system/ulib/fs",
+    "$zx/system/ulib/fzl",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+    "$zx/third_party/ulib/uboringssl",
+  ]
+}

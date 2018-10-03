@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-host_tool("blobfs") {
+host_tool("fvm") {
   sources = [
     "container/container.cpp",
     "container/fvm.cpp",
@@ -12,14 +12,20 @@ host_tool("blobfs") {
     "format/minfs.cpp",
     "main.cpp",
   ]
+  include_dirs = [ "include" ]
   deps += [
     "$zx/system/ulib/blobfs",
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fit",
     "$zx/system/ulib/fs",
     "$zx/system/ulib/fvm",
     "$zx/system/ulib/minfs",
     "$zx/third_party/ulib/lz4",
     "$zx/third_party/ulib/uboringssl",
+
+    # include/fvm/format.h has #include <fs-management/mount.h>
+    # though that library is not really meant for host code.
+    "$zx/system/ulib/fs-management:headers",
   ]
 }
