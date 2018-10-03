@@ -7,14 +7,16 @@ group("tools") {
   testonly = true
   deps = [
     "$zx/third_party/uapp/mkfs-msdosfs",
-    "abigen", #TODO: not a user tool
     "blobfs",
     "bootserver",
+    "fvm",
     "kernel-buildsig",
     "loglistener",
     "merkleroot",
     "minfs",
+    "netprotocol",
     "runtests",
+    "xdc-server",
     "zbi",
 
     #TODO: "fidl"
