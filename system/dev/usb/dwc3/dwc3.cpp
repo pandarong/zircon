@@ -20,6 +20,8 @@
 #include "dwc3-regs.h"
 #include "dwc3-types.h"
 
+namespace dwc3 {
+
 // MMIO indices
 enum {
     MMIO_USB3OTG,
@@ -454,7 +456,7 @@ static zx_protocol_device_t dwc3_device_ops = []() {
     return device;
 }();
 
-zx_status_t dwc3_bind(void* ctx, zx_device_t* parent) {
+static zx_status_t dwc3_do_bind(zx_device_t* parent) {
     zxlogf(INFO, "dwc3_bind\n");
 
     auto* dwc = static_cast<dwc3_t*>(calloc(1, sizeof(dwc3_t)));
@@ -535,4 +537,10 @@ fail:
     zxlogf(ERROR, "dwc3_bind failed %d\n", status);
     dwc3_release(dwc);
     return status;
+}
+
+} // namespace dwc3
+
+zx_status_t dwc3_bind(void* ctx, zx_device_t* parent) {
+    return dwc3::dwc3_do_bind(parent);
 }

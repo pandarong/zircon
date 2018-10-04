@@ -43,6 +43,8 @@
 // converts a USB endpoint address to 0 - 31 index
 #define dwc3_ep_num(addr) ((((addr) & 0xF) << 1) | !!((addr) & USB_DIR_IN))
 
+namespace dwc3 {
+
 typedef enum {
     EP0_STATE_NONE,
     EP0_STATE_SETUP,            // Queued setup phase
@@ -54,15 +56,7 @@ typedef enum {
 } dwc3_ep0_state;
 
 typedef struct {
-    io_buffer_t buffer;
-    dwc3_trb_t* first;      // first TRB in the fifo
-    dwc3_trb_t* next;       // next free TRB in the fifo
-    dwc3_trb_t* current;    // TRB for currently pending transaction
-    dwc3_trb_t* last;       // last TRB in the fifo (link TRB)
-} dwc3_fifo_t;
-
-typedef struct {
-    dwc3_fifo_t fifo;
+    Dwc3Fifo fifo;
     list_node_t queued_reqs;    // requests waiting to be processed
     usb_request_t* current_req; // request currently being processed
     unsigned rsrc_id;           // resource ID for current_req
@@ -172,8 +166,6 @@ void dwc3_events_stop(dwc3_t* dwc);
 // Utils
 void dwc3_wait_bits(volatile uint32_t* ptr, uint32_t bits, uint32_t expected);
 void dwc3_print_status(dwc3_t* dwc);
-
-namespace dwc3 {
 
 class Dwc3;
 using Dwc3Type = ddk::Device<Dwc3>;

@@ -9,6 +9,8 @@
 
 #include <stdio.h>
 
+namespace dwc3 {
+
 static void dwc3_ep_cmd(dwc3_t* dwc, unsigned ep_num, uint32_t command, uint32_t param0,
                         uint32_t param1, uint32_t param2, uint32_t flags) {
     auto* mmio = dwc3_mmio(dwc);
@@ -70,3 +72,5 @@ void dwc3_cmd_ep_set_stall(dwc3_t* dwc, unsigned ep_num) {
 void dwc3_cmd_ep_clear_stall(dwc3_t* dwc, unsigned ep_num) {
     dwc3_ep_cmd(dwc, ep_num, DEPCSTALL, 0, 0, 0, DEPCMD_CMDIOC);
 }
+
+} // namespace dwc3

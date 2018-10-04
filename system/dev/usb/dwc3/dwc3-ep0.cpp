@@ -14,6 +14,8 @@
 
 #define EP0_LOCK(dwc)   (&(dwc)->eps[EP0_OUT].lock)
 
+namespace dwc3 {
+
 static void dwc3_queue_setup_locked(dwc3_t* dwc) {
     io_buffer_cache_flush_invalidate(&dwc->ep0_buffer, 0, sizeof(usb_setup_t));
     dwc3_ep_start_transfer(dwc, EP0_OUT, TRB_TRBCTL_SETUP, io_buffer_phys(&dwc->ep0_buffer),
@@ -215,3 +217,5 @@ void dwc3_ep0_xfer_complete(dwc3_t* dwc, unsigned ep_num) {
         break;
     }
 }
+
+} // namespace dwc3
