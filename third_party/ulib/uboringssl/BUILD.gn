@@ -46,7 +46,7 @@ library("uboringssl") {
       "crypto/mem.c",
       "crypto/rand_extra/forkunsafe.c",
       "crypto/rand_extra/fuchsia.c",
-      "crypto/thread_none.c",
+      "crypto/thread_pthread.c",
 
       # TODO(aarongreen): Replace or get upstream to support more fully.
       "decrepit/xts/xts.c",
@@ -64,7 +64,7 @@ library("uboringssl") {
     defines = [ "OPENSSL_NO_ASM" ]
   }
 
-  if (is_host) {
+  if (is_host || is_kernel) {
     defines += [ "OPENSSL_NO_THREADS" ]
   }
 
