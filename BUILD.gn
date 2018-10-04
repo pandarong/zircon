@@ -63,6 +63,7 @@ group("all-cpu") {
 group("default") {
   testonly = true
   deps = [
+    ":all-cpu",
     ":host_dev_tools",
 
     # TODO: ":tools",
