@@ -11,6 +11,7 @@ boards = [
   "hikey960",
   "mt8167s_ref",
   "qemu",
+  "sherlock",
 ]
 
 group("boot-shim") {
