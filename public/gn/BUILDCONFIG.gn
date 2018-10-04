@@ -190,6 +190,7 @@ template("config_group") {
   }
 }
 
+# TODO: for loadable_module, roll into template handling variants
 foreach(shlib_target_type,
         [
           "shared_library",
@@ -380,17 +381,13 @@ template("library") {
 
   config_group("${_library_name}.headers") {
     include_dirs = [ "include" ]
+    # The public_deps here represent header dependencies.
     forward_variables_from(invoker,
                            [
+                             "public_deps",
                              "testonly",
                              "visibility",
                            ])
-    if (targets||true) {
-      # If this is within a toolchain where this library is built, then
-      # the public_deps apply normally.  If this is a cross-toolchain
-      # dependency on headers, it's only for include_dirs.
-      forward_variables_from(invoker, [ "public_deps" ])
-    }
     if (defined(visibility)) {
       visibility += [ _library_name ]
       if (!is_kernel) {
@@ -446,22 +443,10 @@ template("library") {
   }
 }
 
-template("_target_no_legacy_configs") {
-  assert_no_legacy_configs(target_name) {
-    type = invoker.type
-  }
-  target(invoker.type, target_name) {
-    not_needed(invoker.invoker, "*")
-    forward_variables_from(invoker.invoker, "*", [ "visibility" ])
-    forward_variables_from(invoker.invoker, [ "visibility" ])
-  }
-}
-
+# TODO: more later
 template("host_tool") {
-  if (false) {  #TODO(crbug.com/gn/12): gn crash
-    _target_no_legacy_configs(target_name) {
-      type = "host_tool"
-    }
+  assert_no_legacy_configs(target_name) {
+    type = "host_tool"
   }
   executable(target_name) {
     forward_variables_from(invoker, "*", [ "visibility" ])
@@ -469,48 +454,36 @@ template("host_tool") {
   }
 }
 
-if (false) {
-  # Just wrap these to inject assert_no_legacy_configs().
-  foreach(target_type,
-          [
-            "source_set",
-            "static_library",
-          ]) {
-    template(target_type) {
-      _target_no_legacy_configs(target_name) {
-        type = target_type
-      }
+# Just wrap these to inject assert_no_legacy_configs().
+foreach(target_type,
+        [
+          "source_set",
+          "static_library",
+        ]) {
+  template(target_type) {
+    assert_no_legacy_configs(target_name) {
+      type = target_type
     }
-  }
-
-  # These are what we call the "terminal" target types: they are linked
-  # artifacts that get explicitly installed on a device (or run on a host).
-  # static_library() and source_set() aren't terminal because they don't link.
-  # shared_library() isn't terminal because it gets installed only implicitly as
-  # a dependency of another target (either another library or a terminal
-  # target).  So these are the base target types that participate directly in
-  # variant selection.
-  _terminal_target_types = [
-    # TODO: "driver",
-
-    "loadable_module",
-    "executable",
-
-    #"tool",
-  ]
-
-  # TODO: variants
-  # Probably want this to be a private template a la _variant_target
-  # instead of foreach.  driver/tool need more magic and it seems cleaner
-  # to do it in separate templates than in an if nest inside this foreach.
-  foreach(target_type, _terminal_target_types) {
-    template(target_type) {
-      _target_no_legacy_configs(target_name) {
-        type = target_type
-      }
+    target(target_type, target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
     }
   }
 }
+
+# These are what we call the "terminal" target types: they are linked
+# artifacts that get explicitly installed on a device (or run on a host).
+# static_library() and source_set() aren't terminal because they don't link.
+# shared_library() isn't terminal because it gets installed only implicitly as
+# a dependency of another target (either another library or a terminal
+# target).  So these are the base target types that participate directly in
+# variant selection.
+_terminal_target_types = [
+  "driver",
+  "loadable_module",
+  "executable",
+  "host_tool",
+]
 
 # These are all the target types (both stock GN and Fuchsia templates) that
 # compile `sources` with the $current_toolchain tools.  All these get a
