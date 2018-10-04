@@ -326,17 +326,29 @@ template("library") {
         forward_variables_from(invoker,
                                [
                                  "ldflags",
-                                 "public_deps",
+                                 "libs",
+                                 "lib_dirs",
                                  "testonly",
                                  "visibility",
                                ])
-        if (!defined(public_deps)) {
-          public_deps = []
+
+        # Everything that depends on the library gets the headers.
+        # It also gets the explicit `public_deps`, which includes
+        # any header dependencies or public config_group()s.
+        public_deps = [ ":${_library_name}.headers" ]
+        if (defined(invoker.public_deps)) {
+          public_deps += invoker.public_deps
         }
-        public_deps += [ ":${_library_name}.headers" ]
-        deps = [
-          ":${_library_name}._sources",
-        ]
+
+        # The library depends on the source_set().  It also depends on the
+        # `deps` from the source_set() so as to get any config_group()
+        # dependencies that affect linking rather than just compilation.
+        # Other dependencies are redundant since the source_set() already
+        # has them, but they don't hurt.
+        deps = [ ":${_library_name}._sources" ]
+        if (defined(invoker.deps)) {
+          deps += invoker.deps
+        }
 
         # TODO: This is wrong.  It's working around the fact that
         # ldflags don't propagate up from (non-public) configs.
