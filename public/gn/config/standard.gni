@@ -6,6 +6,7 @@
 standard_configs = [
   "$zx/public/gn/config:compiler",
   "$zx/public/gn/config:language",
+  "$zx/public/gn/config:machine",
   "$zx/public/gn/config:relative_paths",
   "$zx/public/gn/config:assert_level",
   "$zx/public/gn/config:opt_level",

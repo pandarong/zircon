@@ -14,6 +14,7 @@ source_set("tests") {
     "fibo.cpp",
     "lock_dep_tests.cpp",
     "mem_tests.cpp",
+    "mp_hotplug_tests.cpp",
     "preempt_disable_tests.cpp",
     "printf_tests.cpp",
     "resource_tests.cpp",
