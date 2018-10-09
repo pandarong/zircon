@@ -401,7 +401,7 @@ template("library") {
                              "visibility",
                            ])
     if (defined(visibility)) {
-      visibility += [ _library_name ]
+      visibility += [ "$:_library_name" ]
       if (!is_kernel) {
         visibility += [
           ":${_library_name}.sources",
