@@ -5,7 +5,6 @@
 library("runtime") {
   sources = [
     "message.c",
-    "mutex.c",
     "processargs.c",
     "thread.c",
   ]

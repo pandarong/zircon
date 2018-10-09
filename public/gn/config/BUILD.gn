@@ -151,6 +151,7 @@ config_group("opt_level") {
   }
 
   public_deps = []
+
   # TODO(TC-229): --icf is broken for the kernel.
   if (opt_level > 1 && !is_kernel) {
     public_deps += [ ":icf" ]
@@ -170,7 +171,9 @@ config_group("opt_level") {
 config_group("default_linker_gc") {
   # TODO(mcgrathr): Kernel can't be built without --gc-sections.
   if (opt_level > 0 || toolchain.environment == "kernel") {
-    public_deps = [ ":linker_gc" ]
+    public_deps = [
+      ":linker_gc",
+    ]
   }
 }
 
@@ -347,4 +350,11 @@ config_group("no_undefined_symbols") {
 
 config_group("visibility_hidden") {
   cflags = [ "-fvisibility=hidden" ]
+}
+
+config_group("machine") {
+  if (current_cpu == "arm64") {
+    # The linker rewrites instructions to work around a CPU bug.
+    ldflags = [ "-Wl,--fix-cortex-a53-843419" ]
+  }
 }

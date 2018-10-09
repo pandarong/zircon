@@ -9,6 +9,7 @@ import("$zx/public/gn/toolchain/select_toolchain.gni")
 
 boards = [
   "hikey960",
+  "imx8mevk",
   "mt8167s_ref",
   "qemu",
   "sherlock",
