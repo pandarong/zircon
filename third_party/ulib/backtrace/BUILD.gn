@@ -2,20 +2,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("inspector") {
+library("backtrace") {
+  shared = true
+  include_dirs = [ "include/backtrace" ]
   sources = [
-    "backtrace.cpp",
-    "dso-list.cpp",
-    "registers.cpp",
-    "utils.cpp",
-  ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/fbl",
-    "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zxcpp",
-    "$zx/third_party/ulib/backtrace",
-    #TODO: "$zx/third_party/ulib/ngunwind",
+    "alloc.c",
+    "dwarf.c",
+    "elf.c",
+    "fileline.c",
+    "posix.c",
+    "read.c",
+    "sort.c",
+    "state.c",
   ]
 
   # Compile this with frame pointers so that if we crash
