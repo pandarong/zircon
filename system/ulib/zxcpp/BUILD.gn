@@ -12,9 +12,6 @@ library("zxcpp") {
   ]
   if (!is_kernel) {
     sources += [ "thread_atexit.cpp" ]
-    deps += [
-      "$system/ulib/c",
-    ]
   }
   if (toolchain.environment == "kernel") {
     # Avoid circularity.
