@@ -7,6 +7,10 @@
 library("pcie") {
   kernel = true
   sources = [
+    "address_provider/designware.cpp",
+    "address_provider/ecam_region.cpp",
+    "address_provider/mmio.cpp",
+    "address_provider/pio.cpp",
     "debug.cpp",
     "pci_config.cpp",
     "pcie_bridge.cpp",
