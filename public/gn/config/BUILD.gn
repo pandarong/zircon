@@ -357,3 +357,10 @@ config_group("machine") {
     ldflags = [ "-Wl,--fix-cortex-a53-843419" ]
   }
 }
+
+config_group("user") {
+  defines = [ "ZIRCON_TOOLCHAIN" ]
+  public_deps = [
+    "$zx/system/ulib/c",
+  ]
+}

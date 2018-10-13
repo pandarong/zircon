@@ -2,16 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("ddk") {
+library("loader-service") {
   sources = [
-    "io-buffer.c",
-    "mmio-buffer.c",
-    "phys-iter.c",
+    "loader-service.c",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/sync",
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/ldmsg",
     "$zx/system/ulib/zircon",
   ]
 }

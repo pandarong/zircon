@@ -1,0 +1,120 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+executable("devmgr") {
+  sources = [
+    "bootfs.cpp",
+    "devhost-shared.cpp",
+    "devmgr-binding.cpp",
+    "devmgr-coordinator.cpp",
+    "devmgr-devfs.cpp",
+    "devmgr-drivers.cpp",
+    "devmgr-fdio.cpp",
+    "devmgr.cpp",
+  ]
+
+  deps += [
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-default",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/bootdata",
+    "$zx/system/ulib/driver-info",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/fs",
+    "$zx/system/ulib/launchpad",
+    "$zx/system/ulib/loader-service",
+
+    #TODO: "$zx/system/ulib/memfs",
+    "$zx/system/ulib/port",
+
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zircon-internal",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+    "$zx/third_party/ulib/lz4",
+  ]
+
+  # ddk is needed only for <ddk/device.h>.
+  deps += [ "$zx/system/ulib/ddk:headers" ]
+
+  # We can avoid the fuchsia.crash dependency if crashsvc connects directly
+  # to the analyzer.
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-io system/fidl/fuchsia-mem
+
+  # Bring the auxiliaries into the build and the image.  devhost isn't
+  # listed here because it's implicitly in data_deps of every driver().
+  data_deps = [
+    #TODO: ":dmctl",
+    ":fshost",
+  ]
+}
+
+executable("fshost") {
+  sources = [
+    "block-watcher.cpp",
+    "bootfs.cpp",
+    "devmgr-fdio.cpp",
+    "fshost.cpp",
+    "vfs-rpc.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/async:async-default",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/async-loop:async-loop-cpp",
+    "$zx/system/ulib/bootdata",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fs",
+    "$zx/system/ulib/fs-management",
+    "$zx/system/ulib/gpt",
+    "$zx/system/ulib/launchpad",
+    "$zx/system/ulib/loader-service",
+
+    #TODO: "$zx/system/ulib/memfs",
+    #TODO: "$zx/system/ulib/memfs:memfs-cpp",
+    #TODO: "$zx/system/ulib/sync",
+    "$zx/system/ulib/trace",
+    "$zx/system/ulib/trace-engine",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+    "$zx/third_party/ulib/cksum",
+    "$zx/third_party/ulib/lz4",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
+}
+
+executable("devhost") {
+  #TODO: asan variant installs as devhost.asan
+
+  sources = [
+    "devhost-main.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/driver",
+    "$zx/system/ulib/fdio",
+  ]
+}
+
+if (false) {  #TODO: write driver() template
+  driver("dmctl") {
+    sources = [
+      "devhost-shared.cpp",
+      "dmctl.cpp",
+    ]
+    deps += [
+      "$zx/system/ulib/ddk",
+      "$zx/system/ulib/driver",
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/port",
+      "$zx/system/ulib/zircon",
+    ]
+  }
+}

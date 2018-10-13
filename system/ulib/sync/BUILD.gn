@@ -2,16 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("ddk") {
+library("sync") {
   sources = [
-    "io-buffer.c",
-    "mmio-buffer.c",
-    "phys-iter.c",
+    "completion.c",
+    "mtx.c",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+
+  #TODO: This code is used in early startup, where safe-stack setup is not ready yet.
+  #MODULE_COMPILEFLAGS += $(NO_SAFESTACK) $(NO_SANITIZERS)
 }

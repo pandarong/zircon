@@ -1,0 +1,38 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("async") {
+  sources = [
+    "ops.c",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+library("async-cpp") {
+  sources = [
+    "exception.cpp",
+    "receiver.cpp",
+    "task.cpp",
+    "trap.cpp",
+    "wait.cpp",
+  ]
+  deps += [
+    ":async",
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+  ]
+}
+
+library("async-default") {
+  shared = true
+  sources = [
+    "default.c",
+  ]
+  deps += [ "$zx/public/gn/config:visibility_hidden" ]
+}

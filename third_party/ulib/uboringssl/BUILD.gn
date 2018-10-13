@@ -27,8 +27,8 @@ library("uboringssl") {
   } else {
     if (is_fuchsia) {
       deps += [
-        "$zx/system/ulib/c",
         "$zx/system/ulib/fdio",
+        "$zx/system/ulib/zircon",
       ]
     } else {
       defines = [
@@ -73,10 +73,10 @@ library("uboringssl") {
         "linux-aarch64/crypto/fipsmodule/sha256-armv8.S",
       ]
     } else if (current_cpu == "x64") {
-      if (current_os == "linux") {
-        asm_dir = "linux-x86_64/crypto"
-      } else if (current_os == "mac") {
+      if (current_os == "mac") {
         asm_dir = "mac-x86_64/crypto"
+      } else {
+        asm_dir = "linux-x86_64/crypto"
       }
       sources += [
         "$asm_dir/cipher_extra/aes128gcmsiv-x86_64.S",

@@ -26,10 +26,15 @@ library("fdio") {
     "vmofile.c",
     "waitable.c",
     "watcher.c",
+    "zxio.c",
   ]
   deps += [
-    "$zx/system/ulib/c",
+    "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxio",
   ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io system/fidl/fuchsia-ldsvc system/fidl/fuchsia-net system/fidl/fuchsia-process
 }

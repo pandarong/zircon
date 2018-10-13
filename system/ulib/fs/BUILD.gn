@@ -27,7 +27,9 @@ library("fs") {
     ]
   }
   public_deps = [
+    "$zx/system/ulib/async:headers",
     "$zx/system/ulib/fdio:headers",
+    "$zx/system/ulib/zx:headers",
   ]
   deps += [
     "$zx/system/ulib/fbl",

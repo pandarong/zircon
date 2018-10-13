@@ -1,0 +1,17 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/config/standard.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+# $zx/public/core:$cpu is a target to build the standard core services for $cpu.
+foreach(cpu, standard_fuchsia_cpus) {
+  select_toolchain(cpu) {
+    cpu = target_name
+    environment_label = "$zx/public/gn/toolchain:user"
+    deps = [
+      "$zx/system/core",
+    ]
+  }
+}
