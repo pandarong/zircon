@@ -419,7 +419,7 @@ template("library") {
         ":${_library_name}.headers",
       ]
     }
-    if (!is_kernel) {
+    if (!is_kernel && !is_host) {
       if (static) {
         group("static") {
           forward_variables_from(invoker,

@@ -1,0 +1,22 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+executable("svchost") {
+  sources = [
+    "svchost.cpp",
+  ]
+  deps += [
+    "$zx/system/core/crashanalyzer",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/logger",
+    "$zx/system/ulib/process-launcher",
+    "$zx/system/ulib/svc",
+    "$zx/system/ulib/sysmem",
+    "$zx/system/ulib/zircon",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-io system/fidl/fuchsia-logger system/fidl/fuchsia-mem system/fidl/fuchsia-process system/fidl/fuchsia-sysmem
+}

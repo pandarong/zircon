@@ -48,6 +48,10 @@ executable("devmgr") {
   data_deps = [
     #TODO: ":dmctl",
     ":fshost",
+    "$zx/system/core/crashsvc",
+    "$zx/system/core/netsvc",
+    "$zx/system/core/svchost",
+    "$zx/system/core/pwrbtn-monitor",
   ]
 }
 

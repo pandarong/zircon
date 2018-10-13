@@ -1,0 +1,22 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+library("inet6") {
+  sources = [
+    "checksum.c",
+    "eth-client.c",
+    "inet6.c",
+    "netifc.c",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zircon-internal",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/zircon-ethernet
+}
