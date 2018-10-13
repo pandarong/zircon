@@ -11,18 +11,19 @@ import("toolchain.gni")
 template("define_c_toolchain") {
   # Translate GN cpu/os to GNU config tuple.
   if (invoker.cpu == "arm64") {
-    tc_target = "aarch64"
+    tc_cpu = "aarch64"
   } else if (invoker.cpu == "x64") {
-    tc_target = "x86_64"
+    tc_cpu = "x86_64"
   } else {
-    tc_target = invoker.cpu
+    tc_cpu = invoker.cpu
   }
+  tc_target = "${tc_cpu}-"
   if (invoker.os == "mac") {
-    tc_target += "-darwin"
+    tc_target += "darwin"
   } else if (invoker.os == "win") {
-    tc_target += "-windows-msvc"
+    tc_target += "windows-msvc"
   } else {
-    tc_target += "-${invoker.os}"
+    tc_target += invoker.os
   }
 
   # Cached and distributed wrappers just go on the front of compiler commands.
@@ -264,6 +265,7 @@ template("define_c_toolchain") {
 
         # This gets `tool_dir` et al as expected by c_utils.gni (set above).
         forward_variables_from(tc, "*")
+        cpu = tc_cpu
         target_tuple = tc_target
 
         if (defined(invoker.toolchain_vars)) {

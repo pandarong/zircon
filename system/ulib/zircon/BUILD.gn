@@ -50,6 +50,11 @@ library("zircon") {
   # --gc-sections eats hidden CODE_* functions we need to preserve for
   # the kernel to redirect to.
   deps -= [ "$zx/public/gn/config:default_linker_gc" ]
+
+  if (toolchain.environment == "user") {
+    # This doesn't get normal default deps on libc.
+    deps -= [ "$zx/public/gn/config:user" ]
+  }
 }
 
 config_group("config") {
@@ -77,6 +82,9 @@ source_set("syscall-asm") {
     ":config",
     "$zx/kernel/syscalls:syscall-abi",
   ]
+  if (toolchain.environment == "user") {
+    deps -= [ "$zx/public/gn/config:user" ]
+  }
 }
 
 config_group("generated-public-headers") {

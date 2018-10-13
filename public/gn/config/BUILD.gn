@@ -93,8 +93,11 @@ config_group("relative_paths") {
 
 config_group("nostdlib") {
   compiler_flags = [ "-nostdlib" ]
-  if (!is_gcc) {
+  if (is_gcc) {
+    libs = [ "gcc" ]
+  } else {
     cflags = [ "-nostdlibinc" ]
+    libs = [ "clang_rt.builtins" ]
   }
 }
 
@@ -359,7 +362,10 @@ config_group("machine") {
 }
 
 config_group("user") {
-  defines = [ "ZIRCON_TOOLCHAIN" ]
+  defines = [
+    "_ALL_SOURCE",
+    "ZIRCON_TOOLCHAIN",
+  ]
   public_deps = [
     "$zx/system/ulib/c",
   ]

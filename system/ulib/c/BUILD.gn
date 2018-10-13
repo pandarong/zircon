@@ -2,11 +2,31 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# TODO: temporary hack is enough to compile userboot
-config_group("headers") {
-  include_dirs = [ "$zx/third_party/ulib/musl/include" ]
+library("c") {
+  shared = true
+  static = false
+
+  # At link time and in DT_SONAME, musl is known as libc.so.  But the
+  # (only) place it needs to be installed at runtime is where the
+  # PT_INTERP strings embedded in executables point, which is ld.so.1.
+  #TODO: install_path = "lib/ld.so.1"  #TODO: asan/ prefix in variant
+
+  public_deps = [
+    "$zx/third_party/ulib/musl:headers",
+  ]
+
+  # The code comes from musl, where a source_set is defined.
+  sources = []
+  deps += [ "$zx/third_party/ulib/musl" ]
+
+  # Suppress the circularity.
+  if (toolchain.environment == "user") {
+    deps -= [ "$zx/public/gn/config:user" ]
+  }
 }
 
-group("c") {
-  public_deps = [ ":headers" ]
+group("crt1") {
+  deps = [
+    "$zx/third_party/ulib/musl:crt1",
+  ]
 }

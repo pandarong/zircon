@@ -12,6 +12,11 @@ library("sync") {
     "$zx/system/ulib/zircon",
   ]
 
+  if (toolchain.environment == "user") {
+    # This library is used by libc, so suppress the circularity.
+    deps -= [ "$zx/public/gn/config:user" ]
+  }
+
   #TODO: This code is used in early startup, where safe-stack setup is not ready yet.
   #MODULE_COMPILEFLAGS += $(NO_SAFESTACK) $(NO_SANITIZERS)
 }
