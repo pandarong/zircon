@@ -9,6 +9,7 @@ group("tools") {
     "$zx/third_party/uapp/mkfs-msdosfs",
     "blobfs",
     "bootserver",
+    "fidl:tools",
     "fvm",
     "kernel-buildsig",
     "loglistener",
@@ -18,7 +19,5 @@ group("tools") {
     "runtests",
     "xdc-server",
     "zbi",
-
-    #TODO: "fidl"
   ]
 }
