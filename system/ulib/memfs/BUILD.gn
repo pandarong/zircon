@@ -1,0 +1,50 @@
+# Copyright 2018 The Fuchsia Authors
+#
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT
+
+# libmemfs-cpp.a: The C++ client library.
+#
+# Used to implement the C++ components of Memfs, which
+# can be plugged into ulib/fs.
+library("memfs-cpp") {
+  sources = [
+    "directory.cpp",
+    "dnode.cpp",
+    "file.cpp",
+    "memfs.cpp",
+    "vmo.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fs",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
+}
+
+# libmemfs.so: The C ABI client library.
+#
+# Used to create local temporary filesystems.
+library("memfs") {
+  shared = true
+  sources = [
+    "memfs-local.cpp",
+  ]
+  deps += [
+    ":memfs-cpp",
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fs",
+  ]
+}
