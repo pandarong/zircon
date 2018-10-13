@@ -61,9 +61,12 @@ if (current_toolchain == default_toolchain) {
       "LK",
       "ENABLE_PANIC_SHELL",
       "WITH_DEBUG_LINEBUFFER",
-      "WITH_KERNEL_PCIE",
       "ZIRCON_TOOLCHAIN",
     ]
+
+    if (!enable_user_pci) {
+      defines += [ "WITH_KERNEL_PCIE" ]
+    }
 
     cflags = [ "-fpie" ]
   }

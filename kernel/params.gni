@@ -21,6 +21,9 @@ declare_args() {
   # Enable kernel lock dependency tracking.
   enable_lock_dep = false
 
+  # Enable userspace PCI and disable kernel PCI.
+  enable_user_pci = false
+
   # Extra macro definitions for kernel code, e.g. "DISABLE_KASLR",
   # "ENABLE_KERNEL_LL_DEBUG".
   kernel_extra_defines = []
