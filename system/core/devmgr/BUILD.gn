@@ -26,10 +26,8 @@ executable("devmgr") {
     "$zx/system/ulib/fs",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/loader-service",
-
-    #TODO: "$zx/system/ulib/memfs",
+    "$zx/system/ulib/memfs",
     "$zx/system/ulib/port",
-
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",
@@ -75,10 +73,9 @@ executable("fshost") {
     "$zx/system/ulib/gpt",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/loader-service",
-
-    #TODO: "$zx/system/ulib/memfs",
-    #TODO: "$zx/system/ulib/memfs:memfs-cpp",
-    #TODO: "$zx/system/ulib/sync",
+    "$zx/system/ulib/memfs",
+    "$zx/system/ulib/memfs:memfs-cpp",
+    "$zx/system/ulib/sync",
     "$zx/system/ulib/trace",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/zircon",
