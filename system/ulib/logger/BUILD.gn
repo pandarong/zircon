@@ -16,6 +16,10 @@ library("logger") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
   ]
+  public_deps = [
+    # <lib/logger/logger.h> has #include <lib/fidl/cpp/message_buffer.h>.
+    "$zx/system/ulib/fidl",
+  ]
 
   #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-logger
 }
