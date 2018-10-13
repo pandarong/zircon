@@ -6,7 +6,13 @@ library("ldmsg") {
   sources = [
     "ldmsg.c",
   ]
-  deps += [
-    "$zx/system/ulib/zircon",
-  ]
+  deps += [ "$zx/system/ulib/zircon" ]
+
+  if (toolchain.environment == "user") {
+    # This library is used by libc, so suppress the circularity.
+    deps -= [ "$zx/public/gn/config:user" ]
+  }
+
+  # However, it uses <string.h> for memcpy.
+  deps += [ "$zx/system/ulib/c:headers" ]
 }

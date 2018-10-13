@@ -4,10 +4,10 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-# TODO(mcgrathr): Add non-kernel case.
 library("fbl") {
-  kernel = true
   host = true
+  kernel = true
+  static = true
 
   sources = [
     "alloc_checker.cpp",

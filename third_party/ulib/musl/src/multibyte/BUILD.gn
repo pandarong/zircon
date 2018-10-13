@@ -1,0 +1,30 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+source_set("multibyte") {
+  deps -= [ "$zx/public/gn/config:user" ]
+  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  sources = [
+    "btowc.c",
+    "c16rtomb.c",
+    "c32rtomb.c",
+    "internal.c",
+    "mblen.c",
+    "mbrlen.c",
+    "mbrtoc16.c",
+    "mbrtoc32.c",
+    "mbrtowc.c",
+    "mbsinit.c",
+    "mbsnrtowcs.c",
+    "mbsrtowcs.c",
+    "mbstowcs.c",
+    "mbtowc.c",
+    "wcrtomb.c",
+    "wcsnrtombs.c",
+    "wcsrtombs.c",
+    "wcstombs.c",
+    "wctob.c",
+    "wctomb.c",
+  ]
+}
