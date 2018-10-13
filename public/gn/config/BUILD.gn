@@ -369,4 +369,7 @@ config_group("user") {
   public_deps = [
     "$zx/system/ulib/c",
   ]
+  if (toolchain.environment == "user" && current_toolchain != toolchain.shlib) {
+    public_deps += [ "$zx/system/ulib/c:crt1" ]
+  }
 }

@@ -19,8 +19,8 @@ library("c") {
   sources = []
   deps += [ "$zx/third_party/ulib/musl" ]
 
-  # Suppress the circularity.
   if (toolchain.environment == "user") {
+    # Suppress the circularity.
     deps -= [ "$zx/public/gn/config:user" ]
   }
 }
