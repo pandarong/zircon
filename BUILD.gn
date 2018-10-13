@@ -30,6 +30,7 @@ if (false) {  #TODO: later
 public_targets = [
   "bootloader",
   "kernel",
+  "core",
 ]
 
 # Each cpu is a target name for all the public targets for that CPU.

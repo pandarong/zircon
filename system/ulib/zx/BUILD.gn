@@ -1,0 +1,33 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("zx") {
+  sources = [
+    "channel.cpp",
+    "debuglog.cpp",
+    "event.cpp",
+    "eventpair.cpp",
+    "fifo.cpp",
+    "guest.cpp",
+    "interrupt.cpp",
+    "job.cpp",
+    "log.cpp",
+    "port.cpp",
+    "process.cpp",
+    "resource.cpp",
+    "socket.cpp",
+    "thread.cpp",
+    "timer.cpp",
+    "vcpu.cpp",
+    "vmar.cpp",
+    "vmo.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/zircon",
+  ]
+  public_deps = [
+    "$zx/system/ulib/zircon:headers",
+  ]
+}

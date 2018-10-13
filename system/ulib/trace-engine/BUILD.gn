@@ -2,16 +2,21 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("ddk") {
+library("trace-engine") {
+  shared = true
   sources = [
-    "io-buffer.c",
-    "mmio-buffer.c",
-    "phys-iter.c",
+    "context.cpp",
+    "context_api.cpp",
+    "engine.cpp",
+    "nonce.cpp",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/sync",
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }

@@ -29,6 +29,9 @@ standard_fuchsia_configs = [
   "$zx/public/gn/config:werror",
 ]
 
+# Additional configs apply to normal userland Fuchsia code.
+standard_fuchsia_user_configs = [ "$zx/public/gn/config:user" ]
+
 # Additional configs apply only to code built into shared libraries.
 # This means everything in a ${toolchain.shlib} toolchain, not just code
 # directly in the `sources of a shared_library() or library() target.
