@@ -3,37 +3,73 @@
 # found in the LICENSE file.
 
 if (defined(zx)) {
-  _config_group = "config_group"
-} else {
-  _config_group = "config"
-}
-
-target(_config_group, "fidl_config") {
-  visibility = [ ":*" ]
-  include_dirs = [ "include" ]
-}
-
-source_set("compiler") {
-  if (defined(zx)) {
-    public_deps = [
-      ":fidl_config",
+  library("fidl") {
+    host = true
+    sources = [
+      "lib/attributes.cpp",
+      "lib/c_generator.cpp",
+      "lib/error_reporter.cpp",
+      "lib/flat_ast.cpp",
+      "lib/formatter.cpp",
+      "lib/identifier_table.cpp",
+      "lib/json_generator.cpp",
+      "lib/lexer.cpp",
+      "lib/library_zx.cpp",
+      "lib/names.cpp",
+      "lib/parser.cpp",
+      "lib/raw_ast.cpp",
+      "lib/source_file.cpp",
+      "lib/source_location.cpp",
+      "lib/source_manager.cpp",
+      "lib/tables_generator.cpp",
+      "lib/tree_visitor.cpp",
     ]
-  } else {
-    public_configs = [ ":fidl_config" ]
   }
-  sources = [
-    "lib/attributes.cpp",
-    "lib/c_generator.cpp",
-    "lib/error_reporter.cpp",
-    "lib/flat_ast.cpp",
-    "lib/identifier_table.cpp",
-    "lib/json_generator.cpp",
-    "lib/lexer.cpp",
-    "lib/library_zx.cpp",
-    "lib/parser.cpp",
-    "lib/source_file.cpp",
-    "lib/source_location.cpp",
-    "lib/source_manager.cpp",
-    "lib/tables_generator.cpp",
-  ]
+
+  group("tools") {
+    deps = [
+      ":fidl-format",
+      ":fidlc",
+    ]
+  }
+
+  host_tool("fidlc") {
+    sources = [
+      "compiler/main.cpp",
+    ]
+    deps += [ ":fidl" ]
+  }
+
+  host_tool("fidl-format") {
+    sources = [
+      "formatter/main.cpp",
+    ]
+    deps += [ ":fidl" ]
+  }
+} else {
+  #TODO: what uses this old BUILD.gn???
+
+  config("fidl_config") {
+    visibility = [ ":*" ]
+    include_dirs = [ "include" ]
+  }
+
+  source_set("compiler") {
+    public_configs = [ ":fidl_config" ]
+    sources = [
+      "lib/attributes.cpp",
+      "lib/c_generator.cpp",
+      "lib/error_reporter.cpp",
+      "lib/flat_ast.cpp",
+      "lib/identifier_table.cpp",
+      "lib/json_generator.cpp",
+      "lib/lexer.cpp",
+      "lib/library_zx.cpp",
+      "lib/parser.cpp",
+      "lib/source_file.cpp",
+      "lib/source_location.cpp",
+      "lib/source_manager.cpp",
+      "lib/tables_generator.cpp",
+    ]
+  }
 }
