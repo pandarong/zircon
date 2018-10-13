@@ -15,7 +15,7 @@ library("inspector") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/backtrace",
-    #TODO: "$zx/third_party/ulib/ngunwind",
+    "$zx/third_party/ulib/ngunwind",
   ]
 
   # Compile this with frame pointers so that if we crash
