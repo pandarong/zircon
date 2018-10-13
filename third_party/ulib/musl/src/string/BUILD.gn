@@ -9,13 +9,20 @@ group("string") {
     ":extstr",
     ":stdmem",
     ":stdstr",
+    ":wcs",
     ":wmem",
-    ":wstr",
   ]
+}
+
+if (toolchain.environment == "user") {
+  remove_deps = [ "$zx/public/gn/config:user" ]
+} else {
+  remove_deps = []
 }
 
 # These are the functions the compiler produces implicit calls to.
 source_set("compiler") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   if (current_cpu == "arm64") {
     # These use '#include "third_party/lib/cortex-strings/src/aarch64/..."'.
@@ -38,6 +45,7 @@ source_set("compiler") {
 }
 
 source_set("stdmem") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   deps += [ ":compiler" ]
   sources = [
@@ -66,6 +74,7 @@ source_set("stdmem") {
 }
 
 source_set("extmem") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "memccpy.c",
@@ -80,6 +89,7 @@ source_set("extmem") {
 }
 
 source_set("minimal_str") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   if (current_cpu == "arm64") {
     sources = [
@@ -94,55 +104,72 @@ source_set("minimal_str") {
   }
 }
 
-source_set("str") {
+source_set("stdstr") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   deps += [ ":minimal_str" ]
   sources = [
-    "stpcpy.c",
-    "stpncpy.c",
-    "strcasecmp.c",
-    "strcasestr.c",
     "strcat.c",
     "strcspn.c",
     "strdup.c",
     "strerror_r.c",
-    "strlcat.c",
-    "strlcpy.c",
-    "strncasecmp.c",
     "strncat.c",
     "strncpy.c",
-    "strndup.c",
     "strpbrk.c",
     "strrchr.c",
-    "strsep.c",
-    "strsignal.c",
     "strspn.c",
     "strstr.c",
     "strtok.c",
     "strtok_r.c",
-    "strverscmp.c",
   ]
   if (current_cpu == "arm64") {
     sources += [
       "$zx/third_party/lib/cortex-strings/src/aarch64/strchr.S",
       "$zx/third_party/lib/cortex-strings/src/aarch64/strcmp.S",
       "$zx/third_party/lib/cortex-strings/src/aarch64/strcpy.S",
-      "$zx/third_party/lib/cortex-strings/src/aarch64/strlen.S",
+    ]
+  } else {
+    sources += [
+      "strchr.c",
+      "strcmp.c",
+      "strcpy.c",
+    ]
+  }
+}
+
+source_set("extstr") {
+  deps -= remove_deps
+  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  sources = [
+    "stpcpy.c",
+    "stpncpy.c",
+    "strcasecmp.c",
+    "strcasestr.c",
+    "strlcat.c",
+    "strlcpy.c",
+    "strncasecmp.c",
+    "strndup.c",
+    "strsep.c",
+    "strsignal.c",
+    "strverscmp.c",
+  ]
+  if (current_cpu == "arm64") {
+    # These use '#include "third_party/lib/cortex-strings/src/aarch64/..."'.
+    include_dirs = [ "$zx/" ]
+    sources += [
       "$zx/third_party/lib/cortex-strings/src/aarch64/strnlen.S",
       "aarch64/strchrnul.S",
     ]
   } else {
     sources += [
-      "$zx/strchr.c",
-      "$zx/strchrnul.c",
-      "$zx/strcmp.c",
-      "$zx/strcpy.c",
-      "$zx/strnlen.c",
+      "strchrnul.c",
+      "strnlen.c",
     ]
   }
 }
 
 source_set("bsd") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "bcmp.c",
@@ -155,6 +182,7 @@ source_set("bsd") {
 }
 
 source_set("wcs") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "wcpcpy.c",
@@ -182,6 +210,7 @@ source_set("wcs") {
 }
 
 source_set("wmem") {
+  deps -= remove_deps
   deps += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "wmemchr.c",

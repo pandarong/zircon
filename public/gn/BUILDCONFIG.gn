@@ -349,13 +349,6 @@ template("library") {
         if (defined(invoker.deps)) {
           deps += invoker.deps
         }
-
-        # TODO: This is wrong.  It's working around the fact that
-        # ldflags don't propagate up from (non-public) configs.
-        # The _sources set has the set_defaults deps->configs that
-        # include e.g. :compiler.  But those aren't in its public_deps
-        # so nothing gives them to the shared_library here.
-        deps += toolchain.public_deps
       }
     }
     group(_library_name) {

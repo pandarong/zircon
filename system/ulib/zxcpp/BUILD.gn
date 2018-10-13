@@ -6,6 +6,7 @@
 
 library("zxcpp") {
   kernel = true
+  static = true
   sources = [
     "new.cpp",
     "pure_virtual.cpp",

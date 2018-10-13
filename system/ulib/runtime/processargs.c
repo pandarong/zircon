@@ -5,7 +5,6 @@
 #include <runtime/processargs.h>
 
 #include <zircon/syscalls.h>
-#include <string.h>
 
 // TODO(mcgrathr): Is there a better error code to use for marshalling
 // protocol violations?
