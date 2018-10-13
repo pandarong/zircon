@@ -1,0 +1,26 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+executable("netsvc") {
+  sources = [
+    "debuglog.c",
+    "device_id.c",
+    "netboot.c",
+    "netfile.c",
+    "netsvc.c",
+    "tftp.c",
+    "zbi.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/inet6",
+    "$zx/system/ulib/libzbi",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/tftp",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/zircon-ethernet
+}

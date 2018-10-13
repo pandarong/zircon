@@ -1,0 +1,14 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("fidl-utils") {
+  sources = []
+  deps += [ "$zx/system/ulib/fidl" ]
+  public_deps = [
+    "$zx/system/ulib/async:headers",
+    "$zx/system/ulib/fbl:headers",
+    "$zx/system/ulib/fidl:headers",
+    "$zx/system/ulib/zx:headers",
+  ]
+}

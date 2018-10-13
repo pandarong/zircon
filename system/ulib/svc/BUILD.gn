@@ -2,22 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("fzl") {
+library("svc") {
   sources = [
-    "mapped-vmo.cpp",
-    "memory-probe.cpp",
-    "pinned-vmo.cpp",
-    "time.cpp",
-    "vmar-manager.cpp",
-    "vmo-mapper.cpp",
-    "vmo-pool.cpp",
+    "outgoing.cpp",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/fbl",
-    "$zx/system/ulib/zx",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/zircon",
   ]
   public_deps = [
+    "$zx/system/ulib/async:headers",
+    "$zx/system/ulib/fs:headers",
     "$zx/system/ulib/zx:headers",
   ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }
