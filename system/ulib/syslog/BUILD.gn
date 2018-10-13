@@ -2,22 +2,24 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("fzl") {
+library("syslog") {
+  shared = true
   sources = [
-    "mapped-vmo.cpp",
-    "memory-probe.cpp",
-    "pinned-vmo.cpp",
-    "time.cpp",
-    "vmar-manager.cpp",
-    "vmo-mapper.cpp",
-    "vmo-pool.cpp",
+    "fx_logger.cpp",
+    "global.cpp",
+    "logger.cpp",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
   public_deps = [
-    "$zx/system/ulib/zx:headers",
+    "$zx/system/ulib/svc:headers",
   ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-logger
 }

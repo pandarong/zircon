@@ -4,11 +4,25 @@
 
 library("fs") {
   host = true
+  static = true
+
+  public_deps = [
+    "$zx/system/ulib/async:headers",
+    "$zx/system/ulib/fbl:headers",
+    "$zx/system/ulib/fdio:headers",
+    "$zx/system/ulib/zx:headers",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon-internal",
+  ]
+
   sources = [
     "block-txn.cpp",
     "vfs.cpp",
     "vnode.cpp",
   ]
+
   if (is_fuchsia) {
     sources += [
       "connection.cpp",
@@ -25,14 +39,22 @@ library("fs") {
       "vmo-file.cpp",
       "watcher.cpp",
     ]
+    deps += [
+      "$zx/system/ulib/async",
+      "$zx/system/ulib/async:async-cpp",
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/fidl",
+      "$zx/system/ulib/fidl-utils",
+      "$zx/system/ulib/fit",
+      "$zx/system/ulib/sync",
+      "$zx/system/ulib/trace",
+      "$zx/system/ulib/trace-engine",
+      "$zx/system/ulib/zircon",
+      "$zx/system/ulib/zx",
+      "$zx/system/ulib/zxcpp",
+    ]
   }
-  public_deps = [
-    "$zx/system/ulib/async:headers",
-    "$zx/system/ulib/fdio:headers",
-    "$zx/system/ulib/zx:headers",
-  ]
-  deps += [
-    "$zx/system/ulib/fbl",
-    "$zx/system/ulib/zircon-internal",
-  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }

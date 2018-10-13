@@ -1,0 +1,30 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("crashanalyzer") {
+  sources = [
+    "crashanalyzer.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/inspector",
+    "$zx/system/ulib/pretty",
+    "$zx/system/ulib/runtime",
+    "$zx/system/ulib/svc:headers",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zircon-internal",
+    "$zx/system/ulib/zxcpp",
+  ]
+
+  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-mem
+
+  # Compile this with frame pointers so that if we crash
+  # the simplistic unwinder will work.
+  deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
+  deps += [ "$zx/public/gn/config:frame_pointers" ]
+}

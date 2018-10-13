@@ -4,5 +4,6 @@
 
 library("fit") {
   host = true
+  static = true
   sources = []
 }

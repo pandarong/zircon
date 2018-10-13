@@ -2,22 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("fzl") {
+library("hid-parser") {
   sources = [
-    "mapped-vmo.cpp",
-    "memory-probe.cpp",
-    "pinned-vmo.cpp",
-    "time.cpp",
-    "vmar-manager.cpp",
-    "vmo-mapper.cpp",
-    "vmo-pool.cpp",
+    "item.cpp",
+    "parser.cpp",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/zx",
-  ]
-  public_deps = [
-    "$zx/system/ulib/zx:headers",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zxcpp",
   ]
 }
