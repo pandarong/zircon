@@ -253,7 +253,9 @@ template("library") {
   shared = shared && defined(toolchain.shlib)
 
   # Empty libraries are useless, so do a source set instead.
-  if (invoker.sources == []) {
+  # TODO(crbug.com/gn/16): Empty library works OK and the source_set
+  # case tickles a GN bug.  Remove `&& false` when the bug is fixed.
+  if (invoker.sources == [] && false) {
     static_library = "source_set"
   } else {
     static_library = "static_library"
