@@ -90,11 +90,11 @@ void xhci_set_transfer_noop_trb(xhci_trb_t* trb) {
     trb_set_control(trb, TRB_TRANSFER_NOOP, control & TRB_C);
 }
 
-void* xhci_read_trb_ptr(xhci_transfer_ring_t* ring, xhci_trb_t* trb) {
+xhci_trb_t* xhci_read_trb_ptr(xhci_transfer_ring_t* ring, xhci_trb_t* trb) {
     // convert physical address to virtual
     uint8_t* ptr = trb_get_ptr(trb);
     ptr += ((uint8_t *)io_buffer_virt(&ring->buffer) - (uint8_t *)io_buffer_phys(&ring->buffer));
-    return ptr;
+    return static_cast<xhci_trb_t*>(ptr);
 }
 
 xhci_trb_t* xhci_get_next_trb(xhci_transfer_ring_t* ring, xhci_trb_t* trb) {

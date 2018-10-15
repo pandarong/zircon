@@ -58,11 +58,12 @@ void xhci_remove_device(xhci_t* xhci, int slot_id) {
 }
 
 static void xhci_hci_request_queue(void* ctx, usb_request_t* req) {
-    xhci_request_queue(ctx, req);
+    auto* xhci = static_cast<xhci_t*>(ctx);
+    xhci_request_queue(xhci, req);
 }
 
 static void xhci_set_bus_interface(void* ctx, usb_bus_interface_t* bus) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
 
     if (bus) {
         memcpy(&xhci->bus, bus, sizeof(xhci->bus));
@@ -74,7 +75,7 @@ static void xhci_set_bus_interface(void* ctx, usb_bus_interface_t* bus) {
 }
 
 static size_t xhci_get_max_device_count(void* ctx) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     // add one to allow device IDs to be 1-based
     return xhci->max_slots + XHCI_RH_COUNT + 1;
 }
@@ -82,35 +83,35 @@ static size_t xhci_get_max_device_count(void* ctx) {
 static zx_status_t xhci_enable_ep(void* ctx, uint32_t device_id,
                                   usb_endpoint_descriptor_t* ep_desc,
                                   usb_ss_ep_comp_descriptor_t* ss_comp_desc, bool enable) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_enable_endpoint(xhci, device_id, ep_desc, ss_comp_desc, enable);
 }
 
 static uint64_t xhci_get_frame(void* ctx) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_get_current_frame(xhci);
 }
 
 static zx_status_t xhci_config_hub(void* ctx, uint32_t device_id, usb_speed_t speed,
                             usb_hub_descriptor_t* descriptor) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_configure_hub(xhci, device_id, speed, descriptor);
 }
 
 static zx_status_t xhci_hub_device_added(void* ctx, uint32_t hub_address, int port,
                                   usb_speed_t speed) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_enumerate_device(xhci, hub_address, port, speed);
 }
 
 static zx_status_t xhci_hub_device_removed(void* ctx, uint32_t hub_address, int port) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     xhci_device_disconnected(xhci, hub_address, port);
     return ZX_OK;
 }
 
 static zx_status_t xhci_reset_ep(void* ctx, uint32_t device_id, uint8_t ep_address) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_reset_endpoint(xhci, device_id, ep_address);
 }
 
@@ -128,12 +129,12 @@ static size_t xhci_get_max_transfer_size(void* ctx, uint32_t device_id, uint8_t 
 }
 
 static zx_status_t xhci_cancel_all(void* ctx, uint32_t device_id, uint8_t ep_address) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     return xhci_cancel_transfers(xhci, device_id, xhci_endpoint_index(ep_address));
 }
 
 static zx_status_t xhci_get_bti(void* ctx, zx_handle_t* out_handle) {
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     *out_handle = xhci->bti_handle;
     return ZX_OK;
 }
@@ -182,7 +183,7 @@ static void xhci_shutdown(xhci_t* xhci) {
 
 static zx_status_t xhci_suspend(void* ctx, uint32_t flags) {
     zxlogf(TRACE, "xhci_suspend %u\n", flags);
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
 
     // TODO(voydanoff) do different things based on the flags.
     // for now we shutdown the driver in preparation for mexec
@@ -193,7 +194,7 @@ static zx_status_t xhci_suspend(void* ctx, uint32_t flags) {
 
 static void xhci_unbind(void* ctx) {
     zxlogf(INFO, "xhci_unbind\n");
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
 
     xhci_shutdown(xhci);
     device_remove(xhci->zxdev);
@@ -201,18 +202,19 @@ static void xhci_unbind(void* ctx) {
 
 static void xhci_release(void* ctx) {
     zxlogf(INFO, "xhci_release\n");
-    xhci_t* xhci = ctx;
+    auto* xhci = static_cast<xhci_t*>(ctx);
     mmio_buffer_release(&xhci->mmio);
     zx_handle_close(xhci->cfg_handle);
     xhci_free(xhci);
 }
-
-static zx_protocol_device_t xhci_device_proto = {
-    .version = DEVICE_OPS_VERSION,
-    .suspend = xhci_suspend,
-    .unbind = xhci_unbind,
-    .release = xhci_release,
-};
+static zx_protocol_device_t xhci_device_ops = []() {
+    zx_protocol_device_t device;
+    device.version = DEVICE_OPS_VERSION;
+    device.suspend = xhci_suspend,
+    device.unbind = xhci_unbind,
+    device.release = xhci_release;
+    return device;
+}();
 
 typedef struct completer {
     xhci_t *xhci;
@@ -305,7 +307,7 @@ static zx_status_t xhci_finish_bind(xhci_t* xhci, zx_device_t* parent) {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "xhci",
         .ctx = xhci,
-        .ops = &xhci_device_proto,
+        .ops = &xhci_device_ops,
         .proto_id = ZX_PROTOCOL_USB_HCI,
         .proto_ops = &xhci_hci_protocol,
         .flags = DEVICE_ADD_INVISIBLE
@@ -357,7 +359,8 @@ static zx_status_t usb_xhci_bind_pci(zx_device_t* parent, pci_protocol_t* pci) {
         goto error_return;
     }
 
-    uint32_t irq_cnt = 0;
+    uint32_t irq_cnt;
+    irq_cnt = 0;
     status = pci_query_irq_mode(pci, ZX_PCIE_IRQ_MODE_MSI, &irq_cnt);
     if (status != ZX_OK) {
         zxlogf(ERROR, "pci_query_irq_mode failed %d\n", status);
@@ -370,7 +373,8 @@ static zx_status_t usb_xhci_bind_pci(zx_device_t* parent, pci_protocol_t* pci) {
     irq_cnt = MIN(irq_cnt, xhci_get_max_interrupters(xhci));
 
     // select our IRQ mode
-    xhci_mode_t mode = XHCI_PCI_MSI;
+    xhci_mode_t mode;
+    mode = XHCI_PCI_MSI;
     status = pci_set_irq_mode(pci, ZX_PCIE_IRQ_MODE_MSI, irq_cnt);
     if (status < 0) {
         zxlogf(ERROR, "MSI interrupts not available, irq_cnt: %d, err: %d\n",
@@ -495,19 +499,3 @@ static zx_driver_ops_t xhci_driver_ops = {
     .bind = usb_xhci_bind,
 };
 
-// clang-format off
-ZIRCON_DRIVER_BEGIN(usb_xhci, xhci_driver_ops, "zircon", "0.1", 9)
-    // PCI binding support
-    BI_GOTO_IF(NE, BIND_PROTOCOL, ZX_PROTOCOL_PCI, 0),
-    BI_ABORT_IF(NE, BIND_PCI_CLASS, 0x0C),
-    BI_ABORT_IF(NE, BIND_PCI_SUBCLASS, 0x03),
-    BI_MATCH_IF(EQ, BIND_PCI_INTERFACE, 0x30),
-
-    // platform bus binding support
-    BI_LABEL(0),
-    BI_ABORT_IF(NE, BIND_PLATFORM_DEV_VID, PDEV_VID_GENERIC),
-    BI_ABORT_IF(NE, BIND_PLATFORM_DEV_PID, PDEV_PID_GENERIC),
-    BI_MATCH_IF(EQ, BIND_PLATFORM_DEV_DID, PDEV_DID_USB_XHCI),
-
-    BI_ABORT(),
-ZIRCON_DRIVER_END(usb_xhci)

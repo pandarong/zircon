@@ -258,7 +258,7 @@ static zx_status_t xdc_init_debug_cap(xdc_t* xdc) {
 
 static zx_status_t xdc_write_instance(void* ctx, const void* buf, size_t count,
                                       zx_off_t off, size_t* actual) {
-    xdc_instance_t* inst = ctx;
+    auto* inst = static_cast<xdc_instance_t*>(ctx);
 
     mtx_lock(&inst->lock);
 
@@ -397,7 +397,7 @@ static void xdc_update_instance_read_signal_locked(xdc_instance_t* inst)
 
 static zx_status_t xdc_read_instance(void* ctx, void* buf, size_t count,
                                      zx_off_t off, size_t* actual) {
-    xdc_instance_t* inst = ctx;
+    auto* inst = static_cast<xdc_instance_t*>(ctx);
 
     mtx_lock(&inst->lock);
 
@@ -478,14 +478,15 @@ static zx_status_t xdc_read_instance(void* ctx, void* buf, size_t count,
 
 static zx_status_t xdc_ioctl_instance(void* ctx, uint32_t op, const void* in_buf, size_t in_len,
                                       void* out_buf, size_t out_len, size_t* out_actual) {
-    xdc_instance_t* inst = ctx;
+    auto* inst = static_cast<xdc_instance_t*>(ctx);
 
     switch (op) {
     case IOCTL_DEBUG_SET_STREAM:
         if (in_len != sizeof(uint32_t)) {
             return ZX_ERR_INVALID_ARGS;
         }
-        uint32_t stream_id = *((int *)in_buf);
+        uint32_t stream_id;
+        stream_id = *((int *)in_buf);
         return xdc_register_stream(inst, stream_id);
     default:
         return ZX_ERR_NOT_SUPPORTED;
@@ -493,7 +494,7 @@ static zx_status_t xdc_ioctl_instance(void* ctx, uint32_t op, const void* in_buf
 }
 
 static zx_status_t xdc_close_instance(void* ctx, uint32_t flags) {
-    xdc_instance_t* inst = ctx;
+    auto* inst = static_cast<xdc_instance_t*>(ctx);
 
     list_node_t free_reqs = LIST_INITIAL_VALUE(free_reqs);
 
@@ -526,21 +527,23 @@ static zx_status_t xdc_close_instance(void* ctx, uint32_t flags) {
 }
 
 static void xdc_release_instance(void* ctx) {
-    xdc_instance_t* inst = ctx;
+    auto* inst = static_cast<xdc_instance_t*>(ctx);
     free(inst);
 }
 
-zx_protocol_device_t xdc_instance_proto = {
-    .version = DEVICE_OPS_VERSION,
-    .write = xdc_write_instance,
-    .read = xdc_read_instance,
-    .ioctl = xdc_ioctl_instance,
-    .close = xdc_close_instance,
-    .release = xdc_release_instance,
-};
+static zx_protocol_device_t xdc_instance_ops = []() {
+    zx_protocol_device_t device;
+    device.version = DEVICE_OPS_VERSION;
+    device.write = xdc_write_instance;
+    device.read = xdc_read_instance;
+    device.ioctl = xdc_ioctl_instance;
+    device.close = xdc_close_instance;
+    device.release = xdc_release_instance;
+    return device;
+}();
 
 static zx_status_t xdc_open(void* ctx, zx_device_t** dev_out, uint32_t flags) {
-    xdc_t* xdc = ctx;
+    auto* xdc = static_cast<xdc_t*>(ctx);
 
     xdc_instance_t* inst = calloc(1, sizeof(xdc_instance_t));
     if (inst == NULL) {
@@ -551,7 +554,7 @@ static zx_status_t xdc_open(void* ctx, zx_device_t** dev_out, uint32_t flags) {
         .version = DEVICE_ADD_ARGS_VERSION,
         .name = "xdc",
         .ctx = inst,
-        .ops = &xdc_instance_proto,
+        .ops = &xdc_instance_ops,
         .proto_id = ZX_PROTOCOL_USB_DBC,
         .flags = DEVICE_ADD_INSTANCE,
     };
@@ -639,7 +642,7 @@ static void xdc_free(xdc_t* xdc) {
 
 static zx_status_t xdc_suspend(void* ctx, uint32_t flags) {
     zxlogf(TRACE, "xdc_suspend %u\n", flags);
-    xdc_t* xdc = ctx;
+    auto* xdc = static_cast<xdc_t*>(ctx);
 
     // TODO(jocelyndang) do different things based on the flags.
     // For now we shutdown the driver in preparation for mexec.
@@ -650,7 +653,7 @@ static zx_status_t xdc_suspend(void* ctx, uint32_t flags) {
 
 static void xdc_unbind(void* ctx) {
     zxlogf(INFO, "xdc_unbind\n");
-    xdc_t* xdc = ctx;
+    auto* xdc = static_cast<xdc_t*>(ctx);
     xdc_shutdown(xdc);
 
     mtx_lock(&xdc->instance_list_lock);
@@ -671,7 +674,7 @@ static void xdc_unbind(void* ctx) {
 
 static void xdc_release(void* ctx) {
     zxlogf(INFO, "xdc_release\n");
-    xdc_t* xdc = ctx;
+    auto* xdc = static_cast<xdc_t*>(ctx);
     xdc_free(xdc);
 }
 
@@ -831,7 +834,8 @@ static void xdc_read_complete(usb_request_t* req, void* cookie) {
     }
 
     void* data;
-    zx_status_t status = usb_request_mmap(req, &data);
+    zx_status_t status;
+    status = usb_request_mmap(req, &data);
     if (status != ZX_OK) {
         zxlogf(ERROR, "usb_request_mmap failed, err: %d\n", status);
         xdc_queue_read_locked(xdc, req);
@@ -867,7 +871,8 @@ static void xdc_read_complete(usb_request_t* req, void* cookie) {
     // Find the instance that is registered for the stream id of the message.
     mtx_lock(&xdc->instance_list_lock);
 
-    bool found = false;
+    bool found;
+    found = false;
     xdc_instance_t* inst;
     list_for_every_entry(&xdc->instance_list, inst, xdc_instance_t, node) {
         mtx_lock(&inst->lock);
@@ -894,13 +899,14 @@ out:
     mtx_unlock(&xdc->read_lock);
 }
 
-static zx_protocol_device_t xdc_proto = {
-    .version = DEVICE_OPS_VERSION,
-    .open = xdc_open,
-    .suspend = xdc_suspend,
-    .unbind = xdc_unbind,
-    .release = xdc_release,
-};
+static zx_protocol_device_t xdc_device_ops = []() {
+    zx_protocol_device_t device;
+    device.version = DEVICE_OPS_VERSION;
+    device.suspend = xhci_suspend,
+    device.unbind = xhci_unbind,
+    device.release = xhci_release;
+    return device;
+}();
 
 static void xdc_handle_port_status_change(xdc_t* xdc, xdc_poll_state_t* poll_state) {
     uint32_t dcportsc = XHCI_READ32(&xdc->debug_cap_regs->dcportsc);
@@ -1168,7 +1174,7 @@ zx_status_t xdc_poll(xdc_t* xdc) {
 }
 
 static int xdc_start_thread(void* arg) {
-    xdc_t* xdc = arg;
+    auto* xdc = static_cast<xdc_t*>(arg);
 
     zxlogf(TRACE, "about to enable XHCI DBC\n");
     XHCI_WRITE32(&xdc->debug_cap_regs->dcctrl, DCCTRL_LSE | DCCTRL_DCE);
@@ -1245,21 +1251,22 @@ zx_status_t xdc_bind(zx_device_t* parent, zx_handle_t bti_handle, void* mmio) {
         goto error_return;
     }
 
-    device_add_args_t args = {
-        .version = DEVICE_ADD_ARGS_VERSION,
-        .name = "xdc",
-        .ctx = xdc,
-        .ops = &xdc_proto,
-        .proto_id = ZX_PROTOCOL_USB_DBC,
-        .flags = DEVICE_ADD_NON_BINDABLE,
-    };
+    device_add_args_t args;
+    args = {};
+    args.version = DEVICE_ADD_ARGS_VERSION;
+    args.name = "xdc";
+    args.ctx = xdc;
+    args.ops = &xdc_device_ops;
+    args.proto_id = ZX_PROTOCOL_USB_DBC;
+    args.flags = DEVICE_ADD_NON_BINDABLE;
 
     status = device_add(parent, &args, &xdc->zxdev);
     if (status != ZX_OK) {
         goto error_return;
     }
 
-    int ret = thrd_create_with_name(&xdc->start_thread, xdc_start_thread, xdc, "xdc_start_thread");
+    int ret;
+    ret = thrd_create_with_name(&xdc->start_thread, xdc_start_thread, xdc, "xdc_start_thread");
     if (ret != thrd_success) {
         device_remove(xdc->zxdev);
         return ZX_ERR_BAD_STATE;

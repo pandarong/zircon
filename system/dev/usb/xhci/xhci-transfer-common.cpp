@@ -8,7 +8,7 @@
 #include "xhci-transfer-common.h"
 
 void xhci_print_trb(xhci_transfer_ring_t* ring, xhci_trb_t* trb) {
-    int index = trb - ring->start;
+    size_t index = trb - ring->start;
     uint32_t* ptr = (uint32_t *)trb;
     uint64_t paddr = io_buffer_phys(&ring->buffer) + index * sizeof(xhci_trb_t);
 

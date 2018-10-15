@@ -221,7 +221,8 @@ zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts) {
         goto fail;
     }
 
-    bool scratch_pad_is_contig = false;
+    bool scratch_pad_is_contig;
+    scratch_pad_is_contig = false;
     if (scratch_pad_bufs > 0) {
         // map scratchpad buffers read-only
         uint32_t flags = IO_BUFFER_RO;
@@ -260,9 +261,11 @@ zx_status_t xhci_init(xhci_t* xhci, xhci_mode_t mode, uint32_t num_interrupts) {
     xhci->input_context_phys = io_buffer_phys(&xhci->input_context_buffer);
 
     // DCBAA can only be 256 * sizeof(uint64_t) = 2048 bytes, so we have room for ERST array after DCBAA
-    zx_off_t erst_offset = 256 * sizeof(uint64_t);
+    zx_off_t erst_offset;
+    erst_offset = 256 * sizeof(uint64_t);
 
-    size_t array_bytes = ERST_ARRAY_SIZE * sizeof(erst_entry_t);
+    size_t array_bytes;
+    array_bytes = ERST_ARRAY_SIZE * sizeof(erst_entry_t);
     // MSI only supports up to 32 interupts, so the required ERST arrays will fit
     // within the page. Potentially more pages will need to be allocated for MSI-X.
     for (uint32_t i = 0; i < xhci->num_interrupts; i++) {

@@ -612,7 +612,8 @@ void xhci_handle_transfer_event(xhci_t* xhci, xhci_trb_t* trb) {
             break;
         case TRB_CC_TRB_ERROR:
             zxlogf(TRACE, "xhci_handle_transfer_event: TRB_CC_TRB_ERROR\n");
-            int ep_ctx_state = xhci_get_ep_ctx_state(slot, ep);
+            int ep_ctx_state;
+            ep_ctx_state = xhci_get_ep_ctx_state(slot, ep);
             /*
              * For usb-c ethernet adapters on Intel xhci controller, we receive this error
              * when a packet fails with NRDY token on the bus.see NET:97 for more details.

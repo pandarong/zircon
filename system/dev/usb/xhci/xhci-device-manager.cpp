@@ -329,7 +329,8 @@ static zx_status_t xhci_handle_enumerate_device(xhci_t* xhci, uint32_t hub_addre
         goto disable_slot_exit;
     }
 
-    int mps = device_descriptor.bMaxPacketSize0;
+    int mps;
+    mps = device_descriptor.bMaxPacketSize0;
     // enforce correct max packet size for ep0
     switch (speed) {
         case USB_SPEED_LOW:
@@ -353,10 +354,12 @@ static zx_status_t xhci_handle_enumerate_device(xhci_t* xhci, uint32_t hub_addre
 
     // update the max packet size in our device context
     mtx_lock(&xhci->input_context_lock);
-    xhci_input_control_context_t* icc = (xhci_input_control_context_t*)xhci->input_context;
-    zx_paddr_t icc_phys = xhci->input_context_phys;
-    xhci_endpoint_context_t* ep0c = (xhci_endpoint_context_t*)
-                                            &xhci->input_context[2 * xhci->context_size];
+    xhci_input_control_context_t* icc;
+    icc = (xhci_input_control_context_t*)xhci->input_context;
+    zx_paddr_t icc_phys;
+    icc_phys = xhci->input_context_phys;
+    xhci_endpoint_context_t* ep0c;
+    ep0c = (xhci_endpoint_context_t*)&xhci->input_context[2 * xhci->context_size];
     memset((void*)icc, 0, xhci->context_size);
     memset((void*)ep0c, 0, xhci->context_size);
 

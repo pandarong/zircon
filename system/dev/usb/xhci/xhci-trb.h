@@ -42,7 +42,7 @@ void xhci_event_ring_free(xhci_event_ring_t* ring);
 void xhci_clear_trb(xhci_trb_t* trb);
 // Converts a transfer trb into a NO-OP transfer TRB, does nothing if it is the LINK TRB.
 void xhci_set_transfer_noop_trb(xhci_trb_t* trb);
-void* xhci_read_trb_ptr(xhci_transfer_ring_t* ring, xhci_trb_t* trb);
+xhci_trb_t* xhci_read_trb_ptr(xhci_transfer_ring_t* ring, xhci_trb_t* trb);
 xhci_trb_t* xhci_get_next_trb(xhci_transfer_ring_t* ring, xhci_trb_t* trb);
 void xhci_increment_ring(xhci_transfer_ring_t* ring);
 void xhci_set_dequeue_ptr(xhci_transfer_ring_t* ring, xhci_trb_t* new_ptr);

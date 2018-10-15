@@ -25,7 +25,7 @@ static zx_status_t xdc_get_dequeue_ptr_locked(xdc_t* xdc, xdc_endpoint_t* ep,
         return ZX_ERR_BAD_STATE;
     }
     xdc_context_data_t* ctx = xdc->context_data;
-    xhci_endpoint_context_t* epc = ep->direction == USB_DIR_OUT ? &ctx->out_epc : &ctx->in_epc;
+    volatile xhci_endpoint_context_t* epc = ep->direction == USB_DIR_OUT ? &ctx->out_epc : &ctx->in_epc;
 
     uint64_t dequeue_ptr_hi = XHCI_READ32(&epc->tr_dequeue_hi);
     uint32_t dequeue_ptr_lo = XHCI_READ32(&epc->epc2) & EP_CTX_TR_DEQUEUE_LO_MASK;
