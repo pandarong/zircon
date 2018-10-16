@@ -1,0 +1,19 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+test_driver("ddk-test") {
+  sources = [
+    "ddk-test-binding.c",
+    "ddk-test.c",
+    "metadata-test.c",
+    "usb-request-test.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/usb",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
+  ]
+}
