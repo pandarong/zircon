@@ -1,0 +1,26 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("hid") {
+  shared = true
+  sources = [
+    "acer12.c",
+    "ambient-light.c",
+    "buttons.c",
+    "egalax.c",
+    "eyoyo.c",
+    "ft3x27.c",
+    "gt92xx.c",
+    "hid.c",
+    "keymaps.c",
+    "paradise.c",
+    "samsung.c",
+  ]
+  deps += [
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/zircon",
+  ]
+
+  #TODO: deps+=["$zx/system/fidl/zircon-input"]
+}

@@ -15,6 +15,9 @@ library("fvm") {
     "$zx/third_party/ulib/uboringssl",
   ]
   public_deps = [
+    # <fvm/fvm.h> has #include <digest/digest.h>.
+    "$zx/system/ulib/digest:headers",
+
     # <fvm/fvm.h> has #include <gpt/gpt.h>.
     "$zx/system/ulib/gpt:headers",
   ]

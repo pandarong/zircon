@@ -34,10 +34,10 @@ library("blobfs") {
   if (is_fuchsia) {
     deps += [
       "$zx/system/ulib/async",
+      "$zx/system/ulib/async:async-cpp",
+      "$zx/system/ulib/async:async-default",
       "$zx/system/ulib/async-loop",
-      "$zx/system/ulib/async-loop.cpp",
-      "$zx/system/ulib/async.cpp",
-      "$zx/system/ulib/async.default",
+      "$zx/system/ulib/async-loop:async-loop-cpp",
       "$zx/system/ulib/block-client",
       "$zx/system/ulib/c",
       "$zx/system/ulib/fdio",

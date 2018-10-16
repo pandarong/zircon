@@ -6,13 +6,11 @@
 
 library("explicit-memory") {
   kernel = true
+  static = true
   sources = [
     "bytes.c",
   ]
   if (!is_kernel) {
-    deps += [
-      "$system/ulib/c",
-      "$system/ulib/fbl",
-    ]
+    deps += [ "$zx/system/ulib/fbl" ]
   }
 }

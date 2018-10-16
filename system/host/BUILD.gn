@@ -3,6 +3,8 @@
 # found in the LICENSE file.
 
 # This covers all the host tools intended to be used directly by developers.
+# Not listed here are tools whose only use is via GN rules in this build,
+# such as abigen.
 group("tools") {
   testonly = true
   deps = [

@@ -1,0 +1,20 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("dispatcher-pool") {
+  sources = [
+    "dispatcher-channel.cpp",
+    "dispatcher-event-source.cpp",
+    "dispatcher-execution-domain.cpp",
+    "dispatcher-interrupt.cpp",
+    "dispatcher-thread-pool.cpp",
+    "dispatcher-timer.cpp",
+    "dispatcher-wakeup-event.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zx",
+  ]
+}

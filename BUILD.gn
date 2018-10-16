@@ -33,19 +33,23 @@ public_targets = [
   "core",
 ]
 
+testonly_public_targets = [ "bin" ]
+
 # Each cpu is a target name for all the public targets for that CPU.
 foreach(cpu, standard_fuchsia_cpus) {
   group(cpu) {
+    testonly = true
     deps = []
-    foreach(target, public_targets) {
+    foreach(target, public_targets + testonly_public_targets) {
       deps += [ "$zx/public/$target:$cpu" ]
     }
   }
 }
 
 # Each public target is a target name for all the CPUs for that target.
-foreach(target, public_targets) {
+foreach(target, public_targets + testonly_public_targets) {
   group(target) {
+    testonly = public_targets + [ target ] - [ target ] == public_targets
     deps = []
     foreach(cpu, standard_fuchsia_cpus) {
       deps += [ "$zx/public/$target:$cpu" ]
