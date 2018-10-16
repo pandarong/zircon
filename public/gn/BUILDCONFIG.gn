@@ -337,7 +337,9 @@ template("library") {
         # Everything that depends on the library gets the headers.
         # It also gets the explicit `public_deps`, which includes
         # any header dependencies or public config_group()s.
-        public_deps = [ ":${_library_name}.headers" ]
+        public_deps = [
+          ":${_library_name}.headers",
+        ]
         if (defined(invoker.public_deps)) {
           public_deps += invoker.public_deps
         }
@@ -347,7 +349,9 @@ template("library") {
         # dependencies that affect linking rather than just compilation.
         # Other dependencies are redundant since the source_set() already
         # has them, but they don't hurt.
-        deps = [ ":${_library_name}._sources" ]
+        deps = [
+          ":${_library_name}._sources",
+        ]
         if (defined(invoker.deps)) {
           deps += invoker.deps
         }
@@ -388,6 +392,7 @@ template("library") {
 
   config_group("${_library_name}.headers") {
     include_dirs = [ "include" ]
+
     # The public_deps here represent header dependencies.
     forward_variables_from(invoker,
                            [
@@ -461,6 +466,43 @@ template("host_tool") {
   }
 }
 
+template("driver") {
+  loadable_module(target_name) {
+    deps = []
+    forward_variables_from(invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker, [ "visibility" ])
+    deps += [
+      "$zx/system/ulib/ddk",
+      "$zx/system/ulib/driver",
+    ]
+    data_deps = [
+      "$zx/system/core/devmgr:devhost",
+    ]
+
+    if (!defined(install_path)) {
+      #TODO: install_path = "driver/" + ...
+    }
+  }
+}
+
+template("test_driver") {
+  driver(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "install_path",
+                             "visibility",
+                           ])
+    forward_variables_from(invoker, [ "visibility" ])
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
+
+    #TODO: install_path = "driver/test/${output_name}.so"
+    testonly = true
+  }
+}
+
 # Just wrap these to inject assert_no_legacy_configs().
 foreach(target_type,
         [
@@ -487,17 +529,17 @@ foreach(target_type,
 # variant selection.
 _terminal_target_types = [
   "driver",
-  "loadable_module",
   "executable",
   "host_tool",
+  "loadable_module",
+  "test_driver",
 ]
 
 # These are all the target types (both stock GN and Fuchsia templates) that
 # compile `sources` with the $current_toolchain tools.  All these get a
 # default `deps` below, so their targets use `deps += ...` normally.
 _compile_target_types = [
-  # TODO: "driver",
-
+  "driver",
   "executable",
   "host_tool",
   "library",
@@ -505,6 +547,7 @@ _compile_target_types = [
   "shared_library",
   "source_set",
   "static_library",
+  "test_driver",
 ]
 
 # ${toolchain.public_deps} gives the initial `deps` set for every compile
@@ -517,10 +560,7 @@ foreach(target_type, _compile_target_types) {
   set_defaults(target_type) {
     deps = toolchain.public_deps
     if (is_fuchsia && target_type == "host_tool") {
-      deps += [
-        "$zx/system/ulib/c",
-        "$zx/system/ulib/fdio",
-      ]
+      deps += [ "$zx/system/ulib/fdio" ]
     }
   }
 }

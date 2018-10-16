@@ -33,7 +33,10 @@ public_targets = [
   "core",
 ]
 
-testonly_public_targets = [ "bin" ]
+testonly_public_targets = [
+  "bin",
+  "drivers",
+]
 
 # Each cpu is a target name for all the public targets for that CPU.
 foreach(cpu, standard_fuchsia_cpus) {
