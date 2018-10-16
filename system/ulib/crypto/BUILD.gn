@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("crypto") {
+  shared = true
+  sources = [
+    "aead.cpp",
+    "bytes.cpp",
+    "cipher.cpp",
+    "digest.cpp",
+    "error.cpp",
+    "hkdf.cpp",
+    "hmac.cpp",
+    "secret.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/explicit-memory",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zxcpp",
+    "$zx/third_party/ulib/uboringssl",
+  ]
+}
