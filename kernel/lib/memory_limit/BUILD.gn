@@ -10,17 +10,7 @@ library("memory_limit") {
     "memory_limit.cpp",
   ]
   deps += [
-    ":tests",
     "$zx/kernel/lib/fbl",
-  ]
-}
-
-source_set("tests") {
-  sources = [
-    "memory_limit_tests.cpp",
-  ]
-  deps += [
-    ":headers",
-    "$zx/kernel/lib/unittest",
+    "$zx/system/ulib/pretty",
   ]
 }
