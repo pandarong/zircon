@@ -57,7 +57,7 @@ library("uboringssl") {
       "crypto/hkdf/hkdf.c",
       "crypto/mem.c",
       "crypto/thread_pthread.c",
-      "unused.c",
+      "zircon-unused.c",
 
       # TODO(aarongreen): Replace or get upstream to support more fully.
       "decrepit/xts/xts.c",

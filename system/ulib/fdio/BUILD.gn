@@ -34,6 +34,7 @@ library("fdio") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxio",
+    "$zx/system/ulib/zxs",
   ]
 
   #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io system/fidl/fuchsia-ldsvc system/fidl/fuchsia-net system/fidl/fuchsia-process

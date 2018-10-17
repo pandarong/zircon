@@ -36,6 +36,7 @@ source_set("pave-utils") {
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fs",
     "$zx/system/ulib/fs-management",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/gpt",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

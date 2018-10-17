@@ -18,6 +18,12 @@ library("fzl") {
     "$zx/system/ulib/zx",
   ]
   public_deps = [
+    "$zx/system/ulib/fbl:headers",
+
+    # <lib/fzl/fdio.h> has #include <lib/fdio/unsafe.h>.
+    "$zx/system/ulib/fdio:headers",
+
+    # <lib/fzl/fdio.h> has #include <lib/zx/channel.h>.
     "$zx/system/ulib/zx:headers",
   ]
 }
