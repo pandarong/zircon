@@ -2,19 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test_driver("ddk-test") {
+driver("imx8mevk") {
   sources = [
-    "ddk-test-binding.c",
-    "ddk-test.c",
-    "metadata-test.c",
-    "usb-request-test.c",
+    "imx8mevk-gpio.c",
+    "imx8mevk-gpu.c",
+    "imx8mevk-i2c.c",
+    "imx8mevk-sdhci.c",
+    "imx8mevk-usb.c",
+    "imx8mevk.c",
   ]
   deps += [
-    "$zx/system/dev/lib/usb",
+    "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fdio",
     "$zx/system/ulib/sync",
-    "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
   ]
 }

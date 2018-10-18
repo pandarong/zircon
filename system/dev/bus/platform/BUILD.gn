@@ -1,0 +1,48 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+group("platform") {
+  deps = [
+    ":platform-bus",
+    ":platform-bus.proxy",
+  ]
+}
+
+driver("platform-bus") {
+  sources = [
+    "device-resources.cpp",
+    "platform-bus-bind.c",
+    "platform-bus.cpp",
+    "platform-device.cpp",
+    "platform-i2c.cpp",
+    "platform-protocol-device.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}
+
+driver("platform-bus.proxy") {
+  sources = [
+    "platform-proxy-bind.c",
+    "platform-proxy-client.cpp",
+    "platform-proxy-device.cpp",
+    "platform-proxy.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}

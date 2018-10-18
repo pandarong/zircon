@@ -7,10 +7,6 @@ library("zxcrypt") {
   sources = [
     "volume.cpp",
   ]
-  cflags = [
-    "-fsanitize=integer-divide-by-zero,signed-integer-overflow",
-    "-fsanitize-undefined-trap-on-error",
-  ]
   public_deps = [
     # <zxcrypt/volume.h> has #include <crypto/aead.h>.
     "$zx/system/ulib/crypto:headers",
@@ -19,6 +15,7 @@ library("zxcrypt") {
     "$zx/system/ulib/ddk:headers",
   ]
   deps += [
+    "$zx/public/gn/config:integer-paranoia",
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver",

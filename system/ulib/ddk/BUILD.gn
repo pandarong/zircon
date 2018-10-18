@@ -8,6 +8,10 @@ library("ddk") {
     "mmio-buffer.c",
     "phys-iter.c",
   ]
+  public_deps = [
+    # <ddk/io-buffer.h> has #include <zircon/syscalls.h>.
+    "$zx/system/ulib/zircon:headers",
+  ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/pretty",

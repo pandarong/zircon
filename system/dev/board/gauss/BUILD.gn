@@ -1,0 +1,47 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("gauss") {
+  sources = [
+    "gauss-audio.c",
+    "gauss-clk.c",
+    "gauss-gpio.c",
+    "gauss-i2c.c",
+    "gauss-pcie.c",
+    "gauss-rawnand.c",
+    "gauss-usb.c",
+    "gauss.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/dev/pci/designware",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("gauss-i2c-test") {
+  sources = [
+    "gauss-i2c-test.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+if (false) {  #TODO: ifeq (PLEASE_DISCUSS_WITH_SWETLAND,)
+  driver("gauss-led") {
+    sources = [
+      "gauss-led.c",
+    ]
+    deps += [
+      "$zx/system/ulib/ddk",
+      "$zx/system/ulib/sync",
+      "$zx/system/ulib/zircon",
+    ]
+  }
+}

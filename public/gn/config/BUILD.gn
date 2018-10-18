@@ -373,3 +373,10 @@ config_group("user") {
     public_deps += [ "$zx/system/ulib/c:crt1" ]
   }
 }
+
+config_group("integer-paranoia") {
+  cflags = [
+    "-fsanitize=integer-divide-by-zero,signed-integer-overflow",
+    "-fsanitize-undefined-trap-on-error",
+  ]
+}
