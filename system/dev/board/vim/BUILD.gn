@@ -1,0 +1,31 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("vim") {
+  sources = [
+    "vim-canvas.c",
+    "vim-clk.c",
+    "vim-display.c",
+    "vim-eth.c",
+    "vim-gpio.c",
+    "vim-i2c.c",
+    "vim-led2472g.c",
+    "vim-mali.c",
+    "vim-rtc.c",
+    "vim-sd-emmc.c",
+    "vim-sdio.c",
+    "vim-thermal.c",
+    "vim-uart.c",
+    "vim-usb.c",
+    "vim-video.c",
+    "vim.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/dev/lib/broadcom",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
+}

@@ -2,13 +2,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("lsusb") {
+driver("mtk-sdmmc") {
   sources = [
-    "lsusb.c",
+    "binding.c",
+    "mtk-sdmmc.cpp",
   ]
   deps += [
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/pretty",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/hwreg",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }

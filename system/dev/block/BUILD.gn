@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+group("block") {
+  deps = [
+    "ahci",
+    "aml-sd-emmc",
+    "block",
+    "bootpart",
+    "fvm",
+    "gpt",
+    "imx-sdhci",
+    "mbr",
+    "mtk-sdmmc",
+    "nvme",
+    "pci-sdhci",
+    "ramdisk",
+    "sdhci",
+    "sdmmc",
+    "ums-function",
+    "usb-mass-storage",
+    "zxcrypt",
+  ]
+}

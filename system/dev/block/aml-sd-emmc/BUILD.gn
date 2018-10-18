@@ -2,13 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("lsusb") {
+driver("aml-sd-emmc") {
   sources = [
-    "lsusb.c",
+    "aml-sd-emmc.c",
   ]
   deps += [
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/pretty",
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
 }

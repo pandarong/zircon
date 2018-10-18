@@ -1,0 +1,23 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("mt8167s_ref") {
+  sources = [
+    "bind.c",
+    "mt8167-display.cpp",
+    "mt8167-emmc.cpp",
+    "mt8167-gpio.cpp",
+    "mt8167-soc.cpp",
+    "mt8167.cpp",
+  ]
+  deps += [
+    "$zx/system/dev/lib/mt8167",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}

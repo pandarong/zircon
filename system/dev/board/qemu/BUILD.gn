@@ -1,0 +1,54 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("qemu") {
+  sources = [
+    "qemu-bus.c",
+    "qemu-test.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("qemu-test-parent") {
+  sources = [
+    "test/parent.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("qemu-test-child-1") {
+  sources = [
+    "test/child-1.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("qemu-test-child-2") {
+  sources = [
+    "test/child-2.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("qemu-test-child-3") {
+  sources = [
+    "test/child-3.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}

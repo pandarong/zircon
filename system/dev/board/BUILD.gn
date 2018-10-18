@@ -2,13 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("lsusb") {
-  sources = [
-    "lsusb.c",
-  ]
-  deps += [
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/zircon",
+group("board") {
+  deps = [
+    "astro",
+    "gauss",
+    "hikey960",
+    "imx8mevk",
+    "machina",
+    "mt8167s_ref",
+    "qemu",
+    "sherlock",
+    "vim",
   ]
 }

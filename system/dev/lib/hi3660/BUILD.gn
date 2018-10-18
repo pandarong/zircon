@@ -2,19 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test_driver("ddk-test") {
+library("hi3660") {
   sources = [
-    "ddk-test-binding.c",
-    "ddk-test.c",
-    "metadata-test.c",
-    "usb-request-test.c",
+    "hi3660-dsi.c",
+    "hi3660-gpios.c",
+    "hi3660-i2c.c",
+    "hi3660-usb.c",
+    "hi3660.c",
   ]
   deps += [
-    "$zx/system/dev/lib/usb",
+    "$zx/system/dev/gpio/pl061",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/driver",
     "$zx/system/ulib/sync",
-    "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
   ]
 }
