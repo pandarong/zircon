@@ -5,6 +5,7 @@
 library("tftp") {
   kernel = true
   host = true
+  static = true
   sources = [
     "tftp.c",
   ]
@@ -14,6 +15,7 @@ library("tftp") {
     defines = [ "TFTP_HOSTLIB" ]
   }
   if (!is_kernel && is_fuchsia) {
+    defines = [ "TFTP_USERLIB" ]
     deps += [
       "$zx/system/ulib/c",
       "$zx/system/ulib/zircon",

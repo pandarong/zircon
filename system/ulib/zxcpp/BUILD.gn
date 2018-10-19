@@ -13,6 +13,7 @@ library("zxcpp") {
   ]
   if (!is_kernel) {
     sources += [ "thread_atexit.cpp" ]
+    deps += [ "$zx/public/gn/config:visibility_hidden" ]
   }
   if (toolchain.environment == "kernel") {
     # Avoid circularity.

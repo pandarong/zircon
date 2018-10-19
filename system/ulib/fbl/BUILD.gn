@@ -14,6 +14,7 @@ library("fbl") {
   ]
   if (!is_kernel) {
     sources += [
+      "$zx/public/gn/config:visibility_hidden",
       "string.cpp",
       "string_buffer.cpp",
       "string_piece.cpp",

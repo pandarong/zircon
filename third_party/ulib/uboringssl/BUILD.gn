@@ -10,11 +10,12 @@ library("uboringssl") {
   static = true
 
   sources = [
-    "crypto/chacha/chacha.c",
     "crypto/fipsmodule/sha/sha256.c",
   ]
 
   if (is_kernel) {
+    sources += [ "crypto/chacha/chacha.c" ]
+
     # Avoid circularity.
     deps -= [ "$zx/kernel/vm:headers" ]
 
