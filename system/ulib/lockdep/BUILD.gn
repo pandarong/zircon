@@ -6,12 +6,16 @@
 
 library("lockdep") {
   kernel = true
+  static = true
   sources = [
     "lock_dep.cpp",
   ]
-  public_deps = [ "$zx/system/ulib/fbl:headers" ]
+  public_deps = [
+    "$zx/system/ulib/fbl:headers",
+  ]
   if (!is_kernel) {
     deps += [
+      "$zx/public/gn/config:visibility_hidden",
       "$zx/system/ulib/fbl",
       "$zx/system/ulib/zx",
     ]

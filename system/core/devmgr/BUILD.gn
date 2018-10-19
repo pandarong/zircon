@@ -135,5 +135,6 @@ driver("dmctl") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/port",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zxcpp",
   ]
 }
