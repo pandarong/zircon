@@ -4,6 +4,7 @@
 
 library("minfs") {
   host = true
+  static = true
   sources = [
     "allocator.cpp",
     "bcache.cpp",
@@ -17,14 +18,20 @@ library("minfs") {
   if (!is_fuchsia) {
     sources += [ "host.cpp" ]
   }
-  deps += [ "$zx/system/ulib/zircon-internal" ]
   public_deps = [
-    "$zx/system/ulib/bitmap",
+    "$zx/system/ulib/bitmap:headers",
+    "$zx/system/ulib/fbl:headers",
+    "$zx/system/ulib/fs:headers",
+    "$zx/system/ulib/zx:headers",
+  ]
+  deps += [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fs",
+    "$zx/system/ulib/zircon-internal",
   ]
   if (is_fuchsia) {
     deps += [
+      "$zx/public/gn/config:visibility_hidden",
       "$zx/system/fidl/fuchsia-io:c",
       "$zx/system/fidl/fuchsia-minfs:c",
       "$zx/system/ulib/async",

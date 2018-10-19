@@ -10,7 +10,6 @@ library("syslog") {
     "logger.cpp",
   ]
   deps += [
-    "$zx/public/gn/config:visibility_hidden",
     "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

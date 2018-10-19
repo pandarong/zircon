@@ -44,6 +44,7 @@ library("fs") {
       "$zx/system/fidl/fuchsia-io:c.headers",
     ]
     deps += [
+      "$zx/public/gn/config:visibility_hidden",
       "$zx/system/fidl/fuchsia-io:c",
       "$zx/system/ulib/async",
       "$zx/system/ulib/async:async-cpp",
