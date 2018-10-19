@@ -15,6 +15,7 @@ library("fdio") {
     "namespace.c",
     "null.c",
     "output.c",
+    "pipe.c",
     "remoteio.c",
     "service.c",
     "socket.c",

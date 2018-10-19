@@ -2,20 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("driver") {
-  shared = true
-  sources = []
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/fidl/fuchsia-io:c",
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/fidl",
-    "$zx/system/ulib/port",
-    "$zx/system/ulib/sync",
-    "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
-    "$zx/system/ulib/zxcpp",
-  ]
+group("driver") {
+  public_deps = [ "$zx/system/core/devmgr:driver" ]
 }
