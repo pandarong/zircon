@@ -10,6 +10,7 @@ executable("display-test") {
     "virtual-layer.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-display:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
@@ -17,6 +18,4 @@ executable("display-test") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-display"]
 }

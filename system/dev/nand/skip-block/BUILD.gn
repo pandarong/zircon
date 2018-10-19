@@ -9,6 +9,8 @@ driver("skip-block") {
     "skip-block.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -18,6 +20,4 @@ driver("skip-block") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-nand.skipblock","$zx/system/fidl/zircon-nand"]
 }

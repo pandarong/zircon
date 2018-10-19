@@ -23,7 +23,12 @@ library("runtests-utils") {
     "$zx/system/ulib/zircon-internal",
   ]
   if (is_fuchsia) {
+    public_deps = [
+      # <runtests-utils/log-exporter.h> has #include <fuchsia/logger/c/fidl.h>.
+      "$zx/system/fidl/fuchsia-logger:c.headers",
+    ]
     deps += [
+      "$zx/system/fidl/fuchsia-logger:c",
       "$zx/system/ulib/async",
       "$zx/system/ulib/async:async-cpp",
       "$zx/system/ulib/async-loop",

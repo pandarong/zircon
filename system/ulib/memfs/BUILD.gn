@@ -39,6 +39,10 @@ library("memfs") {
   sources = [
     "memfs-local.cpp",
   ]
+  public_deps = [
+    # <lib/memfs/memfs.h> has #include <lib/sync/completion.h>.
+    "$zx/system/ulib/sync:headers",
+  ]
   deps += [
     ":memfs-cpp",
     "$zx/public/gn/config:visibility_hidden",

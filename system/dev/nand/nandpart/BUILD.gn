@@ -11,6 +11,7 @@ driver("nandpart") {
     "nandpart.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -19,6 +20,4 @@ driver("nandpart") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-nand"]
 }

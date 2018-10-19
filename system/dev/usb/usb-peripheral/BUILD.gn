@@ -8,12 +8,11 @@ driver("usb-peripheral") {
   ]
   deps += [
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/zircon-usb-peripheral:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-usb-peripheral"]
 
   # Set default configuration here, rather than relying on usbctl to do it.
   defines = [

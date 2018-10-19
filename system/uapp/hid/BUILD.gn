@@ -8,6 +8,7 @@ executable("hid") {
     "report.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fzl",
@@ -16,6 +17,4 @@ executable("hid") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-input"]
 }

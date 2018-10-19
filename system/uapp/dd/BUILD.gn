@@ -7,9 +7,8 @@ executable("dd") {
     "main.c",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-io"]
 }

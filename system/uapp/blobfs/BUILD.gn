@@ -7,11 +7,12 @@ executable("blobfs") {
     "main.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async",
-    "$zx/system/ulib/async-loop",
-    "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/blobfs",
     "$zx/system/ulib/block-client",
@@ -30,6 +31,4 @@ executable("blobfs") {
     "$zx/third_party/ulib/lz4",
     "$zx/third_party/ulib/uboringssl",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-io"]
 }

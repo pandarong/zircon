@@ -11,7 +11,5 @@ executable("ethtool") {
     "$zx/system/ulib/inet6",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
-  ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-ethernet"]
+"$zx/system/fidl/zircon-ethernet:c"]
 }

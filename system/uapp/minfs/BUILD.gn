@@ -7,6 +7,8 @@ executable("minfs") {
     "main.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/fidl/fuchsia-minfs:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",
@@ -27,6 +29,4 @@ executable("minfs") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-minfs","$zx/system/fidl/fuchsia-io"]
 }

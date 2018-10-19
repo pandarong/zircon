@@ -11,6 +11,9 @@ library("ddk") {
   public_deps = [
     # <ddk/io-buffer.h> has #include <zircon/syscalls.h>.
     "$zx/system/ulib/zircon:headers",
+
+    # <ddk/protocol/rawnand.h> has #include <zircon/nand/c/fidl.h>.
+    "$zx/system/fidl/zircon-nand:c.headers",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",

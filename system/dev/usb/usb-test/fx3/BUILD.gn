@@ -3,11 +3,13 @@
 # found in the LICENSE file.
 
 driver("fx3") {
+  testonly = true
   sources = [
     "fx3.c",
   ]
   deps += [
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
