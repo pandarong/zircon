@@ -29,12 +29,14 @@ library("fdio") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/fidl/fuchsia-ldsvc:c",
+    "$zx/system/fidl/fuchsia-net:c",
+    "$zx/system/fidl/fuchsia-process:c",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxio",
     "$zx/system/ulib/zxs",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io system/fidl/fuchsia-ldsvc system/fidl/fuchsia-net system/fidl/fuchsia-process
 }
