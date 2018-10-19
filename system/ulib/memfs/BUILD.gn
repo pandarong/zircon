@@ -18,6 +18,7 @@ library("memfs-cpp") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/fbl",
@@ -28,8 +29,6 @@ library("memfs-cpp") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }
 
 # libmemfs.so: The C ABI client library.
@@ -43,8 +42,8 @@ library("memfs") {
   deps += [
     ":memfs-cpp",
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/fdio",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
     "$zx/system/ulib/fs",
   ]
 }

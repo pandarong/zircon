@@ -11,6 +11,7 @@ library("logger") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/syslog",
     "$zx/system/ulib/zircon",
@@ -20,6 +21,4 @@ library("logger") {
     # <lib/logger/logger.h> has #include <lib/fidl/cpp/message_buffer.h>.
     "$zx/system/ulib/fidl",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-logger
 }

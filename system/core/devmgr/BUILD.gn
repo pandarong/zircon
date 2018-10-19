@@ -15,10 +15,16 @@ executable("devmgr") {
   ]
 
   deps += [
+    # We can avoid the fuchsia.crash dependency if crashsvc connects directly
+    # to the analyzer.
+    "$zx/system/fidl/fuchsia-crash:c",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-default",
     "$zx/system/ulib/async-loop",
     "$zx/system/ulib/bootdata",
+    "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver-info",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
@@ -36,17 +42,10 @@ executable("devmgr") {
     "$zx/third_party/ulib/lz4",
   ]
 
-  # ddk is needed only for <ddk/device.h>.
-  deps += [ "$zx/system/ulib/ddk:headers" ]
-
-  # We can avoid the fuchsia.crash dependency if crashsvc connects directly
-  # to the analyzer.
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-io system/fidl/fuchsia-mem
-
   # Bring the auxiliaries into the build and the image.  devhost isn't
   # listed here because it's implicitly in data_deps of every driver().
   data_deps = [
-    #TODO: ":dmctl",
+    ":dmctl",
     ":fshost",
     "$zx/system/core/crashsvc",
     "$zx/system/core/netsvc",
@@ -64,6 +63,7 @@ executable("fshost") {
     "vfs-rpc.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",
@@ -88,8 +88,6 @@ executable("fshost") {
     "$zx/third_party/ulib/cksum",
     "$zx/third_party/ulib/lz4",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }
 
 executable("devhost") {
@@ -104,18 +102,15 @@ executable("devhost") {
   ]
 }
 
-if (false) {  #TODO: write driver() template
-  driver("dmctl") {
-    sources = [
-      "devhost-shared.cpp",
-      "dmctl.cpp",
-    ]
-    deps += [
-      "$zx/system/ulib/ddk",
-      "$zx/system/ulib/driver",
-      "$zx/system/ulib/fbl",
-      "$zx/system/ulib/port",
-      "$zx/system/ulib/zircon",
-    ]
-  }
+driver("dmctl") {
+  sources = [
+    "devhost-shared.cpp",
+    "dmctl.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/port",
+    "$zx/system/ulib/zircon",
+  ]
 }

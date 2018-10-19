@@ -11,6 +11,9 @@ library("process-launcher") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/fidl/fuchsia-ldsvc:c",
+    "$zx/system/fidl/fuchsia-process:c",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fidl",
@@ -23,6 +26,4 @@ library("process-launcher") {
     # <lib/process-launcher/launcher.h> has #include <lib/svc/service.h>.
     "$zx/system/ulib/svc:headers",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io system/fidl/fuchsia-ldsvc system/fidl/fuchsia-process
 }

@@ -4,32 +4,6 @@
 
 import("$zx/public/gn/host_tool_action.gni")
 
-_fidl_generators = [
-  {
-    name = "c"
-    files = [
-      {
-        switch = "--c-header"
-        path_prefix = "include/"
-        path_suffix = "/c/fidl.h"
-      },
-      {
-        switch = "--c-client"
-        path = "client.c"
-      },
-      {
-        switch = "--c-server"
-        path = "server.c"
-      },
-      {
-        switch = "--tables"
-        path = "tables.cpp"
-      },
-    ]
-    target = "library"
-  },
-]
-
 template("fidl_library") {
   assert(defined(invoker.sources),
          "fidl_library(\"$target_name\") must set `sources`")
@@ -59,10 +33,63 @@ template("fidl_library") {
   }
 
   # The generated sources are the same in every toolchain, so generate only
-  # once.  The same sources will be separately compiled in each toolchain
-  # that use the bindings library.
-  fidl_gen_dir =
+  # once, in $default_toolchain.  The same sources will be separately compiled
+  # in each toolchain that use the bindings library.
+  _fidl_gen_dir =
       get_label_info(":$fidl_target($default_toolchain)", "target_gen_dir")
+
+  _fidl_generators = [
+    {
+      name = "c"
+      files = [
+        {
+          switch = "--c-header"
+          path_prefix = "include/"
+          path_suffix = "/c/fidl.h"
+        },
+        {
+          switch = "--c-client"
+          path = "client.c"
+        },
+        {
+          switch = "--c-server"
+          path = "server.c"
+        },
+        {
+          switch = "--tables"
+          path = "tables.cpp"
+        },
+      ]
+      target = "_fidl_c_library"
+      subtargets = [
+        "headers",
+        "static",
+      ]
+    },
+  ]
+
+  template("_fidl_c_library") {
+    gen = invoker.gen
+    gen_target = "${invoker.fidl_target}._generate.${gen.name}"
+    library(target_name) {
+      forward_variables_from(invoker, "*", [ "deps" ])
+      public_deps = [
+        ":${target_name}_config",
+      ]
+      deps += invoker.deps
+      deps += [
+        "$zx/system/ulib/fidl",
+        "$zx/system/ulib/zircon",
+      ]
+    }
+    config_group("${target_name}_config") {
+      include_dirs = [ "$_fidl_gen_dir/include" ]
+      deps = [
+        ":$gen_target($default_toolchain)",
+      ]
+    }
+  }
+
   if (current_toolchain == default_toolchain) {
     foreach(gen, _fidl_generators) {
       gen_target = "${fidl_target}._generate.${gen.name}"
@@ -82,8 +109,8 @@ template("fidl_library") {
           } else {
             file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
           }
-          outputs += [ "$fidl_gen_dir/$file" ]
-          args += [ rebase_path("$fidl_gen_dir/$file", root_build_dir) ]
+          outputs += [ "$_fidl_gen_dir/$file" ]
+          args += [ rebase_path("$_fidl_gen_dir/$file", root_build_dir) ]
         }
         if (false) {  #TODO
           sources = [
@@ -107,7 +134,7 @@ template("fidl_library") {
     }
 
     # TODO: horrible hack, used above
-    write_file("$fidl_gen_dir/${fidl_target}.rsp",
+    write_file("$_fidl_gen_dir/${fidl_target}.rsp",
                fidl_metadata.fidl_input_args)
   } else {
     foreach(gen, _fidl_generators) {
@@ -118,7 +145,9 @@ template("fidl_library") {
                                  "testonly",
                                  "visibility",
                                ])
-        deps += [ ":$gen_target($default_toolchain)" ]
+        deps = [
+          ":$gen_target($default_toolchain)",
+        ]
         sources = []
         foreach(file, gen.files) {
           if (defined(file.path)) {
@@ -126,12 +155,13 @@ template("fidl_library") {
           } else {
             file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
           }
-          sources += [ "$fidl_gen_dir/$file" ]
+          sources += [ "$_fidl_gen_dir/$file" ]
         }
       }
 
-      # If this fidl_library() is the main target for the directory, then
-      # give its bindings targets `dir:dir.lang` aliases `dir:lang`.
+      # If this fidl_library() is the main target for the directory, then give
+      # its bindings targets `dir:dir.lang` aliases `dir:lang`.  For
+      # `dir:dir.c` that also means `dir:dir.c.headers` gets `dir:c.headers`.
       if (get_label_info(":$fidl_target", "name") ==
           get_path_info(get_label_info(":$fidl_target", "dir"), "file")) {
         group(gen.name) {
@@ -143,6 +173,20 @@ template("fidl_library") {
           public_deps = [
             ":${fidl_target}.${gen.name}",
           ]
+        }
+        if (defined(gen.subtargets)) {
+          foreach(subtarget, gen.subtargets) {
+            group("${gen.name}.${subtarget}") {
+              forward_variables_from(invoker,
+                                     [
+                                       "testonly",
+                                       "visibility",
+                                     ])
+              public_deps = [
+                ":${fidl_target}.${gen.name}.${subtarget}",
+              ]
+            }
+          }
         }
       }
     }
