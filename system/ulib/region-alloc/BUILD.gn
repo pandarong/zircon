@@ -6,6 +6,7 @@
 
 library("region-alloc") {
   kernel = true
+  static = true
   sources = [
     "region-alloc-c-api.cpp",
     "region-alloc.cpp",

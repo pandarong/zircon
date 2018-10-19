@@ -6,6 +6,7 @@
 
 library("libzbi") {
   kernel = true
+  static = true
   sources = [
     "zbi.c",
   ]
