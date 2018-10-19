@@ -1,0 +1,150 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/host_tool_action.gni")
+
+_fidl_generators = [
+  {
+    name = "c"
+    files = [
+      {
+        switch = "--c-header"
+        path_prefix = "include/"
+        path_suffix = "/c/fidl.h"
+      },
+      {
+        switch = "--c-client"
+        path = "client.c"
+      },
+      {
+        switch = "--c-server"
+        path = "server.c"
+      },
+      {
+        switch = "--tables"
+        path = "tables.cpp"
+      },
+    ]
+    target = "library"
+  },
+]
+
+template("fidl_library") {
+  assert(defined(invoker.sources),
+         "fidl_library(\"$target_name\") must set `sources`")
+
+  fidl_target = target_name
+
+  # TODO(mcgrathr): temporary until everything is renamed with . names
+  fidl_name = string_replace(fidl_target, "-", ".")
+  fidl_path = string_replace(fidl_name, ".", "/")
+
+  # TODO: move directly into metadata = ... in group()
+  fidl_metadata = {
+    fidl_inputs = invoker.sources
+    fidl_input_args =
+        [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+  }
+  not_needed([ "fidl_metadata" ])
+
+  group(fidl_target) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "testonly",
+                             "visibility",
+                           ])
+    #TODO: metadata = fidl_metadata
+  }
+
+  # The generated sources are the same in every toolchain, so generate only
+  # once.  The same sources will be separately compiled in each toolchain
+  # that use the bindings library.
+  fidl_gen_dir =
+      get_label_info(":$fidl_target($default_toolchain)", "target_gen_dir")
+  if (current_toolchain == default_toolchain) {
+    foreach(gen, _fidl_generators) {
+      gen_target = "${fidl_target}._generate.${gen.name}"
+      host_tool_action(gen_target) {
+        forward_variables_from(invoker, [ "testonly" ])
+        visibility = [ ":*" ]
+        tool = "$zx/system/host/fidl:fidlc"
+        outputs = []
+        args = [
+          "--name",
+          fidl_name,
+        ]
+        foreach(file, gen.files) {
+          args += [ file.switch ]
+          if (defined(file.path)) {
+            file = file.path
+          } else {
+            file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
+          }
+          outputs += [ "$fidl_gen_dir/$file" ]
+          args += [ rebase_path("$fidl_gen_dir/$file", root_build_dir) ]
+        }
+        if (false) {  #TODO
+          sources = [
+            get_metadata([ ":$fidl_target" ], [ "fidl_inputs" ]),
+          ]
+          args += [ get_metadata([ ":$fidl_target" ], [ "fidl_input_args" ]) ]
+        } else {
+          # TODO: horrible hack, uses write_file() below
+          sources = invoker.sources
+          if (defined(invoker.deps)) {
+            foreach(dep, invoker.deps) {
+              dep_gen_dir = get_label_info(dep, "target_gen_dir")
+              dep_name = get_label_info(dep, "name")
+              sources += [ "${dep_gen_dir}/${dep_name}.rsp" ]
+              args += [ "@${dep_gen_dir}/${dep_name}.rsp" ]
+            }
+          }
+          args += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+        }
+      }
+    }
+
+    # TODO: horrible hack, used above
+    write_file("$fidl_gen_dir/${fidl_target}.rsp",
+               fidl_metadata.fidl_input_args)
+  } else {
+    foreach(gen, _fidl_generators) {
+      gen_target = "${fidl_target}._generate.${gen.name}"
+      target(gen.target, "${fidl_target}.${gen.name}") {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        deps += [ ":$gen_target($default_toolchain)" ]
+        sources = []
+        foreach(file, gen.files) {
+          if (defined(file.path)) {
+            file = file.path
+          } else {
+            file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
+          }
+          sources += [ "$fidl_gen_dir/$file" ]
+        }
+      }
+
+      # If this fidl_library() is the main target for the directory, then
+      # give its bindings targets `dir:dir.lang` aliases `dir:lang`.
+      if (get_label_info(":$fidl_target", "name") ==
+          get_path_info(get_label_info(":$fidl_target", "dir"), "file")) {
+        group(gen.name) {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          public_deps = [
+            ":${fidl_target}.${gen.name}",
+          ]
+        }
+      }
+    }
+  }
+}
