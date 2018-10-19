@@ -1,4 +1,4 @@
-# Copyright 2018 The Fuchsia Authors. All rights reserved.
+#ru Copyright 2018 The Fuchsia Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -96,9 +96,32 @@ executable("devhost") {
   sources = [
     "devhost-main.cpp",
   ]
+  deps += [ ":driver" ]
+}
+
+# "$zx/system/ulib/driver" is an alias for this.
+library("driver") {
+  shared = true
+  static = false
+  sources = [
+    "devhost-api.cpp",
+    "devhost-core.cpp",
+    "devhost-rpc-server.cpp",
+    "devhost-shared.cpp",
+    "devhost.cpp",
+  ]
   deps += [
-    "$zx/system/ulib/driver",
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/port",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }
 

@@ -43,6 +43,11 @@ template("fidl_library") {
   # TODO(mcgrathr): temporary until everything is renamed with . names
   fidl_name = string_replace(fidl_target, "-", ".")
   fidl_path = string_replace(fidl_name, ".", "/")
+  if (defined(invoker.deps)) {
+    fidl_deps = invoker.deps
+  } else {
+    fidl_deps = []
+  }
 
   group(fidl_target) {
     forward_variables_from(invoker,
@@ -73,10 +78,22 @@ template("fidl_library") {
     gen_target = "${invoker.fidl_target}._generate.${gen.name}"
     library(target_name) {
       forward_variables_from(invoker, "*", [ "deps" ])
+      deps += invoker.deps
+
+      # Users of the bindings library need the generated headers.
       public_deps = [
         ":${target_name}_config",
       ]
-      deps += invoker.deps
+
+      # The generated headers of a dependent fidl_library() will #include the
+      # generated headers for its dependencies' bindings libraries.
+      #
+      # TODO: this presumes all deps are direct fidl_library() deps
+      foreach(dep, fidl_deps) {
+        public_deps += [ "$dep:c.headers" ]
+      }
+
+      # The generated code uses these.
       deps += [
         "$zx/system/ulib/fidl",
         "$zx/system/ulib/zircon",
@@ -141,13 +158,11 @@ template("fidl_library") {
 
     # TODO: horrible hack, used above
     _fidl_rsp = []
-    if (defined(invoker.deps)) {
-      foreach(dep, invoker.deps) {
-        dep_gen_dir = get_label_info(dep, "target_gen_dir")
-        dep_name = get_label_info(dep, "name")
-        _fidl_rsp += [ "@" + rebase_path("${dep_gen_dir}/${dep_name}.rsp",
-                                         root_build_dir) ]
-      }
+    foreach(dep, fidl_deps) {
+      dep_gen_dir = get_label_info(dep, "target_gen_dir")
+      dep_name = get_label_info(dep, "name")
+      _fidl_rsp += [ "@" + rebase_path("${dep_gen_dir}/${dep_name}.rsp",
+                                       root_build_dir) ]
     }
     _fidl_rsp += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
     write_file("$_fidl_gen_dir/${fidl_target}.rsp", _fidl_rsp)
