@@ -6,6 +6,13 @@ library("ddktl") {
   sources = [
     "pdev.cpp",
   ]
+  public_deps = [
+    # <ddktl/device-internal.h> has #include <fbl/type_support.h>.
+    "$zx/system/ulib/fbl:headers",
+
+    # <ddktl/protocol/display-controller.h> has #include <lib/zx/vmo.h>.
+    "$zx/system/ulib/zx:headers",
+  ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/ddk",

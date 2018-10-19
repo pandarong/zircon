@@ -1,0 +1,29 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("intel-i915") {
+  sources = [
+    "bind.c",
+    "display-device.cpp",
+    "dp-display.cpp",
+    "gtt.cpp",
+    "hdmi-display.cpp",
+    "igd.cpp",
+    "intel-i915.cpp",
+    "interrupts.cpp",
+    "pipe.cpp",
+    "power.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/edid",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/hwreg",
+    "$zx/system/ulib/region-alloc",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}

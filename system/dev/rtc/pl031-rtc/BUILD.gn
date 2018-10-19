@@ -1,0 +1,14 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("pl031-rtc") {
+  sources = [
+    "pl031-rtc.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/rtc",
+    "$zx/system/ulib/zircon",
+  ]
+}
