@@ -3,10 +3,12 @@
 # found in the LICENSE file.
 
 executable("usb-test-fwloader") {
+  testonly = true
   sources = [
     "usb-test-fwloader.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",

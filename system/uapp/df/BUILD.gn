@@ -7,12 +7,11 @@ executable("df") {
     "main.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fzl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-io"]
 }

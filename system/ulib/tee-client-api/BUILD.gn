@@ -8,10 +8,9 @@ library("tee-client-api") {
     "tee-client-api.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-tee:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-tee"]
 }

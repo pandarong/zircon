@@ -7,11 +7,10 @@ executable("netdump") {
     "netdump.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-ethernet"]
 }

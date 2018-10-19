@@ -9,6 +9,7 @@ executable("disk-pave") {
   ]
   deps += [
     ":pave-utils",
+    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/fbl",
@@ -28,6 +29,7 @@ source_set("pave-utils") {
     "pave-utils.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/chromeos-disk-setup",
     "$zx/system/ulib/ddk",

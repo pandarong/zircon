@@ -8,6 +8,7 @@ executable("runtests") {
     "runtests.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async-loop",
@@ -20,6 +21,4 @@ executable("runtests") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-logger"]
 }

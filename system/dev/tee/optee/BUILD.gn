@@ -12,6 +12,7 @@ driver("optee") {
     "util.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-tee:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -22,6 +23,4 @@ driver("optee") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-tee"]
 }

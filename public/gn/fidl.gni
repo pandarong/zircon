@@ -4,6 +4,36 @@
 
 import("$zx/public/gn/host_tool_action.gni")
 
+_fidl_generators = [
+  {
+    name = "c"
+    files = [
+      {
+        switch = "--c-header"
+        path_prefix = "include/"
+        path_suffix = "/c/fidl.h"
+      },
+      {
+        switch = "--c-client"
+        path = "client.c"
+      },
+      {
+        switch = "--c-server"
+        path = "server.c"
+      },
+      {
+        switch = "--tables"
+        path = "tables.cpp"
+      },
+    ]
+    target = "_fidl_c_library"
+    subtargets = [
+      "headers",
+      "static",
+    ]
+  },
+]
+
 template("fidl_library") {
   assert(defined(invoker.sources),
          "fidl_library(\"$target_name\") must set `sources`")
@@ -14,14 +44,6 @@ template("fidl_library") {
   fidl_name = string_replace(fidl_target, "-", ".")
   fidl_path = string_replace(fidl_name, ".", "/")
 
-  # TODO: move directly into metadata = ... in group()
-  fidl_metadata = {
-    fidl_inputs = invoker.sources
-    fidl_input_args =
-        [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
-  }
-  not_needed([ "fidl_metadata" ])
-
   group(fidl_target) {
     forward_variables_from(invoker,
                            [
@@ -29,44 +51,22 @@ template("fidl_library") {
                              "testonly",
                              "visibility",
                            ])
-    #TODO: metadata = fidl_metadata
+    if (false) {  #TODO
+      metadata = {
+        fidl_inputs = invoker.sources
+        fidl_input_args =
+            [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+      }
+    } else if (current_toolchain != default_toolchain) {
+      not_needed(invoker, [ "sources" ])
+    }
   }
 
   # The generated sources are the same in every toolchain, so generate only
   # once, in $default_toolchain.  The same sources will be separately compiled
   # in each toolchain that use the bindings library.
-  _fidl_gen_dir =
-      get_label_info(":$fidl_target($default_toolchain)", "target_gen_dir")
-
-  _fidl_generators = [
-    {
-      name = "c"
-      files = [
-        {
-          switch = "--c-header"
-          path_prefix = "include/"
-          path_suffix = "/c/fidl.h"
-        },
-        {
-          switch = "--c-client"
-          path = "client.c"
-        },
-        {
-          switch = "--c-server"
-          path = "server.c"
-        },
-        {
-          switch = "--tables"
-          path = "tables.cpp"
-        },
-      ]
-      target = "_fidl_c_library"
-      subtargets = [
-        "headers",
-        "static",
-      ]
-    },
-  ]
+  _fidl_gen_dir = get_label_info(":$fidl_target($default_toolchain)",
+                                 "target_gen_dir") + "/$fidl_target"
 
   template("_fidl_c_library") {
     gen = invoker.gen
@@ -83,6 +83,11 @@ template("fidl_library") {
       ]
     }
     config_group("${target_name}_config") {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
       include_dirs = [ "$_fidl_gen_dir/include" ]
       deps = [
         ":$gen_target($default_toolchain)",
@@ -93,49 +98,72 @@ template("fidl_library") {
   if (current_toolchain == default_toolchain) {
     foreach(gen, _fidl_generators) {
       gen_target = "${fidl_target}._generate.${gen.name}"
+      gen_outputs = []
+      gen_args = [
+        "--name",
+        fidl_name,
+      ]
+      foreach(file, gen.files) {
+        gen_args += [ file.switch ]
+        if (defined(file.path)) {
+          file = file.path
+        } else {
+          file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
+        }
+        gen_outputs += [ "$_fidl_gen_dir/$file" ]
+        gen_args += [ rebase_path("$_fidl_gen_dir/$file", root_build_dir) ]
+      }
+
       host_tool_action(gen_target) {
         forward_variables_from(invoker, [ "testonly" ])
         visibility = [ ":*" ]
-        tool = "$zx/system/host/fidl:fidlc"
-        outputs = []
-        args = [
-          "--name",
-          fidl_name,
+        deps = [
+          ":$fidl_target",
         ]
-        foreach(file, gen.files) {
-          args += [ file.switch ]
-          if (defined(file.path)) {
-            file = file.path
-          } else {
-            file = "${file.path_prefix}${fidl_path}${file.path_suffix}"
-          }
-          outputs += [ "$_fidl_gen_dir/$file" ]
-          args += [ rebase_path("$_fidl_gen_dir/$file", root_build_dir) ]
-        }
+        tool = "$zx/system/host/fidl:fidlc"
+        outputs = gen_outputs
         if (false) {  #TODO
           sources = [
             get_metadata([ ":$fidl_target" ], [ "fidl_inputs" ]),
           ]
-          args += [ get_metadata([ ":$fidl_target" ], [ "fidl_input_args" ]) ]
+          args = gen_args +
+                 [ get_metadata([ ":$fidl_target" ], [ "fidl_input_args" ]) ]
         } else {
-          # TODO: horrible hack, uses write_file() below
-          sources = invoker.sources
-          if (defined(invoker.deps)) {
-            foreach(dep, invoker.deps) {
-              dep_gen_dir = get_label_info(dep, "target_gen_dir")
-              dep_name = get_label_info(dep, "name")
-              sources += [ "${dep_gen_dir}/${dep_name}.rsp" ]
-              args += [ "@${dep_gen_dir}/${dep_name}.rsp" ]
-            }
-          }
-          args += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+          # TODO: horrible hack, uses action below
+          sources = [
+            "$_fidl_gen_dir/${gen_target}.rsp",
+          ]
+          deps += [ ":${gen_target}.rsp" ]
+          args = [ "@" + rebase_path(sources[0], root_build_dir) ]
         }
       }
     }
 
     # TODO: horrible hack, used above
-    write_file("$_fidl_gen_dir/${fidl_target}.rsp",
-               fidl_metadata.fidl_input_args)
+    _fidl_rsp = []
+    if (defined(invoker.deps)) {
+      foreach(dep, invoker.deps) {
+        dep_gen_dir = get_label_info(dep, "target_gen_dir")
+        dep_name = get_label_info(dep, "name")
+        _fidl_rsp += [ "@" + rebase_path("${dep_gen_dir}/${dep_name}.rsp",
+                                         root_build_dir) ]
+      }
+    }
+    _fidl_rsp += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+    write_file("$_fidl_gen_dir/${fidl_target}.rsp", _fidl_rsp)
+    action("${gen_target}.rsp") {
+      visibility = [ ":$gen_target" ]
+      sources = [
+        "$_fidl_gen_dir/${fidl_target}.rsp",
+      ]
+      outputs = [
+        "$_fidl_gen_dir/${gen_target}.rsp",
+      ]
+      depfile = "${outputs[0]}.d"
+      script = "$zx/public/gn/fidl-expand-rsp.sh"
+      args = rebase_path(outputs + [ depfile ], root_build_dir) + gen_args +
+             [ "@" + rebase_path(sources[0], root_build_dir) ]
+    }
   } else {
     foreach(gen, _fidl_generators) {
       gen_target = "${fidl_target}._generate.${gen.name}"

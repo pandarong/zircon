@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 group("usb-test") {
+  testonly = true
   deps = [
     "fx3",
     "usb-tester",

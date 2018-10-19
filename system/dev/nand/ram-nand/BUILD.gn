@@ -9,6 +9,7 @@ driver("ram-nand") {
     "ram-nand.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -18,6 +19,4 @@ driver("ram-nand") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-nand"]
 }

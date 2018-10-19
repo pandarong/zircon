@@ -7,10 +7,9 @@ driver("ethernet") {
     "ethernet.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-ethernet"]
 }

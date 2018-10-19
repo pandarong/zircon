@@ -7,12 +7,11 @@ executable("hidtouch") {
     "main.c",
   ]
   deps += [
-    #TODO: "$zx/system/fidl/fuchsia-display",
+    "$zx/system/fidl/fuchsia-display:c",
+    "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/framebuffer",
     "$zx/system/ulib/hid",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-input"]
 }

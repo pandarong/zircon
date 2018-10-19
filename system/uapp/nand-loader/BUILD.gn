@@ -7,6 +7,7 @@ executable("nand-loader") {
     "main.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fs-management",
@@ -15,6 +16,4 @@ executable("nand-loader") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-nand"]
 }

@@ -16,7 +16,5 @@ executable("nand-util") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/cksum",
-  ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-nand"]
+"$zx/system/fidl/zircon-nand:c"]
 }

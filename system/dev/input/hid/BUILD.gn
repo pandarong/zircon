@@ -8,10 +8,9 @@ driver("hid") {
     "hid.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/zircon-input"]
 }
