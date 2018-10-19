@@ -10,11 +10,6 @@ group("dev") {
     "bluetooth",
     "board",
     "bus",
-    "misc/test",
-    "test/ddk-test",
-  ]
-
-  others = [
     "clk",
     "codec",
     "display",
@@ -23,7 +18,6 @@ group("dev") {
     "gpu",
     "i2c",
     "input",
-    "lib",
     "light",
     "misc",
     "nand",
@@ -36,7 +30,5 @@ group("dev") {
     "test",
     "thermal",
     "usb",
-    "video",
   ]
-  not_needed([ "others" ])
 }

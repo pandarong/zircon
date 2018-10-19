@@ -1,0 +1,27 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("usb-peripheral") {
+  sources = [
+    "usb-peripheral.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/usb",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/zircon",
+  ]
+
+  #TODO: deps+=["$zx/system/fidl/zircon-usb-peripheral"]
+
+  # Set default configuration here, rather than relying on usbctl to do it.
+  defines = [
+    "USB_DEVICE_VID=0x18D1",
+    "USB_DEVICE_PID=0xA020",
+    "USB_DEVICE_MANUFACTURER=\"Zircon\"",
+    "USB_DEVICE_PRODUCT=\"CDC-Ethernet\"",
+    "USB_DEVICE_SERIAL=\"0123456789ABCDEF\"",
+    "USB_DEVICE_FUNCTIONS=\"cdc\"",
+  ]
+}

@@ -469,10 +469,11 @@ template("host_tool") {
 
 template("driver") {
   loadable_module(target_name) {
+    data_deps = []
     forward_variables_from(invoker, "*", [ "visibility" ])
     forward_variables_from(invoker, [ "visibility" ])
     deps += [ "$zx/system/ulib/driver" ]
-    data_deps = [
+    data_deps += [
       "$zx/system/core/devmgr:devhost",
     ]
     if (!defined(install_path)) {

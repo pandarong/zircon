@@ -1,0 +1,22 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("usb-bus") {
+  sources = [
+    "usb-bus.c",
+    "usb-device.c",
+    "util.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/usb",
+    "$zx/system/dev/lib/usb",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/utf_conversion",
+    "$zx/system/ulib/zircon",
+  ]
+
+  #TODO: deps+=["$zx/system/fidl/zircon-usb-device"]
+}

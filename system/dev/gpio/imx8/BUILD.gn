@@ -1,0 +1,15 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("imx8") {
+  sources = [
+    "imx8-gpio.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/imx8m",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
+}

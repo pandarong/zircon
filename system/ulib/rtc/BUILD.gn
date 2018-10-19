@@ -1,0 +1,15 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("rtc") {
+  sources = [
+    "librtc.c",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/driver",
+    "$zx/system/ulib/zircon",
+  ]
+}

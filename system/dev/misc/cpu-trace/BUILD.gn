@@ -1,0 +1,18 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+assert(current_cpu == "x64")
+
+driver("cpu-trace") {
+  sources = [
+    "cpu-trace.c",
+    "intel-pm.c",
+    "intel-pt.c",
+  ]
+  deps += [
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zircon-internal",
+  ]
+}

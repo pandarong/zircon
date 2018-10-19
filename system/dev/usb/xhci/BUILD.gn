@@ -1,0 +1,30 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+driver("xhci") {
+  sources = [
+    "bind.c",
+    "usb-xhci.cpp",
+    "xdc-transfer.cpp",
+    "xdc.cpp",
+    "xhci-device-manager.cpp",
+    "xhci-root-hub.cpp",
+    "xhci-transfer-common.cpp",
+    "xhci-transfer.cpp",
+    "xhci-trb.cpp",
+    "xhci-util.cpp",
+    "xhci.cpp",
+  ]
+  deps += [
+    "$zx/system/dev/lib/usb",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/hwreg",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/xdc-server-utils",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+  ]
+}
