@@ -9,11 +9,14 @@ library("zxio") {
     "remote.cpp",
     "zxio.cpp",
   ]
+  public_deps = [
+    # <lib/zxio/zxio.h> has #include <fuchsia/io/c/fidl.h>.
+    "$zx/system/fidl/fuchsia-io:c.headers",
+  ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }

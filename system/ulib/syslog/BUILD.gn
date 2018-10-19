@@ -11,6 +11,7 @@ library("syslog") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
@@ -20,6 +21,4 @@ library("syslog") {
   public_deps = [
     "$zx/system/ulib/svc:headers",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-logger
 }

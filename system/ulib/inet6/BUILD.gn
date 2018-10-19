@@ -13,10 +13,9 @@ library("inet6") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/zircon-ethernet
 }

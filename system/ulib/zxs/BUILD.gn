@@ -6,10 +6,13 @@ library("zxs") {
   sources = [
     "zxs.cpp",
   ]
+  public_deps = [
+    # <lib/zxs/zxs.h> has #include <fuchsia/net/c/fidl.h>.
+    "$zx/system/fidl/fuchsia-net:c.headers",
+  ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-net:c",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: deps+=["$zx/system/fidl/fuchsia-net"]
 }

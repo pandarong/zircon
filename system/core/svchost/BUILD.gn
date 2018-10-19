@@ -8,6 +8,12 @@ executable("svchost") {
   ]
   deps += [
     "$zx/system/core/crashanalyzer",
+    "$zx/system/fidl/fuchsia-crash:c",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/fidl/fuchsia-logger:c",
+    "$zx/system/fidl/fuchsia-mem:c",
+    "$zx/system/fidl/fuchsia-process:c",
+    "$zx/system/fidl/fuchsia-sysmem:c",
     "$zx/system/ulib/async-loop",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
@@ -17,6 +23,4 @@ executable("svchost") {
     "$zx/system/ulib/sysmem",
     "$zx/system/ulib/zircon",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-io system/fidl/fuchsia-logger system/fidl/fuchsia-mem system/fidl/fuchsia-process system/fidl/fuchsia-sysmem
 }

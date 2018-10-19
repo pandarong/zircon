@@ -8,6 +8,7 @@ library("svc") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]
@@ -16,6 +17,4 @@ library("svc") {
     "$zx/system/ulib/fs:headers",
     "$zx/system/ulib/zx:headers",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-io
 }

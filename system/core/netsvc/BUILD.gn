@@ -13,6 +13,7 @@ executable("netsvc") {
     "zbi.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",
     "$zx/system/ulib/libzbi",
@@ -21,6 +22,4 @@ executable("netsvc") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/zircon-ethernet
 }

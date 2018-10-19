@@ -8,6 +8,7 @@ library("sysmem") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-sysmem:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
@@ -18,6 +19,4 @@ library("sysmem") {
   public_deps = [
     "$zx/system/ulib/svc:headers",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-sysmem
 }

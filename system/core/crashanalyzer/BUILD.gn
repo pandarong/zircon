@@ -7,6 +7,8 @@ library("crashanalyzer") {
     "crashanalyzer.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-crash:c",
+    "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/fbl",
@@ -20,8 +22,6 @@ library("crashanalyzer") {
     "$zx/system/ulib/zircon-internal",
     "$zx/system/ulib/zxcpp",
   ]
-
-  #TODO: MODULE_FIDL_LIBS := system/fidl/fuchsia-crash system/fidl/fuchsia-mem
 
   # Compile this with frame pointers so that if we crash
   # the simplistic unwinder will work.
