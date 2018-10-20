@@ -50,7 +50,11 @@ executable("devmgr") {
     "$zx/system/core/crashsvc",
     "$zx/system/core/netsvc",
     "$zx/system/core/svchost",
+    "$zx/system/core/virtcon:virtual-console",
     "$zx/system/core/pwrbtn-monitor",
+
+    #TODO: only needed for the dismal kludges
+    ":devhost",
   ]
 }
 
