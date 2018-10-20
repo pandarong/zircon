@@ -6,7 +6,7 @@
 
 source_set("amlogic_s912") {
   sources = [
-    "hdcp.c",
+    "hdcp.cpp",
   ]
   deps += [
     "$zx/kernel/dev/interrupt",

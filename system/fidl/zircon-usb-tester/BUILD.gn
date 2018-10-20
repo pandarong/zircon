@@ -2,12 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("backlight") {
+import("$zx/public/gn/fidl.gni")
+
+fidl_library("zircon-usb-tester") {
   sources = [
-    "main.c",
-  ]
-  deps += [
-    "$zx/system/fidl/zircon-backlight:c",
-    "$zx/system/ulib/fdio",
+    "usb-tester.fidl",
   ]
 }

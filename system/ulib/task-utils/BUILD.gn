@@ -9,7 +9,9 @@ library("task-utils") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
   ]
 }

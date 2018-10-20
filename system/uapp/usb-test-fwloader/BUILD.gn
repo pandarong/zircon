@@ -9,6 +9,7 @@ executable("usb-test-fwloader") {
   ]
   deps += [
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
+    "$zx/system/fidl/zircon-usb-tester:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",

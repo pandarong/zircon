@@ -12,7 +12,6 @@ driver("usb-bus") {
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-device:c",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fidl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/utf_conversion",
     "$zx/system/ulib/zircon",

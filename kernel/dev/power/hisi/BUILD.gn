@@ -6,7 +6,7 @@
 
 source_set("hisi") {
   sources = [
-    "power.c",
+    "power.cpp",
   ]
   deps += [
     "$zx/kernel/dev/pdev",
