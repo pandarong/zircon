@@ -4,8 +4,8 @@
 
 group("psutils") {
   deps = [
-    ":killall",
     ":kill",
+    ":killall",
     ":kstats",
     ":memgraph",
     ":ps",
@@ -21,6 +21,7 @@ executable("ps") {
     "ps.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/task-utils",
@@ -33,6 +34,7 @@ executable("top") {
     "top.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/task-utils",
@@ -45,6 +47,7 @@ executable("kill") {
     "kill.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
     "$zx/system/ulib/zircon",
@@ -56,6 +59,7 @@ executable("killall") {
     "killall.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
     "$zx/system/ulib/zircon",
@@ -67,6 +71,7 @@ executable("vmaps") {
     "vmaps.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/task-utils",
@@ -80,6 +85,7 @@ executable("vmos") {
     "vmos.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/task-utils",
@@ -96,6 +102,7 @@ executable("memgraph") {
   include_dirs = [ target_gen_dir ]
   deps += [
     ":gen-memgraph-schema",
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
     "$zx/system/ulib/zircon",
@@ -122,6 +129,7 @@ executable("kstats") {
     "resources.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
@@ -133,6 +141,7 @@ executable("threads") {
     "threads.cpp",
   ]
   deps += [
+    "$zx/system/fidl/zircon-sysinfo:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inspector",

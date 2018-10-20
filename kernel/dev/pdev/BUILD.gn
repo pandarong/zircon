@@ -7,7 +7,7 @@
 library("pdev") {
   kernel = true
   sources = [
-    "pdev.c",
+    "pdev.cpp",
   ]
   public_deps = [
     # <pdev/interrupt.h> has #include <dev/interrupt.h>.

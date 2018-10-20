@@ -6,7 +6,7 @@
 
 source_set("interrupt") {
   sources = [
-    "interrupt.c",
+    "interrupt.cpp",
   ]
   deps += [
     "$zx/kernel/dev/pdev",

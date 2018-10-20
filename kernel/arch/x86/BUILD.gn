@@ -69,7 +69,6 @@ library("x86") {
     "arch.cpp",
     "asm.S",
     "bootstrap16.cpp",
-    "bp_percpu.c",
     "cache.cpp",
     "cpu_topology.cpp",
     "debugger.cpp",

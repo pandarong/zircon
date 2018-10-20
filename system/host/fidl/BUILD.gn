@@ -11,7 +11,6 @@ if (defined(zx)) {
       "lib/error_reporter.cpp",
       "lib/flat_ast.cpp",
       "lib/formatter.cpp",
-      "lib/identifier_table.cpp",
       "lib/json_generator.cpp",
       "lib/lexer.cpp",
       "lib/library_zx.cpp",
@@ -61,15 +60,18 @@ if (defined(zx)) {
       "lib/c_generator.cpp",
       "lib/error_reporter.cpp",
       "lib/flat_ast.cpp",
-      "lib/identifier_table.cpp",
+      "lib/formatter.cpp",
       "lib/json_generator.cpp",
       "lib/lexer.cpp",
       "lib/library_zx.cpp",
+      "lib/names.cpp",
       "lib/parser.cpp",
+      "lib/raw_ast.cpp",
       "lib/source_file.cpp",
       "lib/source_location.cpp",
       "lib/source_manager.cpp",
       "lib/tables_generator.cpp",
+      "lib/tree_visitor.cpp",
     ]
   }
 }
