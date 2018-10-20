@@ -191,6 +191,23 @@ template("config_group") {
   }
 }
 
+# Just wrap these to inject assert_no_legacy_configs().
+foreach(target_type,
+        [
+          "source_set",
+          "static_library",
+        ]) {
+  template(target_type) {
+    assert_no_legacy_configs(target_name) {
+      type = target_type
+    }
+    target(target_type, target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+    }
+  }
+}
+
 # TODO: for loadable_module, roll into template handling variants
 foreach(shlib_target_type,
         [
@@ -501,23 +518,6 @@ template("test_driver") {
 
     #TODO: install_path = "driver/test/${output_name}.so"
     testonly = true
-  }
-}
-
-# Just wrap these to inject assert_no_legacy_configs().
-foreach(target_type,
-        [
-          "source_set",
-          "static_library",
-        ]) {
-  template(target_type) {
-    assert_no_legacy_configs(target_name) {
-      type = target_type
-    }
-    target(target_type, target_name) {
-      forward_variables_from(invoker, "*", [ "visibility" ])
-      forward_variables_from(invoker, [ "visibility" ])
-    }
   }
 }
 
