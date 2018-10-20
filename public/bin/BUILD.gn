@@ -13,6 +13,7 @@ foreach(cpu, standard_fuchsia_cpus) {
     environment_label = "$zx/public/gn/toolchain:user"
     deps = [
       "$zx/system/uapp",
+      "$zx/third_party/uapp",
     ]
   }
 }
