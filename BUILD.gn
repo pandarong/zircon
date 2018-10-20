@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import("$zx/public/gn/config/standard.gni")
+import("$zx/public/gn/host_tool_action.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 
 # Build the native host tools intended for developer use.
@@ -46,6 +47,9 @@ foreach(cpu, standard_fuchsia_cpus) {
     foreach(target, public_targets + testonly_public_targets) {
       deps += [ "$zx/public/$target:$cpu" ]
     }
+
+    # TODO: dismal kludge
+    deps += [ ":$cpu.zbi" ]
   }
 }
 
@@ -66,6 +70,9 @@ group("all-cpu") {
   foreach(cpu, standard_fuchsia_cpus) {
     deps += [ ":$cpu" ]
   }
+
+  # TODO: dismal kludge, used below
+  write_runtime_deps = "$root_build_dir/runtime_deps"
 }
 
 group("default") {
@@ -74,14 +81,64 @@ group("default") {
     ":all-cpu",
     ":host_dev_tools",
 
-    # TODO: ":tools",
-
-    # TODO: make it host_cpu? or standard_fuchsia_cpus (i.e. both)?
-    # Add a buildarg to build multiple variants into complete ZBIs.
-    ":x64",
+    #TODO: ":tools",
   ]
 
   foreach(target, public_targets) {
     #TODO: deps += [ "$target" ]
   }
+}
+
+# TODO: dismal kludge
+foreach(cpu, standard_fuchsia_cpus) {
+  action("bootfs-$cpu.manifest") {
+    testonly = true
+    script = "munge-manifest.sh"
+    deps = [
+      ":fmh",
+    ]
+    outputs = [
+      "$root_build_dir/$target_name",
+    ]
+    sources = [
+      "$root_build_dir/runtime_deps",
+    ]
+    depfile = "${outputs[0]}.d"
+    args = rebase_path(outputs + sources + [ depfile ], root_build_dir) +
+           [ "bootfs-$cpu" ]
+  }
+
+  host_tool_action("$cpu.zbi") {
+    testonly = true
+    tool = "$zx/system/host/zbi"
+    outputs = [
+      "$root_build_dir/$target_name",
+    ]
+    depfile = "${outputs[0]}.d"
+    args = [
+      "--complete=$cpu",
+      "--output=" + rebase_path(outputs[0], root_build_dir),
+      "--depfile=" + rebase_path(depfile, root_build_dir),
+    ]
+    deps = [
+      ":bootfs-$cpu.manifest",
+    ]
+    sources = get_target_outputs(deps[0])
+    foreach(target, public_targets + testonly_public_targets) {
+      deps += [ "$zx/public/$target:$cpu" ]
+    }
+    sources += [ get_label_info("$zx/kernel($zx/kernel:kernel-$cpu-clang)",
+                                "root_out_dir") + "/kernel.zbi" ]
+    args += rebase_path(sources, root_build_dir)
+  }
+}
+
+# TODO: oy
+action("fmh") {
+  visibility = [ ":*" ]
+  outputs = [
+    "$root_build_dir/runtime_deps",
+  ]
+  script = "/usr/bin/touch"
+  args = rebase_path(outputs, root_build_dir)
 }
