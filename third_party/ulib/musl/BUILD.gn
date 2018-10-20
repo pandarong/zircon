@@ -24,8 +24,12 @@ config_group("musl_config") {
 
   defines = [ "_XOPEN_SOURCE=700" ]
 
+  # Some of this code runs before the TLS area for the canary is set up.
+  # TODO(mcgrathr): Isolate this to exactly what code needs it.
+  cflags = [ "-fno-stack-protector" ]
+
   # TODO(kulakowski): Clean up the junkier -Wno flags below.
-  cflags = [
+  cflags += [
     "-Wno-sign-compare",
     "-Werror=incompatible-pointer-types",
     "-Wno-implicit-fallthrough",
