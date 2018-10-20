@@ -11,47 +11,51 @@ declare_args() {
   kernel_version_string = ""
 }
 
-library("version") {
-  kernel = true
-  sources = [
-    "version.cpp",
-  ]
-  defines = [
-    "ARCH=\"$zircon_cpu\"",
-    "PROJECT=\"$current_cpu\"",
-    "PLATFORM=\"XXX\"",
-    "TARGET=\"XXX\"",
-  ]
-  deps += [
-    ":config-buildid-header",
-    "$zx/kernel/lib/console",
-  ]
-}
-
-config_group("config-buildid-header") {
-  if (kernel_version_string != "") {
-    defines = [ "BUILDID='\"$kernel_version_string\"'" ]
-  } else {
-    include_dirs = [ target_gen_dir ]
-    deps = [
-      ":gen-config-buildid-header",
+# The version string depends solely on the source and doesn't vary across
+# machines or toolchains, so generate it only once.
+if (current_toolchain == default_toolchain) {
+  action("gen-config-buildid-header") {
+    visibility = [ ":*" ]
+    outputs = [
+      "$target_gen_dir/config-buildid.h",
     ]
+    if (kernel_version_string != "") {
+      script = "/usr/bin/touch"
+    } else {
+      sources = [
+        "$zx/.git/HEAD",
+        "$zx/.git/index",
+      ]
+      script = "buildid.sh"
+    }
+    args = rebase_path(outputs, root_build_dir)
   }
-}
-
-action("gen-config-buildid-header") {
-  visibility = [ ":*" ]
-  outputs = [
-    "$target_gen_dir/config-buildid.h",
-  ]
-  if (kernel_version_string != "") {
-    script = "/usr/bin/touch"
-  } else {
+} else {
+  library("version") {
+    kernel = true
     sources = [
-      "$zx/.git/HEAD",
-      "$zx/.git/index",
+      "version.cpp",
     ]
-    script = "buildid.sh"
+    defines = [
+      "ARCH=\"$zircon_cpu\"",
+      "PROJECT=\"$current_cpu\"",
+      "PLATFORM=\"XXX\"",
+      "TARGET=\"XXX\"",
+    ]
+    deps += [
+      ":config-buildid-header",
+      "$zx/kernel/lib/console",
+    ]
   }
-  args = rebase_path(outputs, root_build_dir)
+
+  config_group("config-buildid-header") {
+    if (kernel_version_string != "") {
+      defines = [ "BUILDID='\"$kernel_version_string\"'" ]
+    } else {
+      deps = [
+        ":gen-config-buildid-header($default_toolchain)",
+      ]
+      include_dirs = [ get_label_info(deps[0], "target_gen_dir") ]
+    }
+  }
 }
