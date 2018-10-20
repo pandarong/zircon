@@ -279,6 +279,9 @@ template("library") {
     if (host) {
       targets = true
       target(static_library, _library_name) {
+        if (static_library == "static_library") {
+          complete_static_lib = true
+        }
         forward_variables_from(invoker, "*", _library_params)
         if (!defined(public_deps)) {
           public_deps = []
@@ -304,6 +307,9 @@ template("library") {
     }
     if (static) {
       target(static_library, "${_library_name}.static") {
+        if (static_library == "static_library") {
+          complete_static_lib = true
+        }
         output_name = _library_name
         forward_variables_from(invoker,
                                [
@@ -473,9 +479,7 @@ template("driver") {
     forward_variables_from(invoker, "*", [ "visibility" ])
     forward_variables_from(invoker, [ "visibility" ])
     deps += [ "$zx/system/ulib/driver" ]
-    data_deps += [
-      "$zx/system/core/devmgr:devhost",
-    ]
+    data_deps += [ "$zx/system/core/devmgr:devhost" ]
     if (!defined(install_path)) {
       #TODO: install_path = "driver/" + ...
     }
