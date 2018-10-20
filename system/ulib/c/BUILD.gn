@@ -9,7 +9,7 @@ library("c") {
   # At link time and in DT_SONAME, musl is known as libc.so.  But the
   # (only) place it needs to be installed at runtime is where the
   # PT_INTERP strings embedded in executables point, which is ld.so.1.
-  #TODO: install_path = "lib/ld.so.1"  #TODO: asan/ prefix in variant
+  install_path = "lib/ld.so.1"  #TODO: asan/ prefix in variant
 
   public_deps = [
     "$zx/third_party/ulib/musl:headers",

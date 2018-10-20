@@ -355,9 +355,13 @@ config_group("visibility_hidden") {
 }
 
 config_group("machine") {
+  ldflags = []
   if (current_cpu == "arm64") {
     # The linker rewrites instructions to work around a CPU bug.
-    ldflags = [ "-Wl,--fix-cortex-a53-843419" ]
+    ldflags += [ "-Wl,--fix-cortex-a53-843419" ]
+  }
+  if (is_fuchsia) {
+    ldflags += [ "-Wl,-z,max-page-size=4096" ]
   }
 }
 
