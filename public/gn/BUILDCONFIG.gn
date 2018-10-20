@@ -25,6 +25,7 @@ declare_args() {
   # It exists only to be set via define_toolchain().
   # See define_environment() for more information.
   toolchain = {
+    environment = "stub"
     label = "$zx/public/gn/toolchain:stub"
     globals = {
     }
@@ -227,6 +228,29 @@ foreach(shlib_target_type,
           # Make sure we're visible to the redirector groups defined below.
           visibility += [ ":$target_name" ]
         }
+
+        if (shlib_target_type == "loadable_module" &&
+            defined(invoker.install_path)) {
+          metadata = {
+            manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
+            manifest_lines = [ "${install_path}=" +
+                               rebase_path(manifest_inputs[0], root_build_dir) ]
+          }
+
+          # TODO: dismal kludge in the absence of get_metadata()
+          data =
+              rebase_path(rebase_path([
+                                        "$target_gen_dir/$target_name.manifest",
+                                        "$target_gen_dir/$target_name.d",
+                                      ],
+                                      root_gen_dir,
+                                      root_build_dir),
+                          "",
+                          "$root_build_dir/bootfs-$current_cpu")
+          write_file(data[0], metadata.manifest_lines)
+          write_file(data[1],
+                     rebase_path(metadata.manifest_inputs, root_build_dir))
+        }
       }
     } else {
       # In the main toolchain, just redirect to the shlib toolchain.
@@ -344,8 +368,11 @@ template("library") {
       }
     }
     if (shared) {
-      if (defined(invoker.install_path)) {  #TODO
-        not_needed(invoker, [ "install_path" ])
+      if (defined(invoker.install_path)) {
+        install_path = invoker.install_path
+      } else {
+        # TODO: toolchain prefix for asan, xray
+        install_path = "lib/lib${_library_name}.so"
       }
       shared_library("${_library_name}.shared") {
         output_name = _library_name
@@ -378,6 +405,29 @@ template("library") {
         ]
         if (defined(invoker.deps)) {
           deps += invoker.deps
+        }
+
+        # An explicit `install_path = false` means this DSO is not installed.
+        if (install_path != false) {
+          metadata = {
+            manifest_inputs = [ "$target_out_dir/lib${output_name}.so" ]
+            manifest_lines = [ "${install_path}=" +
+                               rebase_path(manifest_inputs[0], root_build_dir) ]
+          }
+
+          # TODO: dismal kludge in the absence of get_metadata()
+          data =
+              rebase_path(rebase_path([
+                                        "$target_gen_dir/$target_name.manifest",
+                                        "$target_gen_dir/$target_name.d",
+                                      ],
+                                      root_gen_dir,
+                                      root_build_dir),
+                          "",
+                          "$root_build_dir/bootfs-$current_cpu")
+          write_file(data[0], metadata.manifest_lines)
+          write_file(data[1],
+                     rebase_path(metadata.manifest_inputs, root_build_dir))
         }
       }
     }
@@ -479,17 +529,6 @@ template("library") {
   }
 }
 
-# TODO: more later
-template("host_tool") {
-  assert_no_legacy_configs(target_name) {
-    type = "host_tool"
-  }
-  executable(target_name) {
-    forward_variables_from(invoker, "*", [ "visibility" ])
-    forward_variables_from(invoker, [ "visibility" ])
-  }
-}
-
 template("driver") {
   loadable_module(target_name) {
     data_deps = []
@@ -497,14 +536,18 @@ template("driver") {
     forward_variables_from(invoker, [ "visibility" ])
     deps += [ "$zx/system/ulib/driver" ]
     data_deps += [ "$zx/system/core/devmgr:devhost" ]
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
     if (!defined(install_path)) {
-      #TODO: install_path = "driver/" + ...
+      install_path = "driver/${output_name}.so"
     }
   }
 }
 
 template("test_driver") {
   driver(target_name) {
+    testonly = true
     forward_variables_from(invoker,
                            "*",
                            [
@@ -515,9 +558,94 @@ template("test_driver") {
     if (!defined(output_name)) {
       output_name = target_name
     }
+    install_path = "driver/test/${output_name}.so"
+  }
+}
 
-    #TODO: install_path = "driver/test/${output_name}.so"
-    testonly = true
+if (!is_host && !is_kernel && defined(toolchain.shlib) &&
+    toolchain.label != toolchain.shlib) {
+  # TODO: variants
+  template("executable") {
+    assert_no_legacy_configs(target_name) {
+      type = "executable"
+    }
+    executable_name = target_name
+    action(executable_name) {  #TODO: oy upon oy
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      script = "/usr/bin/touch"
+      outputs = [
+        "$target_out_dir/$executable_name.bogostamp",
+      ]
+      args = rebase_path(outputs, root_build_dir)
+      data_deps = [
+        ":_bin.$executable_name",
+      ]
+    }
+    executable("_bin.$executable_name") {  #TODO: just target_name
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+      if (!defined(output_name)) {
+        output_name = executable_name
+      }
+      if (!defined(install_path)) {
+        install_path = "bin/$output_name"
+      }
+
+      # An explicit `install_path = false` means this binary is not installed.
+      if (install_path != false) {
+        metadata = {
+          manifest_inputs = [ "$target_out_dir/$output_name" ]
+          manifest_lines = [ "${install_path}=" +
+                             rebase_path(manifest_inputs[0], root_build_dir) ]
+        }
+
+        # TODO: dismal kludge in the absence of get_metadata()
+        data =
+            rebase_path(rebase_path([
+                                      "$target_gen_dir/$target_name.manifest",
+                                      "$target_gen_dir/$target_name.d",
+                                    ],
+                                    root_gen_dir,
+                                    root_build_dir),
+                        "",
+                        "$root_build_dir/bootfs-$current_cpu")
+        write_file(data[0], metadata.manifest_lines)
+        write_file(data[1],
+                   rebase_path(metadata.manifest_inputs, root_build_dir))
+      }
+    }
+  }
+}
+
+template("host_tool") {
+  assert(!is_kernel)
+  assert_no_legacy_configs(target_name) {
+    type = "host_tool"
+  }
+  executable(target_name) {
+    forward_variables_from(invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker, [ "visibility" ])
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
+    if (!defined(output_extension)) {
+      output_extension = toolchain.executable_extension
+    }
+    if (is_host && false) {  #TODO
+      metadata = {
+        tool_executables = [ "$target_out_dir/$output_name" ]
+        if (output_extension != "") {
+          tool_executables[0] += ".$output_extension"
+        }
+      }
+    }
+  }
+  if (is_host && defined(invoker.install_path)) {
+    not_needed(invoker, [ "install_path" ])
   }
 }
 
