@@ -562,8 +562,9 @@ template("test_driver") {
   }
 }
 
-if (!is_host && !is_kernel && defined(toolchain.shlib) &&
-    toolchain.label != toolchain.shlib) {
+if (!is_host && !is_kernel &&
+    # TODO: shlib exclusion only needed due to dismal kludge
+    defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
   # TODO: variants
   template("executable") {
     assert_no_legacy_configs(target_name) {
@@ -621,6 +622,47 @@ if (!is_host && !is_kernel && defined(toolchain.shlib) &&
   }
 }
 
+template("test") {
+  assert(!is_kernel)
+  assert_no_legacy_configs(target_name) {
+    type = "test"
+  }
+  executable(target_name) {
+    testonly = true
+    test_group = "sys"
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "test_group",
+                             "testonly",
+                             "visibility",
+                           ])
+    forward_variables_from(invoker,
+                           [
+                             "test_group",
+                             "visibility",
+                           ])
+
+    # TODO: shlib exclusion required only due to dismal kludge
+    if (defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
+      if (!defined(output_name)) {
+        output_name = target_name
+      }
+      if (!defined(output_extension)) {
+        output_extension = toolchain.executable_extension
+      }
+      if (!defined(install_path)) {
+        install_path = "test/$test_group/$output_name"
+        if (output_extension != "") {
+          install_path += ".$output_extension"
+        }
+      }
+    } else {
+      not_needed([ "test_group" ])
+    }
+  }
+}
+
 template("host_tool") {
   assert(!is_kernel)
   assert_no_legacy_configs(target_name) {
@@ -661,6 +703,7 @@ _terminal_target_types = [
   "executable",
   "host_tool",
   "loadable_module",
+  "test",
   "test_driver",
 ]
 
@@ -676,6 +719,7 @@ _compile_target_types = [
   "shared_library",
   "source_set",
   "static_library",
+  "test",
   "test_driver",
 ]
 

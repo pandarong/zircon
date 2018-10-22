@@ -27,8 +27,7 @@ driver("nand-broker") {
   ]
 }
 
-executable("nand-test") {  #TODO: test
-  testonly = true
+test("nand-test") {
   sources = [
     "test/broker-test.cpp",
     "test/main.cpp",
