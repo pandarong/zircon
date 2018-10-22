@@ -16,6 +16,7 @@ group("uapp") {
     "channel-perf",
     "chromeos-disk-setup",
     "clock",
+    "clock:clkctl",
     "crasher",
     "dd",
     "df",

@@ -10,7 +10,9 @@ group("input") {
     "hid-buttons",
     "hidctl",
     "i2c-hid",
-    "pc-ps2",
     "usb-hid",
   ]
+  if (current_cpu == "x64") {
+    deps += [ "pc-ps2" ]
+  }
 }

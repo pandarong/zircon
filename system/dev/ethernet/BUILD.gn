@@ -10,11 +10,15 @@ group("ethernet") {
     "dwmac",
     "ethernet",
     "ethertap",
-    "intel-ethernet",
-    "realtek-8111",
     "realtek-8211f",
     "rndis",
     "usb-cdc-ecm",
     "usb-cdc-function",
   ]
+  if (current_cpu == "x64") {
+    deps += [
+      "intel-ethernet",
+      "realtek-8111",
+    ]
+  }
 }

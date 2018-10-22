@@ -9,10 +9,12 @@ group("display") {
     "display",
     "hikey-display",
     "imx8m-display",
-    "intel-i915",
     "led2472g",
     "mt8167s-display",
     "simple",
     "vim-display",
   ]
+  if (current_cpu == "x64") {
+    deps += [ "intel-i915" ]
+  }
 }
