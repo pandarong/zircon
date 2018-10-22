@@ -12,14 +12,14 @@ library("kvstore") {
   ]
 }
 
-executable("kvstore-test") {
-  testonly = true
+test("kvstore-test") {
+  output_name = "kvstore-test"
   sources = [
     "kvstore-test.c",
   ]
   deps += [
+    ":kvstore",
     "$zx/system/ulib/fdio",
-    "$zx/system/ulib/kvstore",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/unittest",
     "$zx/third_party/ulib/cksum",

@@ -5,10 +5,10 @@
 driver("skip-block") {
   sources = [
     "binding.c",
-    "logical-to-physical-map.cpp",
     "skip-block.cpp",
   ]
   deps += [
+    ":common",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/ddk",
@@ -18,6 +18,31 @@ driver("skip-block") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}
+
+source_set("common") {
+  sources = [
+    "logical-to-physical-map.cpp",
+  ]
+  deps += [ "$zx/system/ulib/fbl" ]
+}
+
+test("skip-block-test") {
+  output_name = "skip-block-test"
+  sources = [
+    "test/logical-to-physical-map-test.cpp",
+    "test/main.cpp",
+  ]
+  include_dirs = [ "." ]
+  deps += [
+    ":common",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/pretty",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",
   ]
 }

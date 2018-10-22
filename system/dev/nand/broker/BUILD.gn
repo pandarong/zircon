@@ -3,10 +3,8 @@
 # found in the LICENSE file.
 
 group("broker") {
-  testonly = true
   deps = [
     ":nand-broker",
-    ":nand-test",
   ]
 }
 
@@ -27,7 +25,7 @@ driver("nand-broker") {
   ]
 }
 
-test("nand-test") {
+test("nand") {
   sources = [
     "test/broker-test.cpp",
     "test/main.cpp",

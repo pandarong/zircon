@@ -95,9 +95,10 @@ template("define_environment") {
   foreach(variant, live_variants) {
     toolchains = []  # Clear from previous iteration.
 
+    tc_name = "${toolchain_base_name}-${variant}"
     toolchains = [
       {
-        name = "${toolchain_base_name}-${variant}"
+        name = tc_name
         public_deps = invoker.public_deps
         if (shlib) {
           shlib_name = "${name}.shlib"
@@ -107,7 +108,7 @@ template("define_environment") {
     if (shlib) {
       toolchains += [
         {
-          name = "${toolchain_base_name}-${variant}.shlib"
+          name = "${tc_name}.shlib"
           shlib_name = name
           public_deps = invoker.public_deps + invoker.shlib_public_deps
         },
@@ -130,6 +131,7 @@ template("define_environment") {
           environment = environment
           environment_label = environment_label
 
+          label = get_label_info(":$tc_name", "label_no_toolchain")
           if (defined(tc.shlib_name)) {
             shlib = get_label_info(":${tc.shlib_name}", "label_no_toolchain")
           }

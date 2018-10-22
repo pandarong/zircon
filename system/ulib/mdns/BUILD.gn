@@ -2,20 +2,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-library("blktest") {
-  shared = true
-  testonly = true
+library("mdns") {
+  host = true
   sources = [
-    "blktest.cpp",
+    "mdns.c",
+  ]
+  deps += [ "$zx/public/gn/config:visibility_hidden" ]
+}
+
+test("mdns-test") {
+  output_name = "mdns-test"
+  sources = [
+    "mdns-test.cpp",
   ]
   deps += [
-    "$zx/system/ulib/block-client",
-    "$zx/system/ulib/fbl",
+    ":mdns",
     "$zx/system/ulib/fdio",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/sync",
     "$zx/system/ulib/unittest",
-    "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zxcpp",
   ]
 }

@@ -17,6 +17,7 @@ test("ctor") {
 library("dso-ctor") {
   visibility = [ ":*" ]
   testonly = true
+  shared = true
   sources = [
     "dso-ctor/dso-ctor.cpp",
   ]

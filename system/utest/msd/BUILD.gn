@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 executable("msd") {
+  output_name = "msd-test"
   testonly = true
   sources = [
     "msd.c",
