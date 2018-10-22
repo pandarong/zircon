@@ -7,20 +7,31 @@ import("$zx/public/gn/host_tool_action.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 
 # Build the native host tools intended for developer use.
-select_toolchain("host_dev_tools") {
-  testonly = true
-  environment_label = "$zx/public/gn/toolchain:host"
-  deps = [
-    "$zx/system/host:tools",
-  ]
+foreach(host, standard_build_hosts) {
+  select_toolchain("tools-${host.os}-${host.cpu}") {
+    testonly = true
+    environment_label = "$zx/public/gn/toolchain:host"
+    cpu = host.cpu
+    os = host.os
+    deps = [
+      "$zx/system/host:tools",
+    ]
+  }
 }
 
-if (false) {  #TODO: later
-  # Install the host developer tools for the running host platform in the
-  # "$root_build_dir/tools/" directory.
-  copy("tools") {
+group("tools") {
+  testonly = true
+
+  deps = [
+    ":tools-${host_os}-${host_cpu}",
+  ]
+
+  if (false) {  #TODO: later copy("tools")
+    # Install the host developer tools for the running host platform in the
+    # "$root_build_dir/tools/" directory.
+
     sources = [
-      # TODO: get_metadata([ ":host_dev_tools" ], [ "tool_executables" ]),
+      get_metadata(deps, [ "tool_executables" ]),
     ]
     outputs = [
       "$root_build_dir/tools/{{source_file_part}}",
@@ -79,14 +90,8 @@ group("default") {
   testonly = true
   deps = [
     ":all-cpu",
-    ":host_dev_tools",
-
-    #TODO: ":tools",
+    ":tools",
   ]
-
-  foreach(target, public_targets) {
-    #TODO: deps += [ "$target" ]
-  }
 }
 
 # TODO: dismal kludge

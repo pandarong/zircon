@@ -33,11 +33,8 @@ foreach(host, standard_build_hosts) {
   }
 }
 
-if (!standard_host && (clang_tool_dir != "" || gcc_tool_dir != "")) {
-  print("NOTE: $host_cpu-$host_os is not a standard build host for Fuchsia")
-  print("NOTE: Prebuilt tools may not be available.")
-  print("NOTE: Set `gcc_tool_dir`/`clang_tool_dir` globally or in `variants`.")
-}
+assert(standard_host,
+       "$host_cpu-$host_os is not a standard build host for Fuchsia")
 
 # Define toolchains for building userland.
 foreach(cpu, standard_fuchsia_cpus) {

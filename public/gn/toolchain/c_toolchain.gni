@@ -63,6 +63,7 @@ template("define_c_toolchain") {
       tc = {
         tool_dir = gcc_tool_dir
         tool_prefix = "${invoker.cpu}-elf-"
+        version_string = gcc_version_string
       }
     }
   } else {
