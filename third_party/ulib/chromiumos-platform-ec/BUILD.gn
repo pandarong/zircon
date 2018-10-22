@@ -2,13 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-group("bus") {
-  deps = [
-    "pci",
-    "platform",
-    "virtio",
+assert(current_cpu == "x64")
+
+library("chromiumos-platform-ec") {
+  sources = [
+    "comm-lpc.cpp",
   ]
-  if (current_cpu == "x64") {
-    deps += [ "acpi" ]
-  }
 }
