@@ -138,7 +138,9 @@ config_group("nostdlib") {
     libs = [ "gcc" ]
   } else {
     cflags = [ "-nostdlibinc" ]
-    libs = [ "clang_rt.builtins" ]
+    if (current_os != "win") {
+      libs = [ "clang_rt.builtins" ]
+    }
   }
 }
 
@@ -244,7 +246,7 @@ config_group("werror") {
   ]
 
   if (current_os == "win") {
-    ldflags = [ "/WX" ]
+    ldflags = [ "-Wl,/WX" ]
   }
 }
 

@@ -15,9 +15,7 @@ if (current_toolchain == default_toolchain) {
     globals = {
       is_kernel = true
     }
-
-    # TODO: enables -Werror, code has some warnings
-    #public_deps += standard_fuchsia_configs
+    public_deps += standard_fuchsia_configs
     public_deps += [ ":efi_config" ]
 
     # TODO: harmless, but just to match build.mk
