@@ -1,0 +1,14 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+source_set("tre") {
+  deps -= [ "$zx/public/gn/config:user" ]
+  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  sources = [
+    "regcomp.c",
+    "regerror.c",
+    "regexec.c",
+    "tre-mem.c",
+  ]
+}
