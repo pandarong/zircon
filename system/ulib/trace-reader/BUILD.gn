@@ -1,0 +1,20 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("trace-reader") {
+  host = true
+  sources = [
+    "reader.cpp",
+    "records.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/trace-engine",
+  ]
+  if (is_fuchsia) {
+    sources += [ "reader_internal.cpp" ]
+    deps += [ "$zx/system/ulib/zxcpp" ]
+  }
+}

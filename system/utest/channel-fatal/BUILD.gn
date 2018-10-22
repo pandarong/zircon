@@ -1,0 +1,23 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
+test("channel-fatal") {
+  sources = [
+    "channel-fatal-test.c",
+  ]
+  deps += [
+    ":vdso_code_config",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/launchpad",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+select_toolchain("vdso_code_config") {
+  environment_label = "$zx/kernel"
+  deps = [ "$zx/kernel/lib/vdso:vdso-code-header"]
+}

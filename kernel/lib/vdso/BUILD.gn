@@ -24,12 +24,11 @@ library("vdso") {
   # touched when libzircon.so has been touched and thus ensure vdso-image.S
   # is reassembled with the new vDSO contents.
   #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
-  include_dirs = [ target_gen_dir ]
   if (is_kernel) {
     deps += [
       ":gen-categories",
-      ":gen-vdso-code-header",
       ":rodso",
+      ":vdso-code-header",
       "$zx/kernel/lib/version:config-buildid-header",
       "$zx/system/ulib/fbl",
     ]
@@ -78,6 +77,13 @@ select_toolchain("userland") {
   environment_label = "$zx/public/gn/toolchain:user"
   deps = [
     "$zx/system/ulib/zircon",
+  ]
+}
+
+config_group("vdso-code-header") {
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-vdso-code-header",
   ]
 }
 

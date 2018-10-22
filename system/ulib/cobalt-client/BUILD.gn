@@ -1,0 +1,24 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("cobalt-client") {
+  sources = [
+    "cobalt_logger.cpp",
+    "collector.cpp",
+    "counter.cpp",
+    "event_buffer.cpp",
+    "histogram.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/fidl/fuchsia-cobalt:c",
+    "$zx/system/fidl/fuchsia-mem:c",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}

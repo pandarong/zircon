@@ -1,0 +1,26 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+test("fidl") {
+  sources = [
+    "abi_tests.cpp",
+    "cpp_types_tests.cpp",
+    "decoding_tests.cpp",
+    "encoding_tests.cpp",
+    "fidl_coded_types.cpp",
+    "formatting_tests.cpp",
+    "main.c",
+    "message_tests.cpp",
+    "validating_tests.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}

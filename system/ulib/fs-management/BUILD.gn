@@ -13,6 +13,10 @@ library("fs-management") {
     "ram-nand.cpp",
     "ramdisk.cpp",
   ]
+  public_deps = [
+    # <zircon/device/ram-nand.h> has #include <zircon/nand/c/fidl.h>.
+    "$zx/system/fidl/zircon-nand:c.headers",
+  ]
   deps += [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/zircon-nand:c",
