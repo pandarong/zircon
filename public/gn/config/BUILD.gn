@@ -4,6 +4,43 @@
 
 import("levels.gni")
 
+# TODO: download all host sysroot prebuilts
+if (host_os == "mac") {
+  _prebuilt_sysroot = []
+} else {
+  _prebuilt_sysroot = "$zx/prebuilt/downloads/sysroot"
+}
+
+declare_args() {
+  # The `--sysroot` directory for host compilations.
+  # This can be a string, which only applies to $host_os-$host_cpu.
+  # Or it can be a list of scopes containing `cpu`, `os`, and `sysroot`.
+  # The empty list (or empty string) means don't use `--sysroot` at all.
+  sysroot = _prebuilt_sysroot
+}
+
+# Convert a string to a list.
+if (sysroot == "") {
+  sysroot = []
+} else if (sysroot == "$sysroot") {
+  sysroot = [
+    {
+      cpu = host_cpu
+      os = host_os
+      sysroot = sysroot
+    },
+  ]
+}
+
+config_group("sysroot") {
+  foreach(host, sysroot) {
+    if (host.cpu == current_cpu && host.os == current_os) {
+      compiler_flags =
+          [ "--sysroot=" + rebase_path(host.sysroot, root_build_dir) ]
+    }
+  }
+}
+
 config_group("compiler") {
   ldflags = []
 
@@ -31,7 +68,9 @@ config_group("compiler") {
     # TODO: "$current_os:compiler",
   ]
 
-  # TODO: host sysroot
+  if (is_host) {
+    public_deps += [ ":sysroot" ]
+  }
 
   if (current_os == "linux") {
     ldflags += [ "-static-libstdc++" ]
