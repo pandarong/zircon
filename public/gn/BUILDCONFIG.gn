@@ -535,7 +535,7 @@ template("driver") {
     forward_variables_from(invoker, "*", [ "visibility" ])
     forward_variables_from(invoker, [ "visibility" ])
     deps += [ "$zx/system/ulib/driver" ]
-    data_deps += [ "$zx/system/core/devmgr:devhost" ]
+    data_deps += [ "$zx/system/core/devmgr:devhost(${toolchain.label})" ]
     if (!defined(output_name)) {
       output_name = target_name
     }
@@ -605,18 +605,22 @@ if (!is_host && !is_kernel &&
         }
 
         # TODO: dismal kludge in the absence of get_metadata()
-        data =
-            rebase_path(rebase_path([
-                                      "$target_gen_dir/$target_name.manifest",
-                                      "$target_gen_dir/$target_name.d",
-                                    ],
-                                    root_gen_dir,
-                                    root_build_dir),
-                        "",
-                        "$root_build_dir/bootfs-$current_cpu")
-        write_file(data[0], metadata.manifest_lines)
-        write_file(data[1],
-                   rebase_path(metadata.manifest_inputs, root_build_dir))
+        if (current_toolchain == toolchain.label) {
+          data =
+              rebase_path(rebase_path([
+                                        "$target_gen_dir/$target_name.manifest",
+                                        "$target_gen_dir/$target_name.d",
+                                      ],
+                                      root_gen_dir,
+                                      root_build_dir),
+                          "",
+                          "$root_build_dir/bootfs-$current_cpu")
+          write_file(data[0], metadata.manifest_lines)
+          write_file(data[1],
+                     rebase_path(metadata.manifest_inputs, root_build_dir))
+        } else {
+          not_needed(metadata, "*")
+        }
       }
     }
   }

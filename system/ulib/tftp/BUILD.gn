@@ -24,15 +24,22 @@ library("tftp") {
 }
 
 if (!is_kernel) {
-  #TODO: test()
-  executable("tftp-test") {
+  test("tftp-test") {
+    output_name = "tftp-test"
     sources = [
       "tftp-file-test.cpp",
       "tftp-test.cpp",
     ]
+    deps += [
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/tftp",
+      "$zx/system/ulib/unittest",
+      "$zx/system/ulib/zxcpp",
+    ]
   }
 
-  executable("tftp-example") {
+  host_tool("tftp-example") {
     sources = [
       "tftp-example.c",
     ]
