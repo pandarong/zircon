@@ -5,7 +5,7 @@
 group("aml-scpi-s912") {
   deps = [
     ":aml-scpi-s912.mailbox",
-    ":aml-scpi-s912.scpi",
+    ":scpi",
   ]
 }
 
@@ -20,7 +20,7 @@ driver("aml-scpi-s912.mailbox") {
   ]
 }
 
-driver("aml-scpi-s912.scpi") {
+driver("scpi") {
   sources = [
     "aml-scpi.c",
   ]

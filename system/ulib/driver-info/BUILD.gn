@@ -9,7 +9,7 @@ library("driver-info") {
   deps += [ "$zx/public/gn/config:visibility_hidden" ]
 }
 
-executable("driverinfo") {  #TODO: make something depend on this
+executable("driverinfo") {
   sources = [
     "driver-info-app.c",
   ]
