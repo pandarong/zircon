@@ -14,5 +14,8 @@ foreach(cpu, standard_fuchsia_cpus) {
     deps = [
       "$zx/system/dev",
     ]
+    if (cpu == "x64") {
+      deps += [ "$zx/third_party/dev/ethernet/e1000" ]
+    }
   }
 }
