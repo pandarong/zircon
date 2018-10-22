@@ -43,8 +43,7 @@ executable("virtual-console") {
   deps += common_deps
 }
 
-executable("virtual-console-test") {  #TODO: test()
-  testonly = true
+test("virtual-console-test") {
   defines = [ "BUILD_FOR_TEST" ]
   sources = common_sources + [
               "keyboard-test.cpp",

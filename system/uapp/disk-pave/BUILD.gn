@@ -55,16 +55,18 @@ source_set("pave-utils") {
   ]
 }
 
-executable("install-disk-image-test") {
-  testonly = true
+test("install-disk-image-test") {
   sources = [
     "test/device-partitioner-test.cpp",
     "test/main.cpp",
   ]
+  include_dirs = [ "." ]
   deps += [
     ":pave-utils",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fs-management",
+    "$zx/system/ulib/fzl",
+    "$zx/system/ulib/gpt",
     "$zx/system/ulib/unittest",
   ]
 }

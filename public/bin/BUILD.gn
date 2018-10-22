@@ -14,6 +14,9 @@ foreach(cpu, standard_fuchsia_cpus) {
     deps = [
       "$zx/system/uapp",
       "$zx/third_party/uapp",
+
+      # TODO: top-level $zx/test?
+      "$zx/system/utest",
     ]
   }
 }
