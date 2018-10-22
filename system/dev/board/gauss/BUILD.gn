@@ -20,6 +20,9 @@ driver("gauss") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+  data_deps = [
+    ":gauss-i2c-test",
+  ]
 }
 
 driver("gauss-i2c-test") {

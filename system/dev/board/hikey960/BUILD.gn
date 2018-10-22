@@ -16,6 +16,9 @@ driver("hikey960") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+  data_deps = [
+    ":hi3660-i2c-test",
+  ]
 }
 
 driver("hi3660-i2c-test") {

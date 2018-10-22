@@ -127,7 +127,7 @@ config_group("assert_level") {
     defines += [ "LK_DEBUGLEVEL=$assert_level" ]
   }
   if (assert_level == 0) {
-    defines += [ "NDEBUG=1" ]
+    defines += [ "NDEBUG" ]
   }
 }
 
@@ -182,14 +182,12 @@ config_group("default_linker_gc") {
 config_group("symbol_level") {
   assert(symbol_level >= 0 && symbol_level <= 2)
   if (symbol_level == 0) {
-    cflags = [ "-g0" ]
+    compiler_flags = [ "-g0" ]
   } else if (symbol_level == 1) {
-    cflags = [ "-gline-tables-only" ]
+    compiler_flags = [ "-gline-tables-only" ]
   } else if (symbol_level == 2) {
-    cflags = [ "-g3" ]
+    compiler_flags = [ "-g3" ]
   }
-  asmflags = cflags
-  ldflags = cflags
 }
 
 config_group("werror") {
@@ -333,10 +331,8 @@ config_group("no_sanitizers") {
 # Compile code appropriately to be linked into a shared library.
 config_group("shared_library_config") {
   if (current_os != "mac") {
-    cflags = [ "-fPIC" ]
-
     # Assembly code can use `#ifdef __PIC__`.
-    asmflags = cflags
+    compiler_flags = [ "-fPIC" ]
   }
 }
 
