@@ -13,6 +13,15 @@ driver("qemu") {
   ]
 }
 
+group("qemu-test") {
+  deps = [
+    ":qemu-test-child-1",
+    ":qemu-test-child-2",
+    ":qemu-test-child-3",
+    ":qemu-test-parent",
+  ]
+}
+
 driver("qemu-test-parent") {
   sources = [
     "test/parent.c",

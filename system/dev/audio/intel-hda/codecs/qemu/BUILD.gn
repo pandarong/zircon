@@ -2,7 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("qemu") {
+group("qemu") {
+  deps = [
+    ":qemu-audio",
+  ]
+}
+
+driver("qemu-audio") {
   sources = [
     "binding.c",
     "qemu-codec.cpp",

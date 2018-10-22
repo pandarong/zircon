@@ -2,7 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("broker") {
+group("broker") {
+  testonly = true
+  deps = [
+    ":nand-broker",
+    ":nand-test",
+  ]
+}
+
+driver("nand-broker") {
   sources = [
     "bind.c",
     "broker.cpp",
@@ -27,7 +35,10 @@ test_driver("nand-test") {
   deps += [
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fs-management",
     "$zx/system/ulib/fzl",
+    "$zx/system/ulib/unittest",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]

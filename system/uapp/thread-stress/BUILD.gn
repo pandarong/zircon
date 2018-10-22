@@ -2,7 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("thread-stress") {
+group("thread-stress") {
+  deps = [
+    ":thread-stress-test",
+  ]
+}
+
+executable("thread-stress-test") {
   sources = [
     "thread-stress.c",
   ]

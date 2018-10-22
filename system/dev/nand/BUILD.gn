@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 group("nand") {
+  testonly = true
   deps = [
     "aml-rawnand",
     "broker",
