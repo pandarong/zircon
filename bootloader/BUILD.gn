@@ -12,19 +12,16 @@ if (current_toolchain == default_toolchain) {
   define_environment("efi") {
     cpu = "x64"
     os = "win"
-    public_deps += [ ":efi_config" ]
     globals = {
       is_kernel = true
     }
 
-    # TODO: crufty code
-    public_deps -= [ "$zx/public/gn/config:default_warnings" ]
+    # TODO: enables -Werror, code has some warnings
+    #public_deps += standard_fuchsia_configs
+    public_deps += [ ":efi_config" ]
 
     # TODO: harmless, but just to match build.mk
-    public_deps -= [
-      "$zx/public/gn/config:default_frame_pointers",
-#      "$zx/public/gn/config:opt_level",
-    ]
+    public_deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
 
     # TODO: strip = true
   }
