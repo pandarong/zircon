@@ -61,6 +61,8 @@ template("fidl_library") {
         fidl_inputs = invoker.sources
         fidl_input_args =
             [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+
+        fidl_c_include_dirs = [ "$_fidl_gen_dir/include" ]
       }
     } else if (current_toolchain != default_toolchain) {
       not_needed(invoker, [ "sources" ])
@@ -68,8 +70,8 @@ template("fidl_library") {
   }
 
   # The generated sources are the same in every toolchain, so generate only
-  # once, in $default_toolchain.  The same sources will be separately compiled
-  # in each toolchain that use the bindings library.
+  # once, in $default_toolchain.  The same sources will be separately
+  # compiled in each toolchain that uses the bindings library.
   _fidl_gen_dir = get_label_info(":$fidl_target($default_toolchain)",
                                  "target_gen_dir") + "/$fidl_target"
 
@@ -105,7 +107,12 @@ template("fidl_library") {
                                "testonly",
                                "visibility",
                              ])
-      include_dirs = [ "$_fidl_gen_dir/include" ]
+      include_dirs = [
+        "$_fidl_gen_dir/include",
+        # The generated headers of a dependent fidl_library() will #include the
+        # generated headers for its dependencies' bindings libraries.
+        #TODO: get_metadata([ ":$fidl_target" ], [ "fidl_c_include_dirs" ]),
+      ]
       deps = [
         ":$gen_target($default_toolchain)",
       ]

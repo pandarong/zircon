@@ -131,14 +131,17 @@ template("define_environment") {
           environment = environment
           environment_label = environment_label
 
-          label = get_label_info(":$tc_name", "label_no_toolchain")
           if (defined(tc.shlib_name)) {
             shlib = get_label_info(":${tc.shlib_name}", "label_no_toolchain")
+
+            # Override the .label set by define_c_toolchain(), so it refers
+            # to the base toolchain, not the shlib toolchain.
+            label = get_label_info(":$tc_name", "label_no_toolchain")
           }
 
-          # This is used by $zx/public/gn/buildconfig/targets.gni.  The
-          # labels must be absolute since they will be used all over in the
-          # new toolchain, not just where the define_environment() is.
+          # This is used by $zx/public/gn/BUILDCONFIG.gn for set_defaults().
+          # The labels must be absolute since they will be used all over in
+          # the new toolchain, not just where the define_environment() is.
           public_deps = []
           foreach(label, tc.public_deps) {
             public_deps += [ get_label_info(label, "label_no_toolchain") ]

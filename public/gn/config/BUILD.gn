@@ -5,13 +5,15 @@
 import("levels.gni")
 
 config_group("compiler") {
+  ldflags = []
+
   # For GCC, the compiler command implies the target.
   # For Clang, there's a single compiler command that takes `--target`.
   if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
     compiler_flags = [ "--target=${toolchain.target_tuple}" ]
 
     # Always use lld with Clang.
-    ldflags = [ "-fuse-ld=lld" ]
+    ldflags += [ "-fuse-ld=lld" ]
   }
 
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
@@ -32,7 +34,7 @@ config_group("compiler") {
   # TODO: host sysroot
 
   if (current_os == "linux") {
-    ldflags = [ "-static-libstdc++" ]
+    ldflags += [ "-static-libstdc++" ]
 
     # TODO(TC-74) The implicitly linked static libc++.a depends on these.
     libs = [
