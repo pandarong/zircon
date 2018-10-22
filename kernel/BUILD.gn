@@ -160,7 +160,6 @@ if (current_toolchain == default_toolchain) {
     ]
 
     if (current_cpu == "arm64") {
-      # TODO: target/arm? boot-shim
       deps += [ "platform/generic-arm" ]
     } else if (current_cpu == "x64") {
       deps += [ "target/pc" ]
@@ -243,6 +242,7 @@ if (current_toolchain == default_toolchain) {
       ":fixups",
       ":kernel_defsym",
       ":raw",
+      ":zircon",
     ]
     include_dirs = [ target_gen_dir ]
     raw_path = rebase_path(zircon_raw, root_build_dir)
@@ -257,6 +257,7 @@ if (current_toolchain == default_toolchain) {
     ]
     inputs = [
       "image.ld",
+      zircon_elf,
       zircon_raw,
     ]
   }
