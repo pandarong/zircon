@@ -82,6 +82,7 @@ if (toolchain.environment == "user") {
       "src/unistd",
       "stubs",
       "third_party/smoothsort",
+      "third_party/tre",
       "zircon",
     ]
   }
