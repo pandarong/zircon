@@ -6,7 +6,9 @@ group("serial") {
   deps = [
     "aml-uart",
     "ftdi",
-    #TODO: "intel-serialio",
     "serial",
   ]
+  if (current_cpu == "x64") {
+    deps += [ "intel-serialio" ]
+  }
 }
