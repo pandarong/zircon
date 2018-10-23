@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <fbl/function.h>
 #include <stdint.h>
 #include <zircon/types.h>
 
@@ -155,6 +156,9 @@ struct acpi_madt_int_source_override_entry {
 #define ACPI_MADT_FLAG_TRIGGER_EDGE         0b0100
 #define ACPI_MADT_FLAG_TRIGGER_LEVEL        0b1100
 #define ACPI_MADT_FLAG_TRIGGER_MASK         0b1100
+
+using MadtEntryCallback = fbl::Function<void(const void* ptr)>;
+zx_status_t acpi_process_madt_entries_etc(const uint8_t search_type, const MadtEntryCallback&);
 
 template <typename C>
 static inline zx_status_t acpi_process_madt_local_apic_entries(C callback) {

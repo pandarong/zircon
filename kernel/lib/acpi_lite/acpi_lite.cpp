@@ -232,3 +232,29 @@ void acpi_lite_dump_tables() {
     }
 }
 
+zx_status_t acpi_process_madt_entries_etc(const uint8_t search_type, const MadtEntryCallback& callback) {
+    const acpi_madt_table *madt = reinterpret_cast<const acpi_madt_table *>(acpi_get_table_by_sig(ACPI_MADT_SIG));
+    if (!madt) {
+        return ZX_ERR_NOT_FOUND;
+    }
+
+    // bytewise array of the same table
+    const uint8_t *madt_array = reinterpret_cast<const uint8_t *>(madt);
+
+    // walk the table off the end of the header, looking for the requested type
+    size_t off = sizeof(*madt);
+    while (off < madt->header.length) {
+        uint8_t type = madt_array[off];
+        uint8_t length = madt_array[off + 1];
+
+        if (type == search_type) {
+            callback(static_cast<const void *>(&madt_array[off]));
+        }
+
+        off += length;
+    }
+
+    return ZX_OK;
+}
+
+
