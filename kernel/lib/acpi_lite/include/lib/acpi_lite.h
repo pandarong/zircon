@@ -93,33 +93,9 @@ const acpi_sdt_header *acpi_get_table_at_index(size_t index);
 
 
 // MADT table describes processors and interrupt controllers
-template <typename T, typename C>
-static inline zx_status_t acpi_process_madt_entries(const uint8_t search_type, C callback) {
-    const acpi_madt_table *madt = reinterpret_cast<const acpi_madt_table *>(acpi_get_table_by_sig(ACPI_MADT_SIG));
-    if (!madt) {
-        return ZX_ERR_NOT_FOUND;
-    }
-
-    // bytewise array of the same table
-    const uint8_t *madt_array = (const uint8_t *)madt;
-
-    // walk the table off the end of the header, looking for the requested type
-    size_t off = sizeof(*madt);
-    while (off < madt->header.length) {
-        uint8_t type = madt_array[off];
-        uint8_t length = madt_array[off + 1];
-
-        if (type == search_type) {
-            callback(reinterpret_cast<const T *>(&madt_array[off]));
-        }
-
-        off += length;
-    }
-
-    return ZX_OK;
-}
 
 // type 0: local apic
+// #define ACPI_MADT_TYPE_LOCAL_APIC 0
 struct acpi_madt_local_apic_entry {
     acpi_sub_table_header header;
     uint8_t processor_id;
@@ -130,6 +106,7 @@ struct acpi_madt_local_apic_entry {
 #define ACPI_MADT_FLAG_ENABLED 0x1
 
 // type 1: io apic
+// #define ACPI_MADT_TYPE_IO_APIC 1
 struct acpi_madt_io_apic_entry {
     acpi_sub_table_header header;
     uint8_t io_apic_id;
@@ -139,6 +116,7 @@ struct acpi_madt_io_apic_entry {
 } __PACKED;
 
 // type 2: interrupt source override
+// #define ACPI_MADT_TYPE_INT_SOURCE_OVERRIDE 2
 struct acpi_madt_int_source_override_entry {
     acpi_sub_table_header header;
     uint8_t bus;
@@ -157,20 +135,6 @@ struct acpi_madt_int_source_override_entry {
 #define ACPI_MADT_FLAG_TRIGGER_LEVEL        0b1100
 #define ACPI_MADT_FLAG_TRIGGER_MASK         0b1100
 
-using MadtEntryCallback = fbl::Function<void(const void* ptr)>;
+// A routine to iterate over all the MADT entries of a particular type via a callback
+using MadtEntryCallback = fbl::Function<void(const void* entry, size_t entry_len)>;
 zx_status_t acpi_process_madt_entries_etc(const uint8_t search_type, const MadtEntryCallback&);
-
-template <typename C>
-static inline zx_status_t acpi_process_madt_local_apic_entries(C callback) {
-    return acpi_process_madt_entries<acpi_madt_local_apic_entry, C>(0, callback);
-}
-
-template <typename C>
-static inline zx_status_t acpi_process_madt_io_apic_entries(C callback) {
-    return acpi_process_madt_entries<acpi_madt_io_apic_entry, C>(1, callback);
-}
-
-template <typename C>
-static inline zx_status_t acpi_process_madt_int_source_override_entries(C callback) {
-    return acpi_process_madt_entries<acpi_madt_int_source_override_entry, C>(2, callback);
-}

@@ -248,7 +248,7 @@ zx_status_t acpi_process_madt_entries_etc(const uint8_t search_type, const MadtE
         uint8_t length = madt_array[off + 1];
 
         if (type == search_type) {
-            callback(static_cast<const void *>(&madt_array[off]));
+            callback(static_cast<const void *>(&madt_array[off]) , length);
         }
 
         off += length;

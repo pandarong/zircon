@@ -98,7 +98,10 @@ zx_status_t platform_enumerate_cpus(
 
     // for every local apic entry that is enabled, remember the apic id
     uint32_t count = 0;
-    acpi_process_madt_local_apic_entries([apic_ids, &count, len](const acpi_madt_local_apic_entry *entry) {
+    acpi_process_madt_entries_etc(ACPI_MADT_TYPE_LOCAL_APIC,
+            [apic_ids, &count, len](const void* _entry, size_t entry_len) {
+        auto entry = static_cast<const acpi_madt_local_apic_entry*>(_entry);
+
         LTRACEF("MADT entry %p: processor id %d apic id %d flags %#x\n",
                 entry, entry->processor_id, entry->apic_id, entry->flags);
 
@@ -138,7 +141,10 @@ zx_status_t platform_enumerate_io_apics(
 
     // for every io apic entry, remember some information
     uint32_t count = 0;
-    acpi_process_madt_io_apic_entries([io_apics, &count, len](const acpi_madt_io_apic_entry *entry) {
+    acpi_process_madt_entries_etc(ACPI_MADT_TYPE_IO_APIC,
+            [io_apics, &count, len](const void* _entry, size_t entry_len) {
+        auto entry = static_cast<const acpi_madt_io_apic_entry*>(_entry);
+
         LTRACEF("MADT entry %p: apic id %d address %#x irq base %u\n",
                 entry, entry->io_apic_id, entry->io_apic_address, entry->global_system_interrupt_base);
 
@@ -174,7 +180,10 @@ zx_status_t platform_enumerate_interrupt_source_overrides(
     }
 
     uint32_t count = 0;
-    acpi_process_madt_int_source_override_entries([isos, &count, len](const acpi_madt_int_source_override_entry *entry) {
+    acpi_process_madt_entries_etc(ACPI_MADT_TYPE_INTERRUPT_OVERRIDE,
+            [isos, &count, len](const void *_entry, size_t entry_len) {
+        auto entry = static_cast<const acpi_madt_int_source_override_entry*>(_entry);
+
         LTRACEF("MADT entry %p: bus %d source %d gsi %u flags %#x\n",
                 entry, entry->bus, entry->source, entry->global_sys_interrupt, entry->flags);
         if (isos != NULL && count < len) {
