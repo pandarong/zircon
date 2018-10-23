@@ -2,14 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("pl031-rtc") {
+import("$zx/public/gn/fidl.gni")
+
+fidl_library("zircon-rtc") {
   sources = [
-    "pl031-rtc.c",
-  ]
-  deps += [
-    "$zx/system/fidl/zircon-rtc:c",
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/rtc",
-    "$zx/system/ulib/zircon",
+    "rtc.fidl",
   ]
 }

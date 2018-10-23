@@ -9,7 +9,7 @@ executable("kstress") {
     "vmstress.cpp",
   ]
   deps += [
-    "$zx/system/fidl/zircon-sysinfo:c",
+    "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",

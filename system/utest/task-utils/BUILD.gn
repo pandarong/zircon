@@ -7,7 +7,7 @@ test("task-utils") {
     "walker.cpp",
   ]
   deps += [
-    "$zx/system/fidl/zircon-sysinfo:c",
+    "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
     "$zx/system/ulib/unittest",
