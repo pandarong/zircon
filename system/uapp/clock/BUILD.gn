@@ -7,6 +7,7 @@ executable("clock") {
     "clock.c",
   ]
   deps += [
+    "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

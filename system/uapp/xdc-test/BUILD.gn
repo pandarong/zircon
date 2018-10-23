@@ -8,8 +8,10 @@ executable("xdc-test") {
     "xdc-test.cpp",
   ]
   deps += [
+    "$zx/system/fidl/fuchsia-usb-debug:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",

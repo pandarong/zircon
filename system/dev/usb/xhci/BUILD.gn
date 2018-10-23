@@ -18,6 +18,7 @@ driver("xhci") {
   ]
   deps += [
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/fuchsia-usb-debug:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

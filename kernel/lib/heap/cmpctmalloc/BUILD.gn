@@ -7,6 +7,6 @@
 library("cmpctmalloc") {
   kernel = true
   sources = [
-    "cmpctmalloc.c",
+    "cmpctmalloc.cpp",
   ]
 }
