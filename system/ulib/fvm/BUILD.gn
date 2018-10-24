@@ -5,12 +5,14 @@
 library("fvm") {
   host = true
   sources = [
+    "fvm-check.cpp",
     "fvm-lz4.cpp",
     "fvm.cpp",
   ]
   deps += [
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon",
     "$zx/third_party/ulib/lz4",
     "$zx/third_party/ulib/uboringssl",
   ]
