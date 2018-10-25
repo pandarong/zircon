@@ -4,19 +4,24 @@
 
 library("sync") {
   sources = [
+    "cnd.cpp",
     "completion.c",
     "mtx.c",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zircon-internal",
   ]
 
   if (toolchain.environment == "user") {
     # This library is used by libc, so suppress the circularity.
     deps -= [ "$zx/public/gn/config:user" ]
+    deps += [
+      # This code is used in early startup, where safe-stack setup is not
+      # ready yet.
+      "$zx/public/gn/config:no_sanitizers",
+      "$zx/system/ulib/c:headers",
+    ]
   }
-
-  #TODO: This code is used in early startup, where safe-stack setup is not ready yet.
-  #MODULE_COMPILEFLAGS += $(NO_SAFESTACK) $(NO_SANITIZERS)
 }
