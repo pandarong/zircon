@@ -10,6 +10,7 @@ driver("sherlock") {
     "sherlock-emmc.cpp",
     "sherlock-gpio.cpp",
     "sherlock-i2c.cpp",
+    "sherlock-mali.cpp",
     "sherlock-usb.cpp",
     "sherlock.cpp",
   ]
