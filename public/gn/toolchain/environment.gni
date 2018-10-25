@@ -124,7 +124,11 @@ template("define_environment") {
           os = "fuchsia"
         }
         shlib = shlib || (defined(invoker.solink) && invoker.solink)
-        forward_variables_from(invoker, [ "toolchain_args" ])
+        forward_variables_from(invoker,
+                               [
+                                 "strip",
+                                 "toolchain_args",
+                               ])
         toolchain_vars = {
           # ${toolchain.environment} and ${toolchain.environment_label}
           # will identify the environment within its own toolchains.
@@ -160,6 +164,7 @@ template("define_environment") {
                                      "globals",
                                      "public_deps",
                                      "shlib",
+                                     "strip",
                                    ])
           }
         }

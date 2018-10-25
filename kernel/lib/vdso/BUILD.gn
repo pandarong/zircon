@@ -103,7 +103,7 @@ rodso_code_header("gen-vdso-code-header") {
   inputs = [
     get_label_info(
             "$zx/system/ulib/zircon:zircon.shared($zx/public/gn/toolchain:user-${current_cpu}-clang.shlib)",
-            "target_out_dir") + "/libzircon.so",
+            "target_out_dir") + "/libzircon.so.debug",
   ]
 }
 
