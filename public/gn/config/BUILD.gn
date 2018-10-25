@@ -70,6 +70,10 @@ config_group("compiler") {
 
   if (is_host) {
     public_deps += [ ":sysroot" ]
+
+    if (current_os != "win" && current_os != "mac") {
+      ldflags += [ "-Wl,--build-id" ]
+    }
   }
 
   if (current_os == "linux") {

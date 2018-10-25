@@ -43,6 +43,7 @@ template("define_c_toolchain") {
   }
 
   use_gcc = defined(invoker.gcc) && invoker.gcc
+  use_strip = defined(invoker.strip) && invoker.strip != false
 
   # If either is supplied both must be supplied.
   if (defined(invoker.tool_dir) || defined(invoker.tool_prefix)) {
@@ -107,14 +108,32 @@ template("define_c_toolchain") {
     lib_dir_switch = "-L"
     default_output_dir = "{{target_out_dir}}"
     outfile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
-    outputs = [
-      outfile,
-    ]
+    runtime_outputs = [ outfile ]
+    outputs = runtime_outputs
+    if (use_strip) {
+      unstripped_outfile = "${outfile}.debug"
+      outputs += [ unstripped_outfile ]
+      strip_command = " && "
+      if (invoker.strip == true) {
+        strip_command +=
+            "$dir_prefix${tc.tool_prefix}strip -o $outfile $unstripped_outfile"
+      } else {
+        strip_command += "$dir_prefix${tc.tool_prefix}objcopy ${invoker.strip} $unstripped_outfile $outfile"
+      }
+    } else {
+      unstripped_outfile = outfile
+      strip_command = ""
+    }
+    if (invoker.os != "mac" && invoker.os != "win") {  # All others are ELF.
+      readelf = "$dir_prefix${tc.tool_prefix}readelf"
+      id_dir = "build-id"
+      strip_command += " && notes=\$(\"$readelf\" -n $unstripped_outfile) && id=\"\${notes##*Build ID: }\" && nl=\$(echo; echo '*') && id=\"\${id%%\$nl}\" && { test -z \"\$id\" || { mkdir -p \"$id_dir/\${id:0:2}\" && ln -f $unstripped_outfile \"$id_dir/\${id:0:2}/\${id:2}\" ; } ; }"
+    }
     rspfile = "${outfile}.rsp"
-    switches = "-o $outfile {{ldflags}}"
+    switches = "-o $unstripped_outfile {{ldflags}}"
     if (invoker.os == "mac") {
       rspfile_content = "{{inputs_newline}}"
-      link_inputs = "-Wl,-filelist,'$rspfile'"
+      link_inputs = "-Wl,-filelist,$rspfile"
       link_libs = "{{libs}} {{solibs}}"
     } else {
       rspfile_content = "{{inputs}}"
@@ -128,8 +147,6 @@ template("define_c_toolchain") {
         switches += " -Wl,-Map,$mapfile"
       }
     }
-
-    # TODO: strip
   }
 
   define_toolchain(target_name) {
@@ -191,7 +208,7 @@ template("define_c_toolchain") {
         name = "link"
         description = "LINK $outfile"
 
-        command = "$ld $switches $link_inputs $link_libs"
+        command = "$ld $switches $link_inputs $link_libs$strip_command"
       },
     ]
 
@@ -200,11 +217,15 @@ template("define_c_toolchain") {
       assert(invoker.os == "fuchsia",
              "shared library creation not supported for ${invoker.os}")
 
-      # TODO: strip
+      solink_common = {
+        forward_variables_from(_link_common, "*")
+        depend_output = outfile
+        link_output = unstripped_outfile
+      }
 
       tools += [
         {
-          forward_variables_from(_link_common, "*")
+          forward_variables_from(solink_common, "*")
 
           name = "solink"
           description = "LINK_SHLIB $outfile"
@@ -216,13 +237,13 @@ template("define_c_toolchain") {
           soname = "{{target_output_name}}{{output_extension}}"
           switches = "-shared -Wl,-soname,$soname $switches"
 
-          command = "$ld $switches $link_inputs $link_libs"
+          command = "$ld $switches $link_inputs $link_libs$strip_command"
 
           # TODO: abi stubs
         },
 
         {
-          forward_variables_from(_link_common, "*")
+          forward_variables_from(solink_common, "*")
 
           name = "solink_module"
           description = "LINK_MODULE $outfile"
@@ -230,7 +251,7 @@ template("define_c_toolchain") {
           default_output_extension = ".so"
 
           switches = "-shared $switches"
-          command = "$ld $switches $link_inputs $link_libs"
+          command = "$ld $switches $link_inputs $link_libs$strip_command"
         },
       ]
     }
