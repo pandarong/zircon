@@ -216,6 +216,7 @@ foreach(shlib_target_type,
           "loadable_module",
         ]) {
   template(shlib_target_type) {
+    assert(!is_kernel)
     assert_no_legacy_configs(target_name) {
       type = shlib_target_type
     }

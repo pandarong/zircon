@@ -25,6 +25,7 @@ test("trace") {
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/trace",
     "$zx/system/ulib/trace-engine",
+    "$zx/system/ulib/trace-provider:trace-handler",
     "$zx/system/ulib/trace-reader",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

@@ -9,12 +9,12 @@ group("utest") {
     "$zx/system/core/virtcon:virtual-console-test",
     "$zx/system/dev/nand/broker:nand",
     "$zx/system/dev/nand/nandpart:nandpart-test",
-    "$zx/system/dev/nand/skip-block:skip-block-test",
     "$zx/system/dev/nand/ram-nand:ram-nand-test",
+    "$zx/system/dev/nand/skip-block:skip-block-test",
     "$zx/system/uapp/disk-pave:install-disk-image-test",
+    "$zx/system/ulib/kvstore:kvstore-test",
     "$zx/system/ulib/mdns:mdns-test",
     "$zx/system/ulib/tftp:tftp-test",
-    "$zx/system/ulib/kvstore:kvstore-test",
     "abigen",
     "async",
     "async-loop",
@@ -106,6 +106,7 @@ group("utest") {
     "vmo",
     "zxcrypt",
     "zxio",
+    "zxs",
 
     # disabled for now:
     #"bad-kernel-access",

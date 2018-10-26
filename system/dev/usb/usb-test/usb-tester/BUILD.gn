@@ -5,7 +5,8 @@
 driver("usb-tester") {  # TODO: test_driver?
   testonly = true
   sources = [
-    "usb-tester.c",
+    "bind.c",
+    "usb-tester.cpp",
   ]
   deps += [
     "$zx/system/dev/lib/usb",
