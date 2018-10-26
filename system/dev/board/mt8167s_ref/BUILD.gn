@@ -8,6 +8,7 @@ driver("mt8167s_ref") {
     "mt8167-display.cpp",
     "mt8167-emmc.cpp",
     "mt8167-gpio.cpp",
+    "mt8167-i2c.cpp",
     "mt8167-soc.cpp",
     "mt8167.cpp",
   ]

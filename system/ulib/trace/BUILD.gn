@@ -5,8 +5,11 @@
 library("trace") {
   sources = [
     "event.cpp",
-    "handler.cpp",
     "observer.cpp",
+  ]
+  public_deps = [
+    # <trace/internal/event_common.h> has #include <trace-engine/instrumentation.h>.
+    "$zx/system/ulib/trace-engine:headers",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",

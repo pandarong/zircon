@@ -12,21 +12,10 @@ driver("sdmmc") {
     "sdmmc.c",
   ]
   deps += [
-    "$zx/system/ulib/async",
-    "$zx/system/ulib/async:async-cpp",
-    "$zx/system/ulib/async:async-default",
-    "$zx/system/ulib/async-loop",
-    "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/sync",
-    "$zx/system/ulib/trace",
-    "$zx/system/ulib/trace-engine",
-    "$zx/system/ulib/trace-provider",
     "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
-    "$zx/system/ulib/zxcpp",
   ]
 }

@@ -8,5 +8,6 @@ group("i2c") {
     "dw-i2c",
     "imx-i2c",
     "intel-i2c",
+    "mt8167-i2c",
   ]
 }

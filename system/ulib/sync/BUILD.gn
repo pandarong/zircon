@@ -4,9 +4,9 @@
 
 library("sync") {
   sources = [
-    "cnd.cpp",
+    "condition.cpp",
     "completion.c",
-    "mtx.c",
+    "mutex.c",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",

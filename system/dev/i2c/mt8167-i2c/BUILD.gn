@@ -2,21 +2,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test("libfzl") {
+driver("mt8167-i2c") {
   sources = [
-    "fzl-test.cpp",
-    "main.c",
-    "mapped-vmo.cpp",
-    "resizeable-vmo-mapper-tests.cpp",
-    "vmo-pool-tests.cpp",
-    "vmo-probe.cpp",
-    "vmo-vmar-tests.cpp",
+    "bind.c",
+    "mt8167-i2c.cpp",
   ]
   deps += [
+    "$zx/system/dev/lib/mt8167",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/fzl",
-    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/hwreg",
+    "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",

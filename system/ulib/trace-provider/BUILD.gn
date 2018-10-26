@@ -4,14 +4,15 @@
 
 library("trace-provider") {
   sources = [
-    "handler_impl.cpp",
     "provider_impl.cpp",
+    "session.cpp",
     "trace_provider.fidl.client.cpp",
     "trace_provider.fidl.h",
     "trace_provider.fidl.tables.cpp",
     "utils.cpp",
   ]
   deps += [
+    ":trace-handler",
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
@@ -23,5 +24,22 @@ library("trace-provider") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",
     "$zx/system/ulib/zx",
+  ]
+}
+
+# For apps that use the trace engine, but not via a trace provider.
+# These are usually test and benchmarking apps.
+# Normal apps are not expected to use this.
+library("trace-handler") {
+  sources = [
+    "handler.cpp",
+  ]
+  deps += [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/trace-engine",
+    "$zx/system/ulib/zircon",
   ]
 }

@@ -6,12 +6,14 @@ driver("sherlock") {
   sources = [
     "bind.c",
     "sherlock-camera.cpp",
+    "sherlock-canvas.cpp",
     "sherlock-clk.cpp",
     "sherlock-emmc.cpp",
     "sherlock-gpio.cpp",
     "sherlock-i2c.cpp",
     "sherlock-mali.cpp",
     "sherlock-usb.cpp",
+    "sherlock-video.cpp",
     "sherlock.cpp",
   ]
   deps += [

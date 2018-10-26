@@ -7,6 +7,7 @@ library("fzl") {
     "mapped-vmo.cpp",
     "memory-probe.cpp",
     "pinned-vmo.cpp",
+    "resizeable-vmo-mapper.cpp",
     "time.cpp",
     "vmar-manager.cpp",
     "vmo-mapper.cpp",

@@ -14,6 +14,9 @@ library("ddk") {
 
     # <ddk/protocol/rawnand.h> has #include <zircon/nand/c/fidl.h>.
     "$zx/system/fidl/zircon-nand:c.headers",
+
+    # <ddk/trace/event.h> has #include <trace/internal/event_common.h>.
+    "$zx/system/ulib/trace:headers",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
@@ -21,4 +24,7 @@ library("ddk") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+  if (!is_kernel) {
+    public_deps += [ "$zx/system/core/devmgr:enable_driver_tracing" ]
+  }
 }

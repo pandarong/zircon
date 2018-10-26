@@ -2,6 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+declare_args() {
+  # Allow driver tracing to be completely disabled (as if it didn't exist).
+  enable_driver_tracing = false
+}
+
+config_group("enable_driver_tracing") {
+  if (enable_driver_tracing) {
+    defines = [ "ENABLE_DRIVER_TRACING" ]
+  }
+}
+
 executable("devmgr") {
   sources = [
     "bootfs.cpp",
@@ -115,6 +126,7 @@ library("driver") {
     "devhost.cpp",
   ]
   deps += [
+    ":enable_driver_tracing",
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/ddk",
@@ -127,6 +139,27 @@ library("driver") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
+
+  if (enable_driver_tracing) {
+    sources += [ "devhost-tracing.cpp" ]
+    deps += [
+      "$zx/system/ulib/async:async-cpp.static",
+      "$zx/system/ulib/async:async-default.static",
+      "$zx/system/ulib/async:static",
+      "$zx/system/ulib/async-loop:static",
+      "$zx/system/ulib/trace:static",
+      "$zx/system/ulib/trace-engine:static",
+      "$zx/system/ulib/trace-provider:static",
+    ]
+
+    # Since the tracing support is brought in via an archive, we need explicit
+    # references to ensure everything is present.
+    libs = [ "$zx/system/ulib/trace-engine/ddk-exports.ld" ]
+  } else {
+    # Some symbols still need to be present even if tracing is disabled.
+    # See the linker script for details.
+    libs = [ "$zx/system/ulib/trace-engine/ddk-disabled-exports.ld" ]
+  }
 }
 
 driver("dmctl") {
@@ -139,6 +172,7 @@ driver("dmctl") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/port",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
 }
