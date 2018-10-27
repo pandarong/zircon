@@ -12,5 +12,4 @@ executable("gfxfractal") {
     "$zx/system/ulib/gfx",
     "$zx/system/ulib/zircon",
   ]
-  #TODO: "$zx/system/fidl/fuchsia-display",
 }
