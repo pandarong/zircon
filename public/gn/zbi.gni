@@ -7,6 +7,19 @@ import("$zx/public/gn/host_tool_action.gni")
 template("zbi_input") {
   manifest_args = []
   manifest_inputs = []
+
+  # Dependencies on resource() targets feed into the manifest file.
+  if (defined(invoker.deps) || defined(invoker.data_deps)) {
+    manifest_file = "$target_gen_dir/${target_name}.manifest"
+    write_file(manifest_file,
+               [ get_metadata(":$target_name", [ "manifest_lines" ]) ])
+    manifest_args += [ rebase_path(manifest_file, root_build_dir) ]
+    manifest_inputs += [
+      manifest_file,
+      get_metadata(":$target_name", [ "manifest_inputs" ]),
+    ]
+  }
+
   if (defined(invoker.manifest)) {
     foreach(entry, invoker.manifest) {
       if (entry == "$entry") {

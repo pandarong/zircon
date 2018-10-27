@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/firmware.gni")
+
 driver("fx3") {  # TODO: test_driver?
   testonly = true
   sources = [
@@ -13,6 +15,13 @@ driver("fx3") {  # TODO: test_driver?
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
+  data_deps = [
+    ":firmware",
+  ]
+}
 
-  #TODO: data_deps+=["endif","usb-testing/fx3/fx3.img"]
+firmware("firmware") {
+  sources = [
+    "$firmware_dir/usb-testing/fx3/fx3.img",
+  ]
 }
