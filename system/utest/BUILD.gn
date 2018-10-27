@@ -43,6 +43,7 @@ group("utest") {
     "dlopen-indirect-deps",
     "driver-tests",
     "dump1",
+    "elf-search",
     "entropy",
     "errno",
     "ethernet",
