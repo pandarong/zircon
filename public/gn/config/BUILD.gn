@@ -77,13 +77,7 @@ config_group("compiler") {
   }
 
   if (current_os == "linux") {
-    ldflags += [ "-static-libstdc++" ]
-
-    # TODO(TC-74) The implicitly linked static libc++.a depends on these.
-    libs = [
-      "dl",
-      "pthread",
-    ]
+    public_deps += [ ":static-libc++" ]
   }
 }
 
@@ -426,4 +420,15 @@ config_group("integer-paranoia") {
     "-fsanitize=integer-divide-by-zero,signed-integer-overflow",
     "-fsanitize-undefined-trap-on-error",
   ]
+}
+
+config_group("static-libc++") {
+  ldflags = [ "-static-libstdc++" ]
+  if (current_os == "linux") {
+    # TODO(TC-74): The implicitly linked static libc++.a depends on these.
+    libs = [
+      "dl",
+      "pthread",
+    ]
+  }
 }

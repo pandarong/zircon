@@ -11,7 +11,20 @@ foreach(cpu, standard_fuchsia_cpus) {
     cpu = target_name
     environment_label = "$zx/public/gn/toolchain:user"
     deps = [
+      ":core",
+    ]
+  }
+}
+
+if (current_cpu != "") {
+  group("core") {
+    deps = [
       "$zx/system/core",
+    ]
+
+    # Core services need a kernel!
+    data_deps = [
+      "$zx/public/kernel",
     ]
   }
 }

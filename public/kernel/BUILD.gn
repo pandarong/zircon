@@ -16,3 +16,12 @@ foreach(cpu, standard_fuchsia_cpus) {
     ]
   }
 }
+
+if (current_cpu != "") {
+  select_toolchain("kernel") {
+    environment_label = "$zx/kernel"
+    deps = [
+      "$zx/kernel",
+    ]
+  }
+}

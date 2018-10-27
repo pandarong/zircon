@@ -1,0 +1,137 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/host_tool_action.gni")
+
+template("zbi_input") {
+  manifest_args = []
+  manifest_inputs = []
+  if (defined(invoker.manifest)) {
+    foreach(entry, invoker.manifest) {
+      if (entry == "$entry") {
+        # It's a literal manifest entry string.
+        manifest_args += [ "--entry=$entry" ]
+      } else {
+        # It's a manifest entry in the style of a copy() target.
+        targets = entry.outputs
+        assert(targets == [ targets[0] ],
+               "manifest entry outputs list must have exactly one element")
+        foreach(source, entry.sources) {
+          manifest_inputs += [ source ]
+          source_path = rebase_path(source, root_build_dir)
+          foreach(target, process_file_template([ source ], targets)) {
+            manifest_args += [ "--entry=${target}=${source_path}" ]
+          }
+        }
+      }
+    }
+  }
+
+  group(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "data_deps",
+                             "deps",
+                             "testonly",
+                             "visibility",
+                           ])
+    metadata = {
+      if (defined(invoker.type) && invoker.type != "") {
+        zbi_input_args = [ "--type=${invoker.type}" ]
+      } else {
+        zbi_input_args = [ "--files" ]
+      }
+      if (defined(invoker.args)) {
+        zbi_input_args += invoker.args
+      }
+      zbi_inputs = manifest_inputs
+      if (defined(invoker.sources)) {
+        zbi_inputs += invoker.sources
+        zbi_input_args += rebase_path(zbi_inputs, root_build_dir)
+      }
+      zbi_input_args += manifest_args
+    }
+  }
+}
+
+template("zbi") {
+  if (defined(invoker.output_name)) {
+    output_file = invoker.output_name
+  } else {
+    output_file = target_name
+  }
+
+  if (defined(invoker.output_extension)) {
+    if (invoker.output_extension != "") {
+      output_file += ".${invoker.output_extension}"
+    }
+  } else {
+    output_file += ".zbi"
+  }
+
+  output_file = "$root_out_dir/$output_file"
+
+  host_tool_action(target_name) {
+    deps = []
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "visibility",
+                             "testonly",
+                           ])
+
+    outputs = [
+      output_file,
+    ]
+    depfile = "${output_file}.d"
+
+    tool = "$zx/system/host/zbi"
+    args = [
+      "--output=" + rebase_path(output_file, root_build_dir),
+      "--depfile=" + rebase_path(depfile, root_build_dir),
+    ]
+
+    if (defined(invoker.compress) && !invoker.compress) {
+      args += [ "--uncompressed" ]
+    }
+
+    if (defined(invoker.cpu)) {
+      cpu = invoker.cpu
+    } else {
+      cpu = current_cpu
+    }
+    if (cpu != "") {
+      args += [ "--complete=$cpu" ]
+    }
+
+    sources = [
+      get_metadata(deps, [ "zbi_inputs" ]),
+    ]
+    args += [ get_metadata(deps, [ "zbi_input_args" ]) ]
+  }
+}
+
+# TODO: example
+zbi("zedboot") {
+  deps = [
+    ":netboot-config($default_toolchain)",
+    "$zx/public/core",
+    "$zx/public/drivers",
+  ]
+}
+if (current_toolchain == default_toolchain) {
+  zbi_input("netboot-config") {
+    visibility = [ ":zedboot" ]
+    devmgr_config = "$target_gen_dir/$target_name.txt"
+    write_file(devmgr_config, [ "netsvc.netboot=true" ])
+    manifest = {
+      sources = [
+        devmgr_config,
+      ]
+      outputs = [
+        "config/devmgr",
+      ]
+    }
+  }
+}

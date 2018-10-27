@@ -189,6 +189,21 @@ template("config_group") {
                              "visibility",
                            ])
     public_configs = [ ":_config.$_config_name" ]
+
+    if (false) {  #TODO
+      metadata = {
+        ldflags = []
+        forward_variables_from(invoker,
+                               [
+                                 "ldflags",
+                                 "lib_dirs",
+                                 "libs",
+                               ])
+        if (defined(invoker.compiler_flags)) {
+          ldflags += invoker.compiler_flags
+        }
+      }
+    }
   }
 }
 
@@ -223,11 +238,26 @@ foreach(shlib_target_type,
     if (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib) {
       # This is the toolchain that actually builds the libraries.
       target(shlib_target_type, target_name) {
-        forward_variables_from(invoker, "*", [ "visibility" ])
+        forward_variables_from(invoker,
+                               "*",
+                               [
+                                 "data_deps",
+                                 "visibility",
+                               ])
         forward_variables_from(invoker, [ "visibility" ])
         if (defined(visibility) && defined(toolchain.shlib)) {
           # Make sure we're visible to the redirector groups defined below.
           visibility += [ ":$target_name" ]
+        }
+        if (defined(invoker.data_deps)) {
+          # Redirect data_deps to the non-shlib toolchain.
+          data_deps = []
+          foreach(label, invoker.data_deps) {
+            if (get_label_info(label, "toolchain") == current_toolchain) {
+              label += "(${toolchain.label})"
+            }
+            data_deps += [ label ]
+          }
         }
 
         if (shlib_target_type == "loadable_module" &&
