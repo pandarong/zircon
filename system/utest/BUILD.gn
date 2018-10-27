@@ -29,8 +29,7 @@ group("utest") {
     "cleanup",
     "cobalt-client",
     "compiler",
-
-    #TODO: "core",
+    "core",
     "cprng",
     "crypto",
     "ctor",

@@ -50,5 +50,8 @@ test("virtual-console-test") {
               "keyboard-test.cpp",
               "textcon-test.cpp",
             ]
-  deps += common_deps + [ "$zx/system/ulib/unittest" ]
+  deps += common_deps + [
+            "$zx/system/ulib/unittest",
+            "$zx/system/utest/core:unittest_main",
+          ]
 }
