@@ -167,3 +167,7 @@ RUN_TEST(initialize_empty_list);
 RUN_TEST(element_add_remove);
 RUN_TEST(list_splice_split);
 END_TEST_CASE(listnode_tests)
+
+int main(int argc, char** argv) {
+    return unittest_run_all_tests(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
