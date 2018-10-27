@@ -2,7 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-host_tool("fvm") {
+# This is shared with $zx/system/utest/fvm-host.
+source_set("common") {
   sources = [
     "container/container.cpp",
     "container/fvm.cpp",
@@ -10,10 +11,9 @@ host_tool("fvm") {
     "format/blobfs.cpp",
     "format/format.cpp",
     "format/minfs.cpp",
-    "main.cpp",
   ]
-  include_dirs = [ "include" ]
-  deps += [
+  public_deps = [
+    ":config",
     "$zx/system/ulib/blobfs",
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
@@ -28,4 +28,17 @@ host_tool("fvm") {
     # though that library is not really meant for host code.
     "$zx/system/ulib/fs-management:headers",
   ]
+}
+
+config_group("config") {
+  visibility = [ ":*" ]
+  include_dirs = [ "include" ]
+}
+
+host_tool("fvm") {
+  sources = [
+    "main.cpp",
+  ]
+  include_dirs = [ "include" ]
+  deps += [ ":common" ]
 }

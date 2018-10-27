@@ -25,6 +25,7 @@ library("minfs") {
     "$zx/system/ulib/zx:headers",
   ]
   deps += [
+    "$zx/system/ulib/bitmap",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fs",
     "$zx/system/ulib/zircon-internal",

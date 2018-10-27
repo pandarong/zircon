@@ -1,0 +1,75 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# The generation depends only on the source, so do it only once.
+if (current_toolchain == default_toolchain) {
+  action("gen-examples") {
+    visibility = [ ":examples" ]
+    examples_dir = "$zx/system/host/fidl/examples"
+    outputs = [
+      "$target_gen_dir/examples.cpp",
+    ]
+    sources = [
+      "$examples_dir/alignment.fidl",
+      "$examples_dir/empty.fidl",
+      "$examples_dir/enums.fidl",
+      "$examples_dir/events.fidl",
+      "$examples_dir/example-0.fidl",
+      "$examples_dir/example-1.fidl",
+      "$examples_dir/example-2.fidl",
+      "$examples_dir/example-3.fidl",
+      "$examples_dir/example-4.fidl",
+      "$examples_dir/example-5.fidl",
+      "$examples_dir/example-6.fidl",
+      "$examples_dir/example-7.fidl",
+      "$examples_dir/example-8.fidl",
+      "$examples_dir/example-9.fidl",
+      "$examples_dir/interface-ordinals.fidl",
+      "$examples_dir/library-a/point.fidl",
+      "$examples_dir/library-b/view.fidl",
+      "$examples_dir/simple.fidl",
+      "$examples_dir/tables.fidl",
+      "$examples_dir/test.fidl",
+      "$examples_dir/types.fidl",
+      "testdata/badformat.fidl.noformat",
+      "testdata/goodformat.fidl",
+    ]
+    script = "gen-examples.sh"
+    args = rebase_path(outputs, root_build_dir) +
+           rebase_path(sources, root_build_dir)
+  }
+} else {
+  test("fidl-compiler") {
+    sources = [
+      "consts_tests.cpp",
+      "dup_attributes_tests.cpp",
+      "flat_ast_tests.cpp",
+      "formatter_unittests.cpp",
+      "json_generator_tests.cpp",
+      "main.cpp",
+      "max_bytes_tests.cpp",
+      "max_handle_tests.cpp",
+      "parsing_tests.cpp",
+      "superinterface_tests.cpp",
+      "table_tests.cpp",
+      "using_tests.cpp",
+      "visitor_unittests.cpp",
+    ]
+    deps += [
+      ":examples",
+      "$zx/system/host/fidl",
+      "$zx/system/ulib/unittest",
+    ]
+  }
+
+  source_set("examples") {
+    gen_label = ":gen-examples($default_toolchain)"
+    gen_dir = get_label_info(gen_label, "target_gen_dir")
+    include_dirs = [ "." ]
+    sources = [
+      "$gen_dir/examples.cpp",
+    ]
+    deps += [ gen_label ]
+  }
+}

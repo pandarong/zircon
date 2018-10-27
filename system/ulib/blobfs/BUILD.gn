@@ -21,7 +21,8 @@ library("blobfs") {
     sources += [ "host.cpp" ]
   }
   public_deps = [
-    "$zx/system/ulib/fs",
+    "$zx/system/ulib/bitmap:headers",
+    "$zx/system/ulib/fs:headers",
   ]
   deps += [
     "$zx/system/ulib/bitmap",
