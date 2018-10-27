@@ -5,12 +5,13 @@
 # https://opensource.org/licenses/MIT
 
 library("libzbi") {
+  host = true
   kernel = true
   static = true
   sources = [
     "zbi.c",
   ]
-  if (!is_kernel) {
+  if (is_fuchsia && !is_kernel) {
     sources += [ "zbi-zx.cpp" ]
     deps += [
       "$zx/system/ulib/fbl",

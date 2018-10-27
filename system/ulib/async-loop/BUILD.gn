@@ -6,6 +6,10 @@ library("async-loop") {
   sources = [
     "loop.c",
   ]
+  public_deps = [
+    # <lib/async-loop/loop.h> has #include <lib/async/dispatcher.h>.
+    "$zx/system/ulib/async:headers",
+  ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/async",

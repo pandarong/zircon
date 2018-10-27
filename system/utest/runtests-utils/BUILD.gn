@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+test("runtests-utils") {
+  sources = [
+    "runtests-utils-test-utils.cpp",
+    "runtests-utils-test.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/runtests-utils",
+    "$zx/system/ulib/unittest",
+  ]
+  if (is_fuchsia) {
+    sources += [
+      "fuchsia-run-test.cpp",
+      "fuchsia-test-main.cpp",
+      "log-exporter-test.cpp",
+    ]
+    deps += [ "$zx/system/ulib/memfs" ]
+  } else {
+    sources += [ "posix-test-main.cpp" ]
+  }
+}

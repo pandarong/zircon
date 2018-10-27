@@ -9,6 +9,10 @@ library("runtests-utils") {
     "discover-and-run-tests.cpp",
     "runtests-utils.cpp",
   ]
+  public_deps = [
+    # <runtests-utils/runtests-utils.h> has #include <lib/zircon-internal/fnv1hash.h>.
+    "$zx/system/ulib/zircon-internal:headers",
+  ]
   if (is_fuchsia) {
     sources += [
       "fuchsia-run-test.cpp",
@@ -23,9 +27,15 @@ library("runtests-utils") {
     "$zx/system/ulib/zircon-internal",
   ]
   if (is_fuchsia) {
-    public_deps = [
+    public_deps += [
+      # <runtests-utils/log-exporter.h> has #include <lib/fidl/cpp/message_buffer.h>.
+      "$zx/system/ulib/fidl:headers",
+
       # <runtests-utils/log-exporter.h> has #include <fuchsia/logger/c/fidl.h>.
       "$zx/system/fidl/fuchsia-logger:c.headers",
+
+      # <runtests-utils/log-exporter.h> has #include <lib/async-loop/cpp/loop.h>.
+      "$zx/system/ulib/async-loop:async-loop-cpp.headers",
     ]
     deps += [
       "$zx/system/fidl/fuchsia-logger:c",
