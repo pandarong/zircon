@@ -1,0 +1,52 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Disabled for now because libc++ isn't available for Zircon targets yet.
+if (false) {
+  test("fit") {
+    deps += [
+      ":common",
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/zxcpp",
+    ]
+  }
+}
+
+if (false) {  #TODO
+  host_test("fit-host") {
+    deps += [ ":common" ]
+  }
+}
+
+source_set("common") {
+  testonly = true
+  visibility = [ ":*" ]
+  sources = [
+    "defer_tests.cpp",
+    "examples/function_example1.cpp",
+    "examples/function_example2.cpp",
+    "function_tests.cpp",
+    "function_traits_tests.cpp",
+    "main.c",
+    "nullable_tests.cpp",
+    "optional_tests.cpp",
+    "variant_tests.cpp",
+  ]
+  deps += [
+    ":config",
+    "$zx/system/ulib/fit",
+    "$zx/system/ulib/unittest",
+  ]
+}
+
+config_group("config") {
+  visibility = [ ":*" ]
+
+  # Suppress warnings about self-move and self-assignment since we have
+  # tests that intentionally verify these behaviors.
+  cflags_cc = [
+    "-Wno-self-move",
+    "-Wno-self-assign-overloaded",
+  ]
+}
