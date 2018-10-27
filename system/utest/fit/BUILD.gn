@@ -2,26 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# Disabled for now because libc++ isn't available for Zircon targets yet.
-if (false) {
-  test("fit") {
-    deps += [
-      ":common",
-      "$zx/system/ulib/fdio",
-      "$zx/system/ulib/zxcpp",
-    ]
-  }
-}
-
-if (false) {  #TODO
-  host_test("fit-host") {
-    deps += [ ":common" ]
-  }
-}
-
-source_set("common") {
-  testonly = true
-  visibility = [ ":*" ]
+test("fit") {
   sources = [
     "defer_tests.cpp",
     "examples/function_example1.cpp",
@@ -38,6 +19,12 @@ source_set("common") {
     "$zx/system/ulib/fit",
     "$zx/system/ulib/unittest",
   ]
+  if (is_fuchsia) {
+    deps += [
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/zxcpp",
+    ]
+  }
 }
 
 config_group("config") {

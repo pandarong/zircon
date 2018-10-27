@@ -5,35 +5,6 @@
 test("fbl") {
   include_dirs = [ "include" ]
   sources = [
-    # These tests won't run on the host.  Some of these tests need
-    # fbl::Mutex which currently isn't supported on the host.
-    #
-    # TODO(ZX-1053): Support fbl::Mutex on the host and make the ref
-    # counted and slab allocator tests work.
-    "ref_counted_tests.cpp",
-    "slab_allocator_tests.cpp",
-  ]
-  deps += [
-    ":common",
-    "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/unittest",
-    "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
-    "$zx/system/ulib/zxcpp",
-  ]
-}
-
-if (false) {  #TODO
-  host_test("fbl-host") {
-    deps += [ ":common" ]
-  }
-}
-
-source_set("common") {
-  testonly = true
-  include_dirs = [ "include" ]
-  sources = [
     "algorithm_tests.cpp",
     "array_tests.cpp",
     "atomic_tests.cpp",
@@ -68,4 +39,22 @@ source_set("common") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/unittest",
   ]
+
+  if (is_fuchsia) {
+    sources += [
+      # These tests won't run on the host.  Some of these tests need
+      # fbl::Mutex which currently isn't supported on the host.
+      #
+      # TODO(ZX-1053): Support fbl::Mutex on the host and make the ref
+      # counted and slab allocator tests work.
+      "ref_counted_tests.cpp",
+      "slab_allocator_tests.cpp",
+    ]
+    deps += [
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/zircon",
+      "$zx/system/ulib/zx",
+      "$zx/system/ulib/zxcpp",
+    ]
+  }
 }

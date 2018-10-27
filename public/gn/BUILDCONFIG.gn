@@ -674,23 +674,27 @@ template("test") {
     forward_variables_from(invoker, [ "visibility" ])
 
     # TODO: shlib exclusion required only due to dismal kludge
-    if (defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
+    if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
       if (!defined(output_name)) {
         output_name = "${target_name}-test"
       }
       if (!defined(output_extension)) {
         output_extension = toolchain.executable_extension
       }
-      if (!defined(install_path)) {
-        if (defined(invoker.test_group)) {
-          test_group = invoker.test_group
-        } else {
-          test_group = "sys"
+      if (is_fuchsia) {
+        if (!defined(install_path)) {
+          if (defined(invoker.test_group)) {
+            test_group = invoker.test_group
+          } else {
+            test_group = "sys"
+          }
+          install_path = "test/$test_group/$output_name"
+          if (output_extension != "") {
+            install_path += ".$output_extension"
+          }
         }
-        install_path = "test/$test_group/$output_name"
-        if (output_extension != "") {
-          install_path += ".$output_extension"
-        }
+      } else {
+#        not_needed([ "install_path" ])
       }
     }
   }
