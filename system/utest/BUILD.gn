@@ -47,6 +47,7 @@ group("utest") {
     "evil",
     "exception",
     "exit",
+    "fbl",
     "fdio",
     "fidl",
     "fidl-simple",
@@ -117,7 +118,6 @@ group("utest") {
   if (false) {  # TODO: host tests
     deps += [
       "banjo-compiler",
-      "fbl",
       "fidl-compiler",
       "fit",
       "fs-host",

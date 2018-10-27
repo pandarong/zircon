@@ -1,0 +1,71 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+test("fbl") {
+  include_dirs = [ "include" ]
+  sources = [
+    # These tests won't run on the host.  Some of these tests need
+    # fbl::Mutex which currently isn't supported on the host.
+    #
+    # TODO(ZX-1053): Support fbl::Mutex on the host and make the ref
+    # counted and slab allocator tests work.
+    "ref_counted_tests.cpp",
+    "slab_allocator_tests.cpp",
+  ]
+  deps += [
+    ":common",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}
+
+if (false) {  #TODO
+  host_test("fbl-host") {
+    deps += [ ":common" ]
+  }
+}
+
+source_set("common") {
+  testonly = true
+  include_dirs = [ "include" ]
+  sources = [
+    "algorithm_tests.cpp",
+    "array_tests.cpp",
+    "atomic_tests.cpp",
+    "auto_call_tests.cpp",
+    "forward_tests.cpp",
+    "function_tests.cpp",
+    "initializer_list_tests.cpp",
+    "integer_sequence_tests.cpp",
+    "intrusive_container_tests.cpp",
+    "intrusive_doubly_linked_list_tests.cpp",
+    "intrusive_hash_table_dll_tests.cpp",
+    "intrusive_hash_table_sll_tests.cpp",
+    "intrusive_singly_linked_list_tests.cpp",
+    "intrusive_wavl_tree_tests.cpp",
+    "main.c",
+    "optional_tests.cpp",
+    "recycler_tests.cpp",
+    "ref_ptr_tests.cpp",
+    "string_buffer_tests.cpp",
+    "string_piece_tests.cpp",
+    "string_printf_tests.cpp",
+    "string_tests.cpp",
+    "string_traits_tests.cpp",
+    "type_info_tests.cpp",
+    "type_support_tests.cpp",
+    "unique_fd_tests.cpp",
+    "unique_free_ptr_tests.cpp",
+    "unique_ptr_tests.cpp",
+    "vector_tests.cpp",
+  ]
+  deps += [
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/unittest",
+  ]
+}
