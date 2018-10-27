@@ -47,9 +47,9 @@ library("zircon") {
     ":generated-public-headers",
   ]
 
-  # --gc-sections eats hidden CODE_* functions we need to preserve for
-  # the kernel to redirect to.
-  deps -= [ "$zx/public/gn/config:default_linker_gc" ]
+  # Instruct the linker to preserve the hidden alternate entry points.
+  # Note, "./" makes GN realize this is a file rather than a -l switch.
+  libs = [ "./alternates.ld" ]
 
   if (toolchain.environment == "user") {
     # This doesn't get normal default deps on libc.

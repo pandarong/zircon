@@ -16,6 +16,7 @@ if (current_toolchain == default_toolchain) {
     globals = {
       is_kernel = true
     }
+    strip = "--strip-sections"
   }
 } else if (toolchain.environment == "multiboot") {
   # This is the top config for all code in the multiboot_toolchain.
