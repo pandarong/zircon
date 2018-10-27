@@ -1,0 +1,41 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Looks just like a copy() rule but $outputs are relative target paths.
+# Using $data_deps to this resource() target in each target whose code uses
+# $outputs at runtime ensures that the files will be present on the system.
+template("resource") {
+  group(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "outputs",
+                             "sources",
+                           ])
+    metadata = {
+      manifest_inputs = invoker.sources
+      manifest_lines = []
+      foreach(source, invoker.sources) {
+        foreach(target, process_file_template([ source ], invoker.outputs)) {
+          assert(rebase_path(target, "foo") != target,
+                 "`outputs` in resource() cannot start with /")
+          manifest_lines +=
+              [ target + "=" + rebase_path(source, root_build_dir) ]
+        }
+      }
+    }
+
+    # TODO: dismal kludge in the absence of get_metadata()
+    data = rebase_path(rebase_path([
+                                     "$target_gen_dir/$target_name.manifest",
+                                     "$target_gen_dir/$target_name.d",
+                                   ],
+                                   root_gen_dir,
+                                   root_build_dir),
+                       "",
+                       "$root_build_dir/bootfs-$current_cpu")
+    write_file(data[0], metadata.manifest_lines)
+    write_file(data[1], rebase_path(metadata.manifest_inputs, root_build_dir))
+  }
+}

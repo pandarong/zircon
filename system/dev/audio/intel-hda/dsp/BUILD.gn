@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/firmware.gni")
+
 driver("dsp") {
   sources = [
     "binding.c",
@@ -26,5 +28,13 @@ driver("dsp") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
-  #TODO: data_deps MODULE_FIRMWARE := intel-adsp-sst/dsp_fw_kbl_v3266.bin
+  data_deps = [
+    ":firmware",
+  ]
+}
+
+firmware("firmware") {
+  sources = [
+    "$firmware_dir/intel-adsp-sst/dsp_fw_kbl_v3266.bin",
+  ]
 }
