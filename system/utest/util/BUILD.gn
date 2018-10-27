@@ -11,12 +11,3 @@ test("util") {
     deps += [ "$zx/system/ulib/zircon" ]
   }
 }
-
-if (false) {  #TODO:
-  host_test("util-host") {
-    sources = [
-      "listnode.cpp",
-    ]
-    deps += [ "$zx/system/ulib/unittest" ]
-  }
-}

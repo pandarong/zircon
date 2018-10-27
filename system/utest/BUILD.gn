@@ -2,10 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/toolchain/select_toolchain.gni")
+
 group("utest") {
   testonly = true
 
   deps = [
+    ":host",  # TODO: reach this differently?
     "$zx/system/core/virtcon:virtual-console-test",
     "$zx/system/dev/nand/broker:nand",
     "$zx/system/dev/nand/nandpart:nandpart-test",
@@ -115,12 +118,20 @@ group("utest") {
   if (current_cpu == "x64") {
     deps += [ "x86-umip" ]
   }
+}
 
-  if (false) {  # TODO: host tests
+select_toolchain("host") {
+  testonly = true
+  environment_label = "$zx/public/gn/toolchain:host"
+  deps = [
+    "fbl",
+    "fit",
+    "util",
+  ]
+  if (false) {  #TODO
     deps += [
       "banjo-compiler",
       "fidl-compiler",
-      "fit",
       "fs-host",
       "fvm-host",
       "runtests-utils",
