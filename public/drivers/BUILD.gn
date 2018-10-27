@@ -12,9 +12,18 @@ foreach(cpu, standard_fuchsia_cpus) {
     cpu = target_name
     environment_label = "$zx/public/gn/toolchain:user"
     deps = [
+      ":drivers",
+    ]
+  }
+}
+
+if (current_cpu != "") {
+  group("drivers") {
+    testonly = true
+    deps = [
       "$zx/system/dev",
     ]
-    if (cpu == "x64") {
+    if (current_cpu == "x64") {
       deps += [ "$zx/third_party/dev/ethernet/e1000" ]
     }
   }

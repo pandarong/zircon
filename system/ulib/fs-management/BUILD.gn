@@ -32,4 +32,10 @@ library("fs-management") {
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/uboringssl",
   ]
+  data_deps = [
+    "$zx/system/uapp/minfs",
+    "$zx/system/uapp/blobfs",
+    "$zx/third_party/uapp/mkfs-msdosfs",
+    "$zx/third_party/uapp/fsck-msdosfs",
+  ]
 }
