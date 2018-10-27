@@ -19,7 +19,29 @@ test("runtests-utils") {
       "log-exporter-test.cpp",
     ]
     deps += [ "$zx/system/ulib/memfs" ]
+    data_deps = [
+      ":publish-data-helper",
+    ]
   } else {
     sources += [ "posix-test-main.cpp" ]
+  }
+}
+
+if (is_fuchsia) {
+  executable("publish-data-helper") {
+    testonly = true
+    visibility = [ ":*" ]
+    sources = [
+      "helper/publish-data-helper.c",
+    ]
+    deps += [
+      "$zx/system/ulib/fdio",
+      "$zx/system/ulib/unittest",
+      "$zx/system/ulib/zircon",
+    ]
+
+    # TODO: Don't instrument the helper until we have a way to route sinks
+    # from the inner runtests instance to the outer one so they make it
+    # into summary.json.
   }
 }
