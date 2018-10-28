@@ -371,11 +371,22 @@ template("library") {
       forward_variables_from(invoker,
                              "*",
                              _library_params + [
+                                   "data_deps",
                                    "install_path",
                                    "public_deps",
                                    "visibility",
                                  ])
       deps += [ ":${_library_name}.headers" ]
+      if (defined(invoker.data_deps)) {
+        # Redirect data_deps to the non-shlib toolchain.
+        data_deps = []
+        foreach(label, invoker.data_deps) {
+          if (get_label_info(label, "toolchain") == current_toolchain) {
+            label += "(${toolchain.label})"
+          }
+          data_deps += [ label ]
+        }
+      }
     }
     if (static) {
       target(static_library, "${_library_name}.static") {
@@ -385,6 +396,7 @@ template("library") {
         output_name = _library_name
         forward_variables_from(invoker,
                                [
+                                 "data_deps",
                                  "public_deps",
                                  "testonly",
                                  "visibility",
@@ -694,7 +706,7 @@ template("test") {
           }
         }
       } else {
-#        not_needed([ "install_path" ])
+        #        not_needed([ "install_path" ])
       }
     }
   }

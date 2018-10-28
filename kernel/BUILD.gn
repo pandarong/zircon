@@ -77,6 +77,8 @@ if (current_toolchain == default_toolchain) {
 
   # For any standalone static binary.
   config_group("standalone") {
+    ldflags = [ "-nostdlib" ]
+
     cflags = [
       "-ffreestanding",
       "-include",
@@ -97,7 +99,7 @@ if (current_toolchain == default_toolchain) {
       # In the Fuchsia-target toolchains there's no way to prevent the
       # compiler driver from passing -pie, so negate it.  BFD ld doesn't
       # have --no-pie, but arm64-elf-gcc doesn't pass -pie either.
-      ldflags = [ "-Wl,--no-pie" ]
+      ldflags += [ "-Wl,--no-pie" ]
     }
 
     public_deps = [
