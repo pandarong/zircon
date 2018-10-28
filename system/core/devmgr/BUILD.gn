@@ -160,6 +160,16 @@ library("driver") {
     # See the linker script for details.
     libs = [ "$zx/system/ulib/trace-engine/ddk-disabled-exports.ld" ]
   }
+
+  # This library is on the whitelist for driver() shared library deps.
+  # It doesn't trigger the assert_no_metadata() check, and it prunes the
+  # metadata walk here so our own deps are not subject to the check.
+  if (false) {  #TODO
+    metadata = {
+      driver_blacklist = []
+      driver_blacklist_barrier = []
+    }
+  }
 }
 
 driver("dmctl") {

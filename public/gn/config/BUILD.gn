@@ -429,7 +429,3 @@ config_group("static-libc++") {
     ]
   }
 }
-
-# This is just a placeholder to be matched in $assert_no_deps by driver().
-group("no_shlib_deps_in_drivers") {
-}
