@@ -4,19 +4,28 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-library("zxcpp") {
-  kernel = true
-  static = true
-  sources = [
-    "new.cpp",
-    "pure_virtual.cpp",
-  ]
-  if (!is_kernel) {
-    sources += [ "thread_atexit.cpp" ]
-    deps += [ "$zx/public/gn/config:visibility_hidden" ]
+if (false || is_kernel) {  #TODO
+  library("zxcpp") {
+    kernel = true
+    static = true
+    sources = [
+      "new.cpp",
+      "pure_virtual.cpp",
+    ]
+    if (!is_kernel) {
+      sources += [ "thread_atexit.cpp" ]
+      deps += [ "$zx/public/gn/config:visibility_hidden" ]
+    }
+    if (toolchain.environment == "kernel") {
+      # Avoid circularity.
+      deps -= [ "$zx/kernel/vm:headers" ]
+    }
   }
-  if (toolchain.environment == "kernel") {
-    # Avoid circularity.
-     deps -= [ "$zx/kernel/vm:headers" ]
+} else {
+  # TODO(mcgrathr): Convert users to use the static-libc++ config directly.
+  group("zxcpp") {
+    public_deps = [
+      "$zx/public/gn/config:static-libc++",
+    ]
   }
 }

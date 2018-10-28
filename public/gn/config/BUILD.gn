@@ -131,15 +131,12 @@ config_group("relative_paths") {
 }
 
 config_group("nostdlib") {
-  compiler_flags = [ "-nostdlib" ]
-  if (is_gcc) {
-    libs = [ "gcc" ]
-  } else {
-    cflags = [ "-nostdlibinc" ]
-    if (current_os != "win") {
-      libs = [ "clang_rt.builtins" ]
-    }
-  }
+  # Don't actually use -nostdlib, because the builtins and -lc++ are what
+  # we want and are otherwise annoying to find and specify.  It's just the
+  # -lc that we really want to defeat, and that's handled by giving a -L
+  # that will find exactly nothing but a dummy libc.so.
+  ldflags = [ "-nostartfiles" ]
+  lib_dirs = [ "libc-dummy" ]
 }
 
 config_group("data_sections") {
