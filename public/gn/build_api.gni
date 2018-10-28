@@ -1,0 +1,20 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Write a JSON file for the $target_name "build API module".  The file goes
+# at `$root_build_dir/$target_name.json`.  The contents are exactly the GN
+# scope of the build_api_module() target, serialized as a JSON dictionary.
+#
+# The $target_name is the name of the build API module.  It's up to each
+# module to define the JSON schema that constitutes the API contract with
+# users of this build API module.  Usually somewhere in the JSON structure
+# will be strings naming Ninja targets (i.e. output files to produce, or
+# actions to take for side-effect such as running tests).
+template("build_api_module") {
+  write_file("$root_build_dir/$target_name.json",
+             {
+               forward_variables_from(invoker, "*", [ "target_name" ])
+             },
+             "json")
+}

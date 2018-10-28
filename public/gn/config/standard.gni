@@ -56,8 +56,14 @@ standard_build_hosts = [
     cpu = "x64"
     os = "linux"
   },
-  {
-    cpu = "x64"
-    os = "mac"
-  },
 ]
+
+# Cross-compiling to Mac isn't possible because of the Mach-O linker.
+if (host_os == "mac") {
+  standard_build_hosts += [
+    {
+      cpu = "x64"
+      os = "mac"
+    },
+  ]
+}
