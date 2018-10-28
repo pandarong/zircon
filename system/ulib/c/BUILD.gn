@@ -23,6 +23,16 @@ library("c") {
     # Suppress the circularity.
     deps -= [ "$zx/public/gn/config:user" ]
   }
+
+  # This library is on the whitelist for driver() shared library deps.
+  # It doesn't trigger the assert_no_metadata() check, and it prunes the
+  # metadata walk here so our own deps are not subject to the check.
+  if (false) {  #TODO
+    metadata = {
+      driver_blacklist = []
+      driver_blacklist_barrier = []
+    }
+  }
 }
 
 group("crt1") {

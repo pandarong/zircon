@@ -261,33 +261,19 @@ foreach(shlib_target_type,
         }
 
         # Each shared_library() that's not on the whitelist gets a poison
-        # dependency to flag it if it appears in the dependency graph from
-        # a driver() target.
-        if (shlib_target_type == "shared_library") {
-          if (!defined(output_name)) {
-            output_name = target_name
-          }
-          if (output_name == "c" &&
-              get_label_info(":$target_name", "dir") == "$zx/system/ulib/c") {
-            # libc is white-listed.
-          } else if (output_name == "driver" &&
-                     get_label_info(":$target_name", "dir") ==
-                     "$zx/system/core/devmgr") {
-            # libdriver is white-listed.
-          } else if (output_name == "zircon" &&
-                     get_label_info(":$target_name", "dir") ==
-                     "$zx/system/ulib/zircon") {
-            # The vDSO is white-listed.
+        # pill to flag it if it appears in the dependency graph from a
+        # driver() target.
+        if (shlib_target_type == "shared_library" && false &&  #TODO
+            (!defined(metadata) || !defined(metadata.driver_blacklist))) {
+          if (defined(metadata)) {
+            metadata.driver_blacklist = [ true ]
           } else {
-            if (!defined(deps)) {
-              deps = []
+            metadata = {
+              driver_blacklist = [ true ]
             }
-            deps += [ "$zx/public/gn/config:no_shlib_deps_in_drivers" ]
           }
-        }
-
-        if (shlib_target_type == "loadable_module" &&
-            defined(invoker.install_path)) {
+        } else if (shlib_target_type == "loadable_module" &&
+                   defined(invoker.install_path)) {
           metadata = {
             manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
             manifest_lines = [ "${install_path}=" +
@@ -631,21 +617,15 @@ template("driver") {
     ]
 
     # It's an error to link against any shared library that's not on the
-    # whitelist.
-    #
-    # TODO: This doesn't actually work because libdriver.so depends on
-    # libfdio.so, which is not in the whitelist.  It's OK for it to have
-    # that dependency because it's the end of the line for the driver
-    # dependency policy itself, but there's no way to stop the traversal
-    # there with assert_no_deps.  It needs a barrier, as in get_metadata().
-    # So, replace the special deps with a metadata key {driver_blacklist=[true]}
-    # and then:
-    #   assert_no_metadata(
-    #       [ ":$target_name" ],
-    #       [ "driver_blacklist" ],
-    #       [ "driver_blacklist_barrier" ],
-    #       "driver(\"$target_name\") deps on shared libraries not allowed")
-    #assert_no_deps = [ "$zx/public/gn/config:no_shlib_deps_in_drivers" ]
+    # whitelist.  Those libraries set `driver_blackist=[]` while others (by
+    # default, see shared_library() above) set `driver_blacklist=[true]`.
+    if (false) {  #TODO
+      assert_no_metadata(
+          [ ":$target_name" ],
+          [ "driver_blacklist" ],
+          [ "driver_blacklist_barrier" ],
+          "driver(\"$target_name\") deps on shared libraries not allowed")
+    }
 
     # Set the standard install_path.
     if (!defined(output_name)) {
