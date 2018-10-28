@@ -20,7 +20,6 @@ library("ddk") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/pretty",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
