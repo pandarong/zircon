@@ -27,13 +27,10 @@ template("zbi_input") {
         manifest_args += [ "--entry=$entry" ]
       } else {
         # It's a manifest entry in the style of a copy() target.
-        targets = entry.outputs
-        assert(targets == [ targets[0] ],
-               "manifest entry outputs list must have exactly one element")
         foreach(source, entry.sources) {
           manifest_inputs += [ source ]
           source_path = rebase_path(source, root_build_dir)
-          foreach(target, process_file_template([ source ], targets)) {
+          foreach(target, process_file_template([ source ], entry.outputs)) {
             manifest_args += [ "--entry=${target}=${source_path}" ]
           }
         }
@@ -90,6 +87,7 @@ template("zbi") {
     forward_variables_from(invoker,
                            [
                              "deps",
+                             "metadata",
                              "visibility",
                              "testonly",
                            ])
