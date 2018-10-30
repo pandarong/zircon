@@ -52,7 +52,6 @@ library("fs") {
       "$zx/system/ulib/fdio",
       "$zx/system/ulib/fidl",
       "$zx/system/ulib/fidl-utils",
-      "$zx/system/ulib/fit",
       "$zx/system/ulib/sync",
       "$zx/system/ulib/trace",
       "$zx/system/ulib/trace-engine",

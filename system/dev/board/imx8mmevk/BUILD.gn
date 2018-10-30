@@ -2,21 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("nand-util") {
+driver("imx8mmevk") {
   sources = [
-    "aml.cpp",
-    "main.cpp",
+    "binding.c",
+    "imx8mmevk-gpio.cpp",
+    "imx8mmevk.cpp",
   ]
   deps += [
-    "$zx/system/fidl/fuchsia-nand:c",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/dev/lib/imx8m",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/fzl",
-    "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
-    "$zx/third_party/ulib/cksum",
   ]
 }

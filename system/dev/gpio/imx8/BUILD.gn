@@ -2,7 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("imx8") {
+group("imx8") {
+  deps = [
+    ":imx8.m",
+    ":imx8.m-mini",
+  ]
+}
+
+driver("imx8.m") {
   sources = [
     "imx8-gpio.c",
   ]
@@ -10,6 +17,18 @@ driver("imx8") {
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+driver("imx8.m-mini") {
+  sources = [
+    "imx8-gpio.c",
+    "imx8m-mini-gpio.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/imx8m",
+    "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
 }

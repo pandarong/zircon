@@ -12,6 +12,7 @@ library("blobfs") {
   if (is_fuchsia) {
     sources += [
       "blobfs.cpp",
+      "journal.cpp",
       "metrics.cpp",
       "rpc.cpp",
       "vnode.cpp",
@@ -29,6 +30,7 @@ library("blobfs") {
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio:headers",
+    "$zx/third_party/ulib/cksum",
     "$zx/third_party/ulib/lz4",
     "$zx/third_party/ulib/uboringssl",
   ]

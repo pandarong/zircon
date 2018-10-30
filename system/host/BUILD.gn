@@ -12,6 +12,7 @@ group("tools") {
     "blobfs",
     "bootserver",
     "fidl:tools",
+    "filterc",
     "fvm",
     "kernel-buildsig",
     "loglistener",

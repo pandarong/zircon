@@ -2,13 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("$zx/public/gn/fidl.gni")
-
-fidl_library("fuchsia-net-stack") {
+host_tool("filterc") {
   sources = [
-    "stack.fidl",
-  ]
-  deps = [
-    "$zx/system/fidl/fuchsia-net",
+    "filterc.cpp",
   ]
 }

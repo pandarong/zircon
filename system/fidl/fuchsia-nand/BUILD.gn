@@ -2,17 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-group("board") {
+import("$zx/public/gn/fidl.gni")
+
+fidl_library("fuchsia-nand") {
+  sources = [
+    "broker.fidl",
+  ]
   deps = [
-    "astro",
-    "gauss",
-    "hikey960",
-    "imx8mevk",
-    "imx8mmevk",
-    "machina",
-    "mt8167s_ref",
-    "qemu",
-    "sherlock",
-    "vim",
+    "$zx/system/fidl/zircon-nand",
   ]
 }
