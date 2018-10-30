@@ -13,6 +13,8 @@ group("acpi") {
 config_group("config") {
   visibility = [ ":*" ]
 
+  include_dirs = [ "include" ]
+
   if (enable_user_pci) {
     defines = [ "ENABLE_USER_PCI" ]
   }
@@ -28,14 +30,14 @@ driver("bus-acpi") {
     "bus-acpi.c",
     "cpu-trace.c",
     "debug.c",
-    "dev-battery.c",
-    "dev-cros-ec/dev.cpp",
-    "dev-cros-ec/motion.cpp",
-    "dev-ec.c",
-    "dev-pwrbtn.cpp",
-    "dev-pwrsrc.c",
-    "dev-tbmc.cpp",
-    "dev-thermal.c",
+    "dev/dev-battery.c",
+    "dev/dev-cros-ec/dev.cpp",
+    "dev/dev-cros-ec/motion.cpp",
+    "dev/dev-ec.c",
+    "dev/dev-pwrbtn.cpp",
+    "dev/dev-pwrsrc.c",
+    "dev/dev-tbmc.cpp",
+    "dev/dev-thermal.c",
     "init.c",
     "iommu.c",
     "methods.cpp",
