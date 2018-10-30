@@ -8,4 +8,7 @@ group("rtc") {
     "nxp",
     "pl031-rtc",
   ]
+  if (current_cpu == "x64") {
+    deps += [ "intel-rtc" ]
+  }
 }
