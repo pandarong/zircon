@@ -2,9 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("mipi") {
+driver("aml-mipicsi") {
   sources = [
     "aml-mipi-adap.cpp",
+    "aml-mipi-debug.cpp",
     "aml-mipi.cpp",
     "binding.c",
   ]
@@ -13,6 +14,7 @@ driver("mipi") {
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
