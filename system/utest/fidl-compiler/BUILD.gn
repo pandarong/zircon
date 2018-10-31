@@ -48,6 +48,7 @@ if (current_toolchain == default_toolchain) {
       "formatter_unittests.cpp",
       "json_generator_tests.cpp",
       "main.cpp",
+      "max_bytes_multipass_tests.cpp",
       "max_bytes_tests.cpp",
       "max_handle_tests.cpp",
       "parsing_tests.cpp",

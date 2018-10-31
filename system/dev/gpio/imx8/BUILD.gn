@@ -11,9 +11,10 @@ group("imx8") {
 
 driver("imx8.m") {
   sources = [
-    "imx8-gpio.c",
+    "imx8m-gpio.c",
   ]
   deps += [
+    ":common",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
@@ -23,12 +24,23 @@ driver("imx8.m") {
 
 driver("imx8.m-mini") {
   sources = [
-    "imx8-gpio.c",
     "imx8m-mini-gpio.c",
+  ]
+  deps += [
+    ":common",
+    "$zx/system/dev/lib/imx8m",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+source_set("common") {
+  visibility = [ ":*" ]
+  sources = [
+    "imx8-gpio.c",
   ]
   deps += [
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
   ]
 }

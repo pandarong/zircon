@@ -63,6 +63,7 @@ group("uapp") {
     "runtests",
     "serial-test",
     "spawn",
+    "storage-metrics",
     "strerror",
     "suspendtest",
     "sysconfig",
