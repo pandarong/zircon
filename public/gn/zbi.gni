@@ -12,11 +12,11 @@ template("zbi_input") {
   if (defined(invoker.deps) || defined(invoker.data_deps)) {
     manifest_file = "$target_gen_dir/${target_name}.manifest"
     write_file(manifest_file,
-               [ get_metadata(":$target_name", [ "manifest_lines" ]) ])
+               [ get_metadata([ ":$target_name" ], [ "manifest_lines" ]) ])
     manifest_args += [ rebase_path(manifest_file, root_build_dir) ]
     manifest_inputs += [
       manifest_file,
-      get_metadata(":$target_name", [ "manifest_inputs" ]),
+      get_metadata([ ":$target_name" ], [ "manifest_inputs" ]),
     ]
   }
 
