@@ -18,7 +18,6 @@ group("utest") {
     "$zx/system/dev/nand/skip-block:skip-block-test",
     "$zx/system/uapp/disk-pave:install-disk-image-test",
     "$zx/system/ulib/kvstore:kvstore-test",
-    "$zx/system/ulib/mdns:mdns-test",
     "$zx/system/ulib/tftp:tftp-test",
     "abigen",
     "async",

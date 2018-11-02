@@ -11,6 +11,7 @@ library("inspector") {
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/elf-search",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",
