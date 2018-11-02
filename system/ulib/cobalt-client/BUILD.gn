@@ -9,6 +9,7 @@ library("cobalt-client") {
     "counter.cpp",
     "event_buffer.cpp",
     "histogram.cpp",
+    "metric_info.cpp",
   ]
   deps += [
     "$zx/public/gn/config:visibility_hidden",

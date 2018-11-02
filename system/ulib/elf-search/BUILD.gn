@@ -6,6 +6,10 @@ library("elf-search") {
   sources = [
     "elf-search.cpp",
   ]
+  public_deps = [
+    "$zx/system/ulib/fbl:headers",
+    "$zx/system/ulib/zx:headers",
+  ]
   deps += [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
