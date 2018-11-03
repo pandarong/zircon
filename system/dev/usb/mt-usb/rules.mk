@@ -9,19 +9,15 @@ MODULE := $(LOCAL_DIR)
 MODULE_TYPE := driver
 
 MODULE_SRCS := \
-    $(LOCAL_DIR)/mt8167.cpp \
-    $(LOCAL_DIR)/mt8167-emmc.cpp \
-    $(LOCAL_DIR)/mt8167-soc.cpp \
-    $(LOCAL_DIR)/mt8167-gpio.cpp \
-    $(LOCAL_DIR)/mt8167-display.cpp \
-    $(LOCAL_DIR)/mt8167-i2c.cpp \
-    $(LOCAL_DIR)/mt8167-usb.cpp \
+    $(LOCAL_DIR)/mt-usb.cpp \
 
 MODULE_STATIC_LIBS := \
-    system/dev/lib/mt8167 \
+    system/dev/lib/usb \
     system/ulib/ddk \
     system/ulib/ddktl \
     system/ulib/fbl \
+    system/ulib/hwreg \
+    system/ulib/sync \
     system/ulib/zx \
     system/ulib/zxcpp \
 
