@@ -114,4 +114,7 @@ test:
 mipicsi:
 	$(run-banjo)
 
-all: acpi amlogic-canvas bad-block bt-hci clk gpio gpio-impl hidbus intel-hda-codec intel-hda-dsp iommu mailbox pci pciroot rawnand scpi sdhci sdio sdmmc serial serial-impl test mipicsi
+usb-dci:
+	$(run-banjo)
+
+all: acpi amlogic-canvas bad-block bt-hci clk gpio gpio-impl hidbus intel-hda-codec intel-hda-dsp iommu mailbox pci pciroot rawnand scpi sdhci sdio sdmmc serial serial-impl test mipicsi usb-dci
