@@ -758,12 +758,12 @@ int MtUsb::IrqThread() {
 
     for (uint8_t i = 1; i <= countof(eps_) / 2; i++) { 
         INDEX::Get().FromValue(0).set_selected_endpoint(i).WriteTo(mmio);
-        uint32_t fifo_addr = ((512 * i) >> 3);
+        uint32_t fifo_addr = ((1024 * i) >> 3);
         ZX_DEBUG_ASSERT(fifo_addr < UINT16_MAX);
         TXFIFOADD::Get().FromValue(0).set_txfifoadd(static_cast<uint16_t>(fifo_addr)).WriteTo(mmio);
         RXFIFOADD::Get().FromValue(0).set_rxfifoadd(static_cast<uint16_t>(fifo_addr)).WriteTo(mmio);
-        TXFIFOSZ::Get().FromValue(0).set_txdpb(0).set_txsz(FIFO_SIZE_512).WriteTo(mmio);
-        RXFIFOSZ::Get().FromValue(0).set_rxdpb(0).set_rxsz(FIFO_SIZE_512).WriteTo(mmio);
+        TXFIFOSZ::Get().FromValue(0).set_txdpb(1).set_txsz(FIFO_SIZE_1024).WriteTo(mmio);
+        RXFIFOSZ::Get().FromValue(0).set_rxdpb(1).set_rxsz(FIFO_SIZE_1024).WriteTo(mmio);
     }
 
     while (true) {
