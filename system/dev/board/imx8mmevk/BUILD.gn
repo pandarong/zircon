@@ -17,4 +17,7 @@ driver("imx8mmevk") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
+  data_deps = [
+    "$zx/kernel/target/arm64/boot-shim:imx8mmevk",
+  ]
 }

@@ -146,7 +146,7 @@ template("config") {
 #   public_deps
 #     Optional: As for group().  This is the way to refer to other
 #     config_group() targets.  Every dependent of this target will also use
-#     the switches of theconfig_group() targets in `public_deps`.
+#     the switches of the config_group() targets in `public_deps`.
 #
 template("config_group") {
   _config_name = target_name
@@ -777,9 +777,21 @@ template("host_tool") {
     }
     if (is_host && false) {  #TODO
       metadata = {
+        # List of tool binaries that could be presented to users' command line.
         tool_executables = [ "$target_out_dir/$output_name" ]
         if (output_extension != "") {
           tool_executables[0] += ".$output_extension"
+        }
+
+        # See host_tool_action().
+        host_tool_barrier = []
+        if (defined(toolchain.host_run_env)) {  # TODO: sanitizer case
+          host_tool_action_script = [ "/usr/bin/env" ]
+          host_tool_action_inputs = tool_executables
+          host_tool_action_args = toolchain.host_run_env +
+                                  rebase_path(tool_executables, root_build_dir)
+        } else {
+          host_tool_action_script = tool_executables
         }
       }
     }
