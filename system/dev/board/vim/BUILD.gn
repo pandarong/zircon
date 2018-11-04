@@ -28,4 +28,10 @@ driver("vim") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+  if (false) {  #TODO
+    metadata = {
+      # The VIM has native ZBI support, so no extra image-packing is required.
+      bootimage_script = "/bin/true"
+    }
+  }
 }

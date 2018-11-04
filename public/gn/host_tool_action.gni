@@ -28,6 +28,7 @@ template("_host_tool_action_target") {
                              "depfile",
                              "deps",
                              "inputs",
+                             "metadata",
                              "outputs",
                              "public_deps",
                              "sources",
@@ -40,30 +41,26 @@ template("_host_tool_action_target") {
     if (!defined(inputs)) {
       inputs = []
     }
-
     deps += [ ":_tool.$action_target" ]
 
-    # TODO
-    if (false) {
-      script = get_metadata([ "_tool.$action_target" ],
+    if (false) {  # TODO
+      script = get_metadata([ ":_tool.$action_target" ],
                             [ "host_tool_action_script" ],
                             [ "host_tool_barrier" ])
-      inputs += [ get_metadata([ "_tool.$action_target" ],
+      inputs += [ get_metadata([ ":_tool.$action_target" ],
                                [ "host_tool_action_inputs" ],
                                [ "host_tool_barrier" ]) ]
-      args = [ get_metadata([ "_tool.$action_target" ],
+      args = [ get_metadata([ ":_tool.$action_target" ],
                             [ "host_tool_action_args" ],
-                            [ "host_tool_barrier" ]) ]
+                            [ "host_tool_barrier" ]) ] + invoker.args
     } else {
       _host_toolchain = "$zx/public/gn/toolchain:host-$host_cpu-$host_os-clang"
-      tool_out_dir = get_label_info("${invoker.tool}($_host_toolchain)",
-                                    "target_out_dir")
+      tool_out_dir =
+          get_label_info("${invoker.tool}($_host_toolchain)", "target_out_dir")
       script = "$tool_out_dir/" +
                get_label_info("${invoker.tool}($_host_toolchain)", "name")
-      args = []
+      args = invoker.args
     }
-
-    args += invoker.args
   }
 }
 

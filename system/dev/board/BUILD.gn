@@ -4,15 +4,19 @@
 
 group("board") {
   deps = [
-    "astro",
-    "gauss",
-    "hikey960",
-    "imx8mevk",
-    "imx8mmevk",
     "machina",
-    "mt8167s_ref",
     "qemu",
-    "sherlock",
-    "vim",
   ]
+  if (current_cpu == "arm64") {
+    deps += [
+      "astro",
+      "gauss",
+      "hikey960",
+      "imx8mevk",
+      "imx8mmevk",
+      "mt8167s_ref",
+      "sherlock",
+      "vim",
+    ]
+  }
 }

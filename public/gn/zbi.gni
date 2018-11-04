@@ -61,6 +61,9 @@ template("zbi_input") {
         zbi_input_args += rebase_path(zbi_inputs, root_build_dir)
       }
       zbi_input_args += manifest_args
+      if (defined(invoker.metadata)) {
+        forward_variables_from(invoker.metadata, "*")
+      }
     }
   }
 }
@@ -123,19 +126,24 @@ template("zbi") {
   }
 }
 
-# TODO: example
-zbi("zedboot") {
-  deps = [
-    ":netboot-config($default_toolchain)",
-    "$zx/public/core",
-    "$zx/public/drivers",
-  ]
-}
-if (current_toolchain == default_toolchain) {
-  zbi_input("netboot-config") {
-    visibility = [ ":zedboot" ]
-    devmgr_config = "$target_gen_dir/$target_name.txt"
-    write_file(devmgr_config, [ "netsvc.netboot=true" ])
+template("devmgr_config") {
+  zbi_input(target_name) {
+    args = []
+    forward_variables_from(invoker,
+                           [
+                             "args",
+                             "deps",
+                             "metadata",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (defined(visibility)) {
+      visibility += [ ":$target_name" ]
+    }
+    devmgr_config = "$target_gen_dir/$target_name.devmgr_config.txt"
+    write_file(
+        devmgr_config,
+        args + [ get_metadata([ ":$target_name" ], [ "devmgr_config" ]) ])
     manifest = {
       sources = [
         devmgr_config,
@@ -145,4 +153,98 @@ if (current_toolchain == default_toolchain) {
       ]
     }
   }
+}
+
+template("bootimage") {
+  zbi_target = target_name
+  img_target = "${target_name}.img"
+  devmgr_config_target = "${target_name}.devmgr_config"
+
+  # Always generate a /boot/config/devmgr file that rolls up
+  # the metadata.devmgr_config lists from deps.
+  devmgr_config(devmgr_config_target) {
+    visibility = [ ":$zbi_target" ]
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "testonly",
+                           ])
+  }
+
+  # The main target is a bootable zbi() that rolls up every zbi_input() and
+  # metadata.devmgr_config list from deps.
+  zbi(zbi_target) {
+    deps = []
+    forward_variables_from(invoker,
+                           [
+                             "cpu",
+                             "deps",
+                             "metadata",
+                             "output_name",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (!defined(cpu)) {
+      cpu = current_cpu
+    }
+    assert(cpu != "", "bootimage() requires `cpu`")
+    if (defined(visibility)) {
+      visibility += [ ":$img_target" ]
+    }
+    deps += [ ":$devmgr_config" ]
+    data_deps = [  # TODO: probably counts as circular
+      ":$img_target",
+    ]
+  }
+
+  # The secondary target is a board-specific wrapping of the ZBI made
+  # above.  The metadata flowing up from $zx/system/dev/board/$board
+  # supplies the details of how this is made.
+  action(img_target) {
+    visibility = [ ":$zbi_target" ]
+    forward_variables_from(invoker,
+                           [
+                             "output_name",
+                             "testonly",
+                           ])
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
+    outputs = [
+      "$root_build_dir/$output_name",
+    ]
+    script = get_metadata([ ":$zbi_target" ], [ "bootimage_script" ])
+    sources = [
+      get_metadata([ ":$zbi_target" ], [ "bootimage_inputs" ]),
+    ]
+    args = [ get_metadata([ ":$zbi_target" ], [ "bootimage_args" ]) ] +
+           rebase_path(get_target_outputs(":$zbi_target") + outputs,
+                       root_build_dir)
+  }
+}
+
+# TODO: example
+
+bootimage("sherlock-zedboot") {
+  deps = [
+    ":zedboot",
+    "$zx/system/dev/board/sherlock",
+  ]
+}
+
+group("zedboot") {
+  deps = [
+    "$zx/public/core",
+    # TODO: some group() of useful diag/debug tools
+  ]
+  metadata = {
+    devmgr_config = [ "netsvc.netboot=true" ]
+  }
+}
+
+group("recovery") {
+  deps = [
+    "$zx/public/core",
+    # TODO: some group() of useful diag/recovery tools
+  ]
 }

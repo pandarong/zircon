@@ -104,8 +104,5 @@ if (current_toolchain == default_toolchain) {
       "$zx/kernel/syscalls:syscall-abi",
       "$zx/system/ulib/bitmap",
     ]
-    data_deps = [
-      "$zx/kernel/target/arm64/boot-shim",
-    ]
   }
 }

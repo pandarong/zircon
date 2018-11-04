@@ -5,12 +5,12 @@
 group("dev") {
   testonly = true
   deps = [
-    "$zx/system/dev/board/qemu:qemu-test",
     "$zx/system/ulib/ddktl:ddktl-test",
     "audio",
     "block",
     "bluetooth",
     "board",
+    "board/qemu:qemu-test",
     "bus",
     "camera",
     "clk",

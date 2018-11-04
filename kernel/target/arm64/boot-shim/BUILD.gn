@@ -7,26 +7,11 @@
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 
-boards = [
-  "hikey960",
-  "imx8mevk",
-  "mt8167s_ref",
-  "qemu",
-  "sherlock",
-]
-
-group("boot-shim") {
-  deps = []
-  foreach(board, boards) {
-    deps += [ ":$board" ]
-  }
-}
+assert(current_cpu == "arm64")
 
 # The boot shims need to be compiled in the special environment for running
 # in physical memory with the MMU disabled.
 if (toolchain.environment == "physmem") {
-  assert(current_cpu == "arm64")
-
   source_set("common") {
     visibility = [ ":*" ]
     sources = [
@@ -41,16 +26,22 @@ if (toolchain.environment == "physmem") {
       "$zx/system/ulib/libzbi",
     ]
   }
+}
 
-  foreach(board, boards) {
+template("boot_shim") {
+  board = target_name
+
+  if (toolchain.environment == "physmem") {
     executable("${board}-boot-shim.elf") {
+      deps += [ ":common" ]
       sources = [
         "${board}-uart.c",
         "boot-shim.c",
       ]
       defines = [ "KERNEL_ALIGN=0x10000" ]
+
+      # TODO(mcgrathr): Move these to ./$board-config.h and use a -D.
       include_dirs = [ "$zx/kernel/target/arm64/board/$board" ]
-      deps += [ ":common" ]
       inputs = [
         "boot-shim.ld",
       ]
@@ -60,6 +51,11 @@ if (toolchain.environment == "physmem") {
       ]
     }
     image_binary(board) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
       deps = [
         ":${board}-boot-shim.elf",
       ]
@@ -69,16 +65,59 @@ if (toolchain.environment == "physmem") {
       sources = [
         "$target_out_dir/${board}-boot-shim.elf",
       ]
+      if (false) {  #TODO
+        metadata = {
+          bootimage_inputs = outputs
+          bootimage_script = [ invoker.script ]
+          bootimage_args = invoker.args + rebase_path(outputs, root_build_dir)
+        }
+      } else {
+        not_needed(invoker,
+                   [
+                     "args",
+                     "script",
+                   ])
+      }
     }
-  }
-} else {
-  foreach(board, boards) {
+  } else {
     select_toolchain(board) {
-      cpu = "arm64"
       environment_label = "$zx/kernel/arch/arm64:physmem"
       deps = [
         ":$board",
       ]
     }
+    not_needed(invoker, "*")
   }
+}
+
+boot_shim("hikey960") {
+  script = "..."  # TODO: cat $1 $2 | gzip -9n > $3
+  args = []
+}
+
+boot_shim("imx8mevk") {
+  script = "..."  # TODO: avb, mkbootimg
+  args = []
+}
+
+boot_shim("imx8mmevk") {
+  script = "..."  # TODO: avb, mkbootimg
+  args = []
+}
+
+boot_shim("mt8167s_ref") {
+  script = "..."  # TODO: avb, append
+  args = []
+}
+
+boot_shim("qemu") {
+  # The "image" for the QEMU "board" is just a response file pointing to
+  # the shim, which acts as QEMU's kernel, with the ZBI as initrd.
+  script = "..."  # TODO: echo "-kernel $1 -initrd $2" > $3
+  args = []
+}
+
+boot_shim("sherlock") {
+  script = "..." # TODO: kdtb
+  args = []
 }
