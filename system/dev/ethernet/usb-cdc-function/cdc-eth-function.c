@@ -60,6 +60,9 @@ typedef struct {
     uint8_t bulk_in_addr;
     uint8_t intr_addr;
     uint16_t bulk_max_packet;
+
+    thrd_t intr_thread;
+    bool intr_thread_running;
 } usb_cdc_t;
 
  static struct {
@@ -324,7 +327,7 @@ static void cdc_send_notifications(usb_cdc_t* cdc) {
     req = list_remove_head_type(&cdc->intr_reqs, usb_request_t, node);
     mtx_unlock(&cdc->intr_mutex);
     if (!req) {
-        zxlogf(ERROR, "%s: no interrupt request available\n", __FUNCTION__);
+        // It's OK, we will try again later.
         return;
     }
 
@@ -336,7 +339,7 @@ static void cdc_send_notifications(usb_cdc_t* cdc) {
     req = list_remove_head_type(&cdc->intr_reqs, usb_request_t, node);
     mtx_unlock(&cdc->intr_mutex);
     if (!req) {
-        zxlogf(ERROR, "%s: no interrupt request available\n", __FUNCTION__);
+        // It's OK, we will try again later.
         return;
     }
 
@@ -424,6 +427,19 @@ static zx_status_t cdc_control(void* ctx, const usb_setup_t* setup, void* buffer
     return ZX_ERR_NOT_SUPPORTED;
 }
 
+static int cdc_intr_thread(void* arg) {
+    usb_cdc_t* cdc = arg;
+
+    while (cdc->configured) {    
+        // send status notifications on interrupt endpoint
+        cdc_send_notifications(cdc);
+        // The Ankur CDC ethernet dongle sends these packets @ 16 Hertz.
+        // We imitate that behavior here.
+        zx_nanosleep(zx_deadline_after(ZX_MSEC(1000 / 16)));
+    }
+    return 0;
+}
+
 static zx_status_t cdc_set_configured(void* ctx, bool configured, usb_speed_t speed) {
     zxlogf(TRACE, "%s: %d %d\n", __FUNCTION__, configured, speed);
     usb_cdc_t* cdc = ctx;
@@ -450,7 +466,13 @@ static zx_status_t cdc_set_configured(void* ctx, bool configured, usb_speed_t sp
     }
     cdc->configured = configured;
 
-    cdc_send_notifications(cdc);
+    if (configured && !cdc->intr_thread_running) {
+        thrd_create_with_name(&cdc->intr_thread, cdc_intr_thread, cdc, "cdc_intr_thread");
+        cdc->intr_thread_running = true;
+    } else if (!configured && cdc->intr_thread_running) {
+        thrd_join(cdc->intr_thread, NULL);
+        cdc->intr_thread_running = false;
+    }
 
     return ZX_OK;
 }
@@ -499,9 +521,6 @@ static zx_status_t cdc_set_interface(void* ctx, unsigned interface, unsigned alt
     }
     mtx_unlock(&cdc->ethmac_mutex);
 
-    // send status notifications on interrupt endpoint
-    cdc_send_notifications(cdc);
-
     return status;
 }
 
@@ -515,6 +534,12 @@ usb_function_interface_ops_t device_ops = {
 static void usb_cdc_unbind(void* ctx) {
     zxlogf(TRACE, "%s\n", __FUNCTION__);
     usb_cdc_t* cdc = ctx;
+
+    cdc->configured = false;
+    if (cdc->intr_thread_running) {
+        thrd_join(cdc->intr_thread, NULL);
+        cdc->intr_thread_running = false;
+    }
 
     mtx_lock(&cdc->tx_mutex);
     cdc->unbound = true;
