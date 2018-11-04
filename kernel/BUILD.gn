@@ -153,11 +153,7 @@ if (current_toolchain == default_toolchain) {
 
     deps += [
       ":kernel_defsym",
-      ":test",
-      "arch/$zircon_cpu",
-      "lib/ktrace",
-      "lib/userboot",
-      "syscalls",
+      ":test",  # TODO: make optional, add testonly taint
       "top",
     ]
 
@@ -169,7 +165,6 @@ if (current_toolchain == default_toolchain) {
   }
 
   # Output file of that target.
-  # TODO: zircon_elf = get_metadata([":zircon"], ["runtime_outputs"], [])
   zircon_elf = "$target_out_dir/zircon.elf"
 
   # These are needed only in image.S and in the linker scripts.
@@ -186,10 +181,10 @@ if (current_toolchain == default_toolchain) {
 
   # TODO: From project/virtual/test.mk
   group("test") {
+    #TODO: testonly = true
     visibility = [ ":*" ]
     deps = [
       "lib/debugcommands",
-      "lib/version",
       "tests",
     ]
   }

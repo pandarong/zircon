@@ -30,6 +30,7 @@ library("vdso") {
       ":rodso",
       ":vdso-code-header",
       "$zx/kernel/lib/version:config-buildid-header",
+      "$zx/kernel/syscalls",
       "$zx/system/ulib/fbl",
     ]
     public_deps = [

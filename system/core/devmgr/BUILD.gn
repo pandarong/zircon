@@ -179,6 +179,7 @@ driver("dmctl") {
   ]
   deps += [
     "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/port",
     "$zx/system/ulib/zircon",

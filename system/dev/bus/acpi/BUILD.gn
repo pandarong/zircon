@@ -4,6 +4,8 @@
 
 import("$zx/kernel/params.gni")
 
+assert(current_cpu == "x64")
+
 group("acpi") {
   deps = [
     ":bus-acpi",

@@ -41,6 +41,7 @@ source_set("syscalls") {
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/gfxconsole",
+    "$zx/kernel/lib/ktrace",
     "$zx/kernel/lib/mtrace",
     "$zx/kernel/lib/pci",
     "$zx/kernel/lib/user_copy",
@@ -61,7 +62,7 @@ source_set("dispatch") {
   ]
   deps += [
     ":syscall-abi",
-    "$zx/kernel/lib/vdso",
+    "$zx/kernel/lib/vdso:headers",
   ]
 }
 
