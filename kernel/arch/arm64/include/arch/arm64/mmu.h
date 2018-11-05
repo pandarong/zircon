@@ -298,6 +298,9 @@
                         MMU_TCR_T0SZ(64 - MMU_IDENT_SIZE_SHIFT))
 #define MMU_TCR_FLAGS_IDENT (MMU_TCR_IPS_DEFAULT | MMU_TCR_FLAGS1 | MMU_TCR_FLAGS0_IDENT)
 
+#define MMU_TCR_FLAGS_IDENT1 (MMU_TCR_IPS_DEFAULT | MMU_TCR_FLAGS1 | \
+                        MMU_TCR_FLAGS0_IDENT | MMU_TCR_AS | MMU_TCR_A1)
+
 #define MMU_TCR_FLAGS_KERNEL (MMU_TCR_IPS_DEFAULT | \
                               MMU_TCR_FLAGS1 | \
                               MMU_TCR_FLAGS0 | \

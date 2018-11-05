@@ -184,6 +184,17 @@ FUNCTION(_start)
     movlit  tmp, MMU_TCR_FLAGS_IDENT
     msr     tcr_el1, tmp
 
+    // When mapping kernelspace and userspace with different
+    // ASIDs, check if tcr_el1 is not getting updated (ie; set to 0)
+    // In this case, move the ASID to TTBR1 else, this will result in
+    // an invalid mapping
+    mrs     tmp, tcr_el1
+    cbnz    tmp, .Lttbr1_el1_asid
+
+    movlit  tmp, MMU_TCR_FLAGS_IDENT1
+    msr     tcr_el1, tmp
+
+.Lttbr1_el1_asid:
     isb
 
     /* Write ttbr with phys addr of the translation table */
