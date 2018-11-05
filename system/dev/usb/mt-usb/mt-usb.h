@@ -19,10 +19,6 @@
 
 #include <threads.h>
 
-// DMA support is a work in progress.
-// Does not actually work yet.
-#define USE_DMA 1
-
 namespace mt_usb {
 
 class MtUsb;
@@ -73,13 +69,6 @@ private:
         EpDirection direction;
         uint8_t address;
 
-#ifdef USE_DMA
-        // DMA channel number allocated to this endpoint.
-        uint8_t dma_channel;
-        // Physical address for current DMA transaction
-        zx_paddr_t dma_phys;
-#endif
-
         bool enabled  __TA_GUARDED(lock) = false;
         uint16_t max_packet_size;
 
@@ -103,9 +92,6 @@ private:
     void HandleSuspend();
     void HandleReset();
     void HandleEp0();
-#ifdef USE_DMA
-    void HandleDma();
-#endif
     void HandleEndpointTxLocked(Endpoint* ep) __TA_REQUIRES(ep->lock);
     void HandleEndpointRxLocked(Endpoint* ep) __TA_REQUIRES(ep->lock);
 
@@ -116,14 +102,6 @@ private:
     void StartEndpoints();
 
     static uint8_t EpAddressToIndex(uint8_t addr);
-
-#ifdef USE_DMA
-    static constexpr uint8_t DMA_CHANNEL_COUNT = 8;
-    static constexpr uint8_t DMA_CHANNEL_INVALID = 0xff;
-
-    zx_status_t AllocDmaChannel(Endpoint* ep);
-    void ReleaseDmaChannel(Endpoint* ep);
-#endif
 
     inline ddk::MmioBuffer* usb_mmio() {
         return &*usb_mmio_;
@@ -143,18 +121,11 @@ private:
     thrd_t irq_thread_;
 
     // Number of endpoints we support, not counting ep0.
-    // We are limited to 8 DMA channels so we will really allow a total of 8.
-    // But we use 16 here since we keep IN and OUT endpoints separate in the "eps_" array.
     static constexpr size_t NUM_EPS = 16;
 
     // Endpoints are mapped 0x01 -> 0, 0x81 -> 1, 0x02 -> 2, 0x82 -> 3, ...
     // Even index: OUT, odd index: IN.
     Endpoint eps_[NUM_EPS];
-
-#ifdef USE_DMA
-   // Maps DMA channels to the endpoints that use them.
-    Endpoint* dma_eps_[DMA_CHANNEL_COUNT] = {};
-#endif
 
     // Address assigned to us by the host.
     uint8_t address_ = 0;

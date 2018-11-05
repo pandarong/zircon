@@ -40,26 +40,6 @@ uint8_t MtUsb::EpAddressToIndex(uint8_t addr) {
     }
 }
 
-#ifdef USE_DMA
-zx_status_t MtUsb::AllocDmaChannel(Endpoint* ep) {
-    for (uint8_t i = 0; i < DMA_CHANNEL_COUNT; i++) {
-        if (dma_eps_[i] == nullptr) {
-            ep->dma_channel = i;
-            dma_eps_[i] = ep;
-            return ZX_OK;
-        }
-    }
-    return ZX_ERR_NO_RESOURCES;
-}
-
-void MtUsb::ReleaseDmaChannel(Endpoint* ep) {
-    if (ep->dma_channel < DMA_CHANNEL_COUNT) {
-        dma_eps_[ep->dma_channel] = nullptr;
-    }
-    ep->dma_channel = DMA_CHANNEL_INVALID;
-}
-#endif
-
 zx_status_t MtUsb::Create(zx_device_t* parent) {
     pdev_protocol_t pdev;
 
@@ -95,9 +75,6 @@ void MtUsb::InitEndpoints() {
 
         fbl::AutoLock lock(&ep->lock);
         ep->current_req = nullptr;
-#ifdef USE_DMA
-        ep->dma_channel = DMA_CHANNEL_INVALID;
-#endif
     }
 }
 
@@ -393,53 +370,7 @@ void MtUsb::HandleEndpointTxLocked(Endpoint* ep) {
     if (req) {
         auto write_length = req->header.length - ep->cur_offset;
  
- printf("req->header.length %zu ep->cur_offset %zu write_length %zu\n", req->header.length, ep->cur_offset, write_length);
         if (write_length > 0) {
-#ifdef USE_DMA
-            uint32_t dma_channel = ep->dma_channel;
-
-            phys_iter_t iter;
-            zx_paddr_t phys;
-            usb_request_physmap(req, bti_.get());
-            usb_request_phys_iter_init(&iter, req, PAGE_SIZE);
-            usb_request_phys_iter_next(&iter, &phys);
-            // This controller only supports 32-bit addresses
-            ZX_DEBUG_ASSERT(phys < UINT32_MAX);
-
-            phys += ep->cur_offset;
-            ep->dma_phys = phys;
-
-            DMA_ADDR::Get(dma_channel)
-                .FromValue(0)
-                .set_addr(static_cast<uint32_t>(phys))
-                .WriteTo(mmio);
-    
-            DMA_COUNT::Get(dma_channel)
-                .FromValue(0)
-                .set_count(static_cast<uint32_t>(write_length))
-                .WriteTo(mmio);
-printf("Set DMA_COUNT %zu\n", write_length);
-ep->cur_offset += write_length;
-    
-            DMA_CNTL::Get(dma_channel)
-                .FromValue(0)
-                .set_burst_mode(3)
-                .set_endpoint(ep_num)
-                .set_inten(1)
-                .set_dir(1)
-                .set_enable(1)
-                .WriteTo(mmio);
-
-// wait for dma interrupt                
-/*
-                txcsr.ReadFrom(mmio)
-                     .set_dmareqen(0)
-                     .set_dmareqmode(0)
-                     .set_txpktrdy(1)
-                     .WriteTo(mmio);
-*/
-
-#else
             void* vaddr;
             auto status = usb_request_mmap(req, &vaddr);
             if (status != ZX_OK) {
@@ -460,7 +391,6 @@ ep->cur_offset += write_length;
                     .set_txpktrdy(1)
                     .WriteTo(mmio);
             }
-#endif
         } else {
             req->response.status = ZX_OK;
             req->response.actual = req->header.length;
@@ -492,46 +422,6 @@ void MtUsb::HandleEndpointRxLocked(Endpoint* ep) {
     usb_request_t* req = ep->current_req;
     if (req) {
         __UNUSED size_t length = req->header.length;
-#ifdef USE_DMA
-        size_t count = RXCOUNT::Get(ep->ep_num).ReadFrom(mmio).rxcount();
-printf("RXCOUNT %zu\n", count);
-
-
-        uint32_t dma_channel = ep->dma_channel;
-
-        phys_iter_t iter;
-        zx_paddr_t phys;
-        usb_request_physmap(req, bti_.get());
-        usb_request_phys_iter_init(&iter, req, PAGE_SIZE);
-        usb_request_phys_iter_next(&iter, &phys);
-        // This controller only supports 32-bit addresses
-        ZX_DEBUG_ASSERT(phys < UINT32_MAX);
-
-        phys += ep->cur_offset;
-        ep->dma_phys = phys;
-
-        DMA_ADDR::Get(dma_channel)
-            .FromValue(0)
-            .set_addr(static_cast<uint32_t>(phys))
-            .WriteTo(mmio);
-
-        DMA_COUNT::Get(dma_channel)
-            .FromValue(0)
-            .set_count(static_cast<uint32_t>(count))
-            .WriteTo(mmio);
-
-        DMA_CNTL::Get(dma_channel)
-            .FromValue(0)
-            .set_burst_mode(3)
-            .set_endpoint(ep_num)
-            .set_inten(1)
-            .set_dir(0)
-            .set_enable(1)
-            .WriteTo(mmio);
-
-//        rxcsr.ReadFrom(mmio).set_dmareqen(0).set_dmareqmode(0).set_rxpktrdy(0).WriteTo(mmio);
-
-#else
         void* vaddr;
         auto status = usb_request_mmap(req, &vaddr);
         if (status != ZX_OK) {
@@ -563,78 +453,12 @@ printf("RXCOUNT %zu\n", count);
                 list_add_tail(&ep->complete_reqs, &req->node);
             }
         }
-#endif
     }
 
     if (ep->enabled && ep->current_req == nullptr) {
         EpQueueNextLocked(ep);
     }
 }
-
-#ifdef USE_DMA
-void MtUsb::HandleDma() {
-    auto* mmio = usb_mmio();
-
-    auto dma_intr = DMA_INTR::Get().ReadFrom(mmio).WriteTo(mmio);
-    auto status = dma_intr.status();
-    
-    for (uint32_t channel = 0; channel < DMA_CHANNEL_COUNT; channel++) {
-        if (status & (1 << channel)) {
-            auto dma_cntl = DMA_CNTL::Get(channel).ReadFrom(mmio);
-            if (dma_cntl.dma_abort()) {
-                printf("XXXXX dma_abort for channel %u\n", channel);
-            }
-
-            Endpoint* ep = dma_eps_[channel];
-            if (!ep) {
-                zxlogf(ERROR, "DMA interrupt for channel %u with no endpoint\n", channel);
-                continue;
-            }
-
-            // requests to complete outside of the lock
-            list_node_t complete_reqs;
-            list_initialize(&complete_reqs);
-            {
-                fbl::AutoLock lock(&ep->lock);
-
-                zx_paddr_t new_phys = DMA_ADDR::Get(channel).ReadFrom(mmio).addr();
-                size_t count = DMA_COUNT::Get(channel).ReadFrom(mmio).count();
-
-//                if (ep->dma_phys && new_phys > ep->dma_phys) {
-//                    ep->cur_offset += (new_phys - ep->dma_phys);
-//                }
-
-
-                if (ep->direction == EP_IN) {
-//                    HandleEndpointTxLocked(ep);
-printf("HandleDma count %zu ep->dma_phys %zu new_phys %zu\n", count, ep->dma_phys, new_phys);
-
-printf("HandleDma set txpktrdy\n");
-                 TXCSR_PERI::Get(ep->ep_num).ReadFrom(mmio)
-                     .set_dmareqen(1)
-                     .set_dmareqmode(0)
-                     .set_txpktrdy(1)
-                     .WriteTo(mmio);
-
-
-                } else {
-//                    HandleEndpointRxLocked(ep);
-printf("clear rxpktrdy\n");
-RXCSR_PERI::Get(ep->ep_num).ReadFrom(mmio).set_rxpktrdy(0).WriteTo(mmio);
-                }
-
-                list_move(&ep->complete_reqs, &complete_reqs);
-            }
-
-            // Requests must be completed outside of the lock.
-            usb_request_t* req;
-            while ((req = list_remove_head_type(&complete_reqs, usb_request_t, node))) {
-                usb_request_complete(req, req->response.status, req->response.actual);
-            }
-        }
-    }
-}
-#endif
 
 void MtUsb::EpQueueNextLocked(Endpoint* ep) {
     __UNUSED auto* mmio = usb_mmio();
@@ -644,14 +468,6 @@ void MtUsb::EpQueueNextLocked(Endpoint* ep) {
         (req = list_remove_head_type(&ep->queued_reqs, usb_request_t, node)) != nullptr) {
         ep->current_req = req;
         ep->cur_offset = 0;
-#ifdef USE_DMA
-        ep->dma_phys = 0;
-        if (ep->direction == EP_IN) {
-            usb_request_cache_flush(req, 0, req->header.length);
-        } else {
-            usb_request_cache_flush_invalidate(req, 0, req->header.length);
-        }
-#endif
 
         if (ep->direction == EP_IN) {
             HandleEndpointTxLocked(ep);
@@ -774,17 +590,7 @@ int MtUsb::IrqThread() {
         .set_tx(1)
         .set_rx(1)
         .set_usbcom(1)
-#ifdef USE_DMA
-        .set_dma(1)
-#endif
         .WriteTo(mmio);
-
-#ifdef USE_DMA
-    DMA_INTR::Get()
-        .ReadFrom(mmio)
-        .set_unmask_set(0xff)
-        .WriteTo(mmio);
-#endif
 
     for (uint8_t i = 1; i <= countof(eps_) / 2; i++) { 
         INDEX::Get().FromValue(0).set_selected_endpoint(i).WriteTo(mmio);
@@ -874,12 +680,6 @@ int MtUsb::IrqThread() {
             }
         }
 
-#ifdef USE_DMA
-        if (l1ints.dma()) {
-            HandleDma();
-        }
-#endif
-
         if (intrusb.discon()) printf("    DISCONNECT\n");
         if (intrusb.conn()) printf("    CONNECT\n");
         if (intrusb.resume()) printf("    RESUME\n");
@@ -962,15 +762,6 @@ zx_status_t MtUsb::UsbDciSetInterface(const usb_dci_interface_t* interface) {
     }
 
     ep->address = ep_address;
-
-#ifdef USE_DMA
-    auto status = AllocDmaChannel(ep);
-    if (status != ZX_OK) {
-        zxlogf(ERROR, "%s: AllocDmaChannel failed for endpoint %02x: %d\n", __func__,
-               ep_desc->bEndpointAddress, status);
-        return status;
-    }
-#endif
 
     // TODO synchronize here?
     if (ep->direction == EP_IN) {    
