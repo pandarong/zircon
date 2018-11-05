@@ -14,5 +14,6 @@ library("zxs") {
     "$zx/public/gn/config:visibility_hidden",
     "$zx/system/fidl/fuchsia-net:c",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
   ]
 }
