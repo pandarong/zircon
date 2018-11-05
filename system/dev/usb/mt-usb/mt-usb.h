@@ -85,6 +85,7 @@ private:
     };
 
     zx_status_t Init();
+    void InitEndpoint(Endpoint* ep, uint8_t ep_num, EpDirection direction);
     void InitEndpoints();
     void InitPhy();
     int IrqThread();
@@ -101,7 +102,7 @@ private:
     void StartEndpoint(Endpoint* ep);
     void StartEndpoints();
 
-    static uint8_t EpAddressToIndex(uint8_t addr);
+    Endpoint* EndpointFromAddress(uint8_t addr);
 
     inline ddk::MmioBuffer* usb_mmio() {
         return &*usb_mmio_;
@@ -121,11 +122,10 @@ private:
     thrd_t irq_thread_;
 
     // Number of endpoints we support, not counting ep0.
-    static constexpr size_t NUM_EPS = 16;
+    static constexpr size_t NUM_EPS = 15;
 
-    // Endpoints are mapped 0x01 -> 0, 0x81 -> 1, 0x02 -> 2, 0x82 -> 3, ...
-    // Even index: OUT, odd index: IN.
-    Endpoint eps_[NUM_EPS];
+    Endpoint out_eps_[NUM_EPS];
+    Endpoint in_eps_[NUM_EPS];
 
     // Address assigned to us by the host.
     uint8_t address_ = 0;

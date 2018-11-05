@@ -31,12 +31,17 @@
 
 namespace mt_usb {
 
-uint8_t MtUsb::EpAddressToIndex(uint8_t addr) {
-    // map 0x01 -> 0, 0x81 -> 1, 0x02 -> 2, 0x82 -> 3, ...
-    if (addr & USB_ENDPOINT_DIR_MASK) {
-        return static_cast<uint8_t>(2 * (addr & USB_ENDPOINT_NUM_MASK) - 1);
+MtUsb::Endpoint* MtUsb::EndpointFromAddress(uint8_t addr) {
+    size_t ep_num = addr & USB_ENDPOINT_NUM_MASK;
+    if (ep_num == 0 || ep_num > NUM_EPS) {
+        zxlogf(ERROR, "%s: invalid endpoint address %02x\n", __func__, addr);
+        return nullptr;
+    }
+    
+    if ((addr & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN) {
+        return &in_eps_[ep_num - 1];
     } else {
-        return static_cast<uint8_t>(2 * (addr & USB_ENDPOINT_NUM_MASK) - 2);
+        return &out_eps_[ep_num - 1];
     }
 }
 
@@ -64,17 +69,23 @@ zx_status_t MtUsb::Create(zx_device_t* parent) {
     return ZX_OK;
 }
 
+void MtUsb::InitEndpoint(Endpoint* ep, uint8_t ep_num, EpDirection direction) {
+    ep->ep_num = ep_num;
+    ep->direction = direction;
+
+    fbl::AutoLock lock(&ep->lock);
+
+    list_initialize(&ep->queued_reqs);
+    list_initialize(&ep->complete_reqs);
+    ep->current_req = nullptr;
+}
+
 void MtUsb::InitEndpoints() {
-    for (uint8_t i = 0; i < countof(eps_); i++) {
-        auto* ep = &eps_[i];
-        ep->direction = (i & 1 ? EP_IN : EP_OUT);
-        ep->ep_num = static_cast<uint8_t>(i / 2 + 1);
-
-        list_initialize(&ep->queued_reqs);
-        list_initialize(&ep->complete_reqs);
-
-        fbl::AutoLock lock(&ep->lock);
-        ep->current_req = nullptr;
+    for (uint8_t i = 0; i < countof(out_eps_); i++) {
+        InitEndpoint(&out_eps_[i], static_cast<uint8_t>(i + 1), EP_OUT);
+    }
+    for (uint8_t i = 0; i < countof(in_eps_); i++) {
+        InitEndpoint(&in_eps_[i], static_cast<uint8_t>(i + 1), EP_IN);
     }
 }
 
@@ -486,8 +497,11 @@ void MtUsb::StartEndpoint(Endpoint* ep) {
 }
 
 void MtUsb::StartEndpoints() {
-    for (size_t i = 0; i < countof(eps_); i++) {
-        StartEndpoint(&eps_[i]);
+    for (uint8_t i = 0; i < countof(out_eps_); i++) {
+        StartEndpoint(&out_eps_[i]);
+    }
+    for (uint8_t i = 0; i < countof(in_eps_); i++) {
+        StartEndpoint(&in_eps_[i]);
     }
 }
 
@@ -592,7 +606,7 @@ int MtUsb::IrqThread() {
         .set_usbcom(1)
         .WriteTo(mmio);
 
-    for (uint8_t i = 1; i <= countof(eps_) / 2; i++) { 
+    for (uint8_t i = 1; i <= NUM_EPS; i++) { 
         INDEX::Get().FromValue(0).set_selected_endpoint(i).WriteTo(mmio);
         uint32_t fifo_addr = ((1024 * i) >> 3);
         ZX_DEBUG_ASSERT(fifo_addr < UINT16_MAX);
@@ -640,9 +654,9 @@ int MtUsb::IrqThread() {
                 HandleEp0();
             }
 
-            for (unsigned i = 1; i <= 8 /* TODO constant? */; i++) {
-                if (ep_tx & (1 << i)) {
-                    Endpoint* ep = &eps_[(i - 1) * 2 + 1];
+            for (unsigned i = 0; i < countof(in_eps_); i++) {
+                if (ep_tx & (1 << (i + 1))) {
+                    Endpoint* ep = &in_eps_[i];
                     // requests to complete outside of the lock
                     list_node_t complete_reqs;
 
@@ -661,9 +675,9 @@ int MtUsb::IrqThread() {
         }
 
         if (ep_rx) {
-            for (unsigned i = 1; i <= 8 /* TODO constant? */; i++) {
-                if (ep_rx & (1 << i)) {
-                    Endpoint* ep = &eps_[(i - 1) * 2];
+            for (unsigned i = 0; i <=countof(out_eps_); i++) {
+                if (ep_rx & (1 << (i + 1))) {
+                    Endpoint* ep = &out_eps_[i];
                     list_node_t complete_reqs;
 
                     {
@@ -696,14 +710,11 @@ void MtUsb::DdkRelease() {
 }
 
 void MtUsb::UsbDciRequestQueue(usb_request_t* req) {
-
-    uint8_t ep_index = EpAddressToIndex(req->header.ep_address);
-
-    if (ep_index >= countof(eps_)) {
-        zxlogf(ERROR, "%s: invalid endpoint address %02x\n", __func__, req->header.ep_address);
+    auto* ep = EndpointFromAddress(req->header.ep_address);
+    if (ep == nullptr) {
+        usb_request_complete(req, ZX_ERR_INVALID_ARGS, 0);
         return;
     }
-    Endpoint* ep = &eps_[ep_index];
 
     fbl::AutoLock lock(&ep->lock);
 
@@ -744,14 +755,12 @@ zx_status_t MtUsb::UsbDciSetInterface(const usb_dci_interface_t* interface) {
                                    const usb_ss_ep_comp_descriptor_t* ss_comp_desc) {
     auto* mmio = usb_mmio();
     auto ep_address = ep_desc->bEndpointAddress;
-    auto ep_index = EpAddressToIndex(ep_address);
-
-    if (ep_index >= countof(eps_)) {
-        zxlogf(ERROR, "%s: endpoint address %02x too large\n", __func__, ep_address);
-        return ZX_ERR_OUT_OF_RANGE;
+    auto* ep = EndpointFromAddress(ep_address);
+    if (ep == nullptr) {
+        return ZX_ERR_INVALID_ARGS;
     }
+    auto ep_num = ep->ep_num;
 
-    Endpoint* ep = &eps_[ep_index];
     zxlogf(TRACE, "%s address %02x ep_num %u direction %u\n", __func__, ep_address, ep->ep_num,
            ep->direction);
 
@@ -777,33 +786,33 @@ zx_status_t MtUsb::UsbDciSetInterface(const usb_dci_interface_t* interface) {
     }
 
     uint16_t max_packet_size = usb_ep_max_packet(ep_desc);
-    if ((ep_address & USB_DIR_MASK) == USB_DIR_IN) {
-        TXCSR_PERI::Get(ep_index)
+    if (ep->direction == EP_IN) {
+        TXCSR_PERI::Get(ep_num)
             .ReadFrom(mmio)
             .set_clrdatatog(1)
             .set_flushfifo(1)
             .WriteTo(mmio);
 
 //        if (usb_ep_type(ep_desc) == USB_ENDPOINT_BULK) {
-//            TXMAP::Get(ep_index)
+//            TXMAP::Get(ep_num)
 //                .FromValue(0)
 //                .set_m_1(3)
 //                .set_maximum_payload_transaction(1024)
 //                .WriteTo(mmio);
 //        } else {
-            TXMAP::Get(ep_index)
+            TXMAP::Get(ep_num)
                 .FromValue(0)
                 .set_maximum_payload_transaction(max_packet_size)
                 .WriteTo(mmio);
 //        }
     } else {
-        RXCSR_PERI::Get(ep_index)
+        RXCSR_PERI::Get(ep_num)
             .ReadFrom(mmio)
             .set_clrdatatog(1)
             .set_flushfifo(1)
             .WriteTo(mmio);
 
-        RXMAP::Get(ep_index)
+        RXMAP::Get(ep_num)
             .FromValue(0)
             .set_maximum_payload_transaction(max_packet_size)
             .WriteTo(mmio);
