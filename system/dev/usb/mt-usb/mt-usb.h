@@ -21,7 +21,7 @@
 
 // DMA support is a work in progress.
 // Does not actually work yet.
-//#define USE_DMA 1
+#define USE_DMA 1
 
 namespace mt_usb {
 

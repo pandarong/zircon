@@ -392,6 +392,8 @@ void MtUsb::HandleEndpointTxLocked(Endpoint* ep) {
     usb_request_t* req = ep->current_req;
     if (req) {
         auto write_length = req->header.length - ep->cur_offset;
+ 
+ printf("req->header.length %zu ep->cur_offset %zu write_length %zu\n", req->header.length, ep->cur_offset, write_length);
         if (write_length > 0) {
 #ifdef USE_DMA
             uint32_t dma_channel = ep->dma_channel;
@@ -416,6 +418,8 @@ void MtUsb::HandleEndpointTxLocked(Endpoint* ep) {
                 .FromValue(0)
                 .set_count(static_cast<uint32_t>(write_length))
                 .WriteTo(mmio);
+printf("Set DMA_COUNT %zu\n", write_length);
+ep->cur_offset += write_length;
     
             DMA_CNTL::Get(dma_channel)
                 .FromValue(0)
@@ -426,11 +430,15 @@ void MtUsb::HandleEndpointTxLocked(Endpoint* ep) {
                 .set_enable(1)
                 .WriteTo(mmio);
 
+// wait for dma interrupt                
+/*
                 txcsr.ReadFrom(mmio)
                      .set_dmareqen(0)
                      .set_dmareqmode(0)
                      .set_txpktrdy(1)
                      .WriteTo(mmio);
+*/
+
 #else
             void* vaddr;
             auto status = usb_request_mmap(req, &vaddr);
@@ -483,8 +491,12 @@ void MtUsb::HandleEndpointRxLocked(Endpoint* ep) {
 
     usb_request_t* req = ep->current_req;
     if (req) {
-        size_t length = req->header.length;
+        __UNUSED size_t length = req->header.length;
 #ifdef USE_DMA
+        size_t count = RXCOUNT::Get(ep->ep_num).ReadFrom(mmio).rxcount();
+printf("RXCOUNT %zu\n", count);
+
+
         uint32_t dma_channel = ep->dma_channel;
 
         phys_iter_t iter;
@@ -505,7 +517,7 @@ void MtUsb::HandleEndpointRxLocked(Endpoint* ep) {
 
         DMA_COUNT::Get(dma_channel)
             .FromValue(0)
-            .set_count(static_cast<uint32_t>(length))
+            .set_count(static_cast<uint32_t>(count))
             .WriteTo(mmio);
 
         DMA_CNTL::Get(dma_channel)
@@ -517,7 +529,7 @@ void MtUsb::HandleEndpointRxLocked(Endpoint* ep) {
             .set_enable(1)
             .WriteTo(mmio);
 
-        rxcsr.ReadFrom(mmio).set_dmareqen(0).set_dmareqmode(0).set_rxpktrdy(0).WriteTo(mmio);
+//        rxcsr.ReadFrom(mmio).set_dmareqen(0).set_dmareqmode(0).set_rxpktrdy(0).WriteTo(mmio);
 
 #else
         void* vaddr;
@@ -579,25 +591,44 @@ void MtUsb::HandleDma() {
                 continue;
             }
 
-            usb_request_t* req = nullptr;
+            // requests to complete outside of the lock
+            list_node_t complete_reqs;
+            list_initialize(&complete_reqs);
             {
                 fbl::AutoLock lock(&ep->lock);
 
                 zx_paddr_t new_phys = DMA_ADDR::Get(channel).ReadFrom(mmio).addr();
-                if (ep->dma_phys && new_phys > ep->dma_phys) {
-                    ep->cur_offset += (new_phys - ep->dma_phys);
-                }
+                size_t count = DMA_COUNT::Get(channel).ReadFrom(mmio).count();
+
+//                if (ep->dma_phys && new_phys > ep->dma_phys) {
+//                    ep->cur_offset += (new_phys - ep->dma_phys);
+//                }
+
 
                 if (ep->direction == EP_IN) {
-                    HandleEndpointTxLocked(ep);
+//                    HandleEndpointTxLocked(ep);
+printf("HandleDma count %zu ep->dma_phys %zu new_phys %zu\n", count, ep->dma_phys, new_phys);
+
+printf("HandleDma set txpktrdy\n");
+                 TXCSR_PERI::Get(ep->ep_num).ReadFrom(mmio)
+                     .set_dmareqen(1)
+                     .set_dmareqmode(0)
+                     .set_txpktrdy(1)
+                     .WriteTo(mmio);
+
+
                 } else {
-                    HandleEndpointRxLocked(ep);
+//                    HandleEndpointRxLocked(ep);
+printf("clear rxpktrdy\n");
+RXCSR_PERI::Get(ep->ep_num).ReadFrom(mmio).set_rxpktrdy(0).WriteTo(mmio);
                 }
-                req = ep->complete_req;
-                ep->complete_req = nullptr;
+
+                list_move(&ep->complete_reqs, &complete_reqs);
             }
 
-           if (req) {
+            // Requests must be completed outside of the lock.
+            usb_request_t* req;
+            while ((req = list_remove_head_type(&complete_reqs, usb_request_t, node))) {
                 usb_request_complete(req, req->response.status, req->response.actual);
             }
         }
@@ -750,9 +781,8 @@ int MtUsb::IrqThread() {
 
 #ifdef USE_DMA
     DMA_INTR::Get()
-        .FromValue(0)
+        .ReadFrom(mmio)
         .set_unmask_set(0xff)
-        .set_status(0xff)
         .WriteTo(mmio);
 #endif
 
