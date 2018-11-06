@@ -23,6 +23,31 @@ if (defined(zx)) {
       "lib/tables_generator.cpp",
       "lib/tree_visitor.cpp",
     ]
+    deps += [ ":json_schema" ]
+  }
+
+  source_set("json_schema") {
+    visibility = [ ":*" ]
+    sources = [
+      "$target_gen_dir/json_schema.cpp",
+    ]
+    deps += [
+      ":gen-json-schema",
+      ":headers",
+    ]
+  }
+
+  action("gen-json-schema") {
+    visibility = [ ":json_schema" ]
+    outputs = [
+      "$target_gen_dir/json_schema.cpp",
+    ]
+    sources = [
+      "schema.json",
+    ]
+    script = "gen-json-schema.sh"
+    args = rebase_path(outputs, root_build_dir) +
+           rebase_path(sources, root_build_dir)
   }
 
   group("tools") {
