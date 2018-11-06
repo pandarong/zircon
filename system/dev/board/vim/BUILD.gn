@@ -5,23 +5,17 @@
 driver("vim") {
   sources = [
     "vim-canvas.c",
-    "vim-clk.c",
     "vim-display.c",
-    "vim-eth.c",
-    "vim-gpio.c",
-    "vim-i2c.c",
     "vim-led2472g.c",
     "vim-mali.c",
     "vim-rtc.c",
-    "vim-sd-emmc.c",
-    "vim-sdio.c",
     "vim-thermal.c",
-    "vim-uart.c",
     "vim-usb.c",
     "vim-video.c",
     "vim.c",
   ]
   deps += [
+    ":shared",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/lib/broadcom",
     "$zx/system/ulib/ddk",
@@ -34,4 +28,27 @@ driver("vim") {
       bootimage_script = "/bin/true"
     }
   }
+}
+
+source_set("shared") {
+  visibility = [
+    ":*",
+    "$zx/system/dev/board/vim-machina:*",
+  ]
+  sources = [
+    "vim-clk.c",
+    "vim-eth.c",
+    "vim-gpio.c",
+    "vim-i2c.c",
+    "vim-sd-emmc.c",
+    "vim-sdio.c",
+    "vim-uart.c",
+  ]
+  deps += [
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/dev/lib/broadcom",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+  ]
 }

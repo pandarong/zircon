@@ -17,6 +17,7 @@ group("board") {
       "mt8167s_ref",
       "sherlock",
       "vim",
+      "vim-machina",
     ]
   }
 }
