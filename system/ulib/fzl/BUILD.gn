@@ -4,8 +4,8 @@
 
 library("fzl") {
   sources = [
-    "mapped-vmo.cpp",
     "memory-probe.cpp",
+    "owned-vmo-mapper.cpp",
     "pinned-vmo.cpp",
     "resizeable-vmo-mapper.cpp",
     "time.cpp",

@@ -6,7 +6,7 @@ test("libfzl") {
   sources = [
     "fzl-test.cpp",
     "main.c",
-    "mapped-vmo.cpp",
+    "owned-vmo-mapper-tests.cpp",
     "resizeable-vmo-mapper-tests.cpp",
     "vmo-pool-tests.cpp",
     "vmo-probe.cpp",

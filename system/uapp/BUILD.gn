@@ -14,7 +14,6 @@ group("uapp") {
     "blktest",
     "blobfs",
     "channel-perf",
-    "chromeos-disk-setup",
     "clock",
     "clock:clkctl",
     "crasher",

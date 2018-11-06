@@ -34,7 +34,6 @@ test("fs") {
     "test-threading.cpp",
     "test-truncate.cpp",
     "test-unlink.cpp",
-    "test-utils.cpp",
     "test-watcher.cpp",
     "wrap.c",
   ]
