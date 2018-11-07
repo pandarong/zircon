@@ -53,6 +53,7 @@ driver("bus-acpi") {
   ]
   deps += [
     ":config",
+    "$zx/system/banjo/ddk-protocol-acpi",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

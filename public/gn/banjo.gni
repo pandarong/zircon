@@ -1,0 +1,100 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/host_tool_action.gni")
+
+template("banjo_library") {
+  assert(defined(invoker.sources),
+         "banjo_library(\"$target_name\") must set `sources`")
+
+  banjo_target = target_name
+
+  # The generated headers are the same in every toolchain, so generate only
+  # once, in $default_toolchain.
+  _banjo_gen_dir = get_label_info(":$banjo_target($default_toolchain)",
+                                  "target_gen_dir") + "/$banjo_target"
+
+  gen_target = "${banjo_target}._generate"
+
+  config_group(banjo_target) {
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
+                             "visibility",
+                           ])
+    deps = [
+      ":$gen_target($default_toolchain)",
+    ]
+    if (false) {  #TODO
+      metadata = {
+        banjo_inputs = invoker.sources
+        banjo_input_args =
+            [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+        banjo_include_dirs = [ "$_banjo_gen_dir/include" ]
+      }
+
+      # The generated headers of a dependent banjo_library() will #include the
+      # generated headers for its dependencies' bindings libraries.
+      include_dirs =
+          [ get_metadata([ ":$banjo_target" ], [ "banjo_include_dirs" ]) ]
+    } else if (current_toolchain != default_toolchain) {
+      not_needed(invoker, [ "sources" ])
+      include_dirs = [ "$_banjo_gen_dir/include" ]
+    }
+  }
+
+  if (current_toolchain == default_toolchain) {
+    # TODO(mcgrathr): temporary until everything is renamed with . names
+    banjo_library_name = string_replace(banjo_target, "-", ".")
+
+    banjo_path = string_replace(banjo_library_name, ".", "/")
+    banjo_name = get_path_info(banjo_path, "file")
+
+    gen_files = [
+      {
+        switch = "--ddk-header"
+        file = "$_banjo_gen_dir/include/ddk/protocol/${banjo_name}.h"
+      },
+      {
+        switch = "--ddktl-header"
+        file = "$_banjo_gen_dir/include/ddktl/protocol/${banjo_name}.h"
+      },
+      {
+        file = "$_banjo_gen_dir/include/ddktl/protocol/${banjo_name}-internal.h"
+      },
+    ]
+
+    host_tool_action(gen_target) {
+      forward_variables_from(invoker, [ "testonly" ])
+      visibility = [ ":*" ]
+
+      tool = "$zx/system/host/banjo:banjoc"
+
+      outputs = []
+      args = [
+        "--name",
+        banjo_library_name,
+      ]
+      foreach(gen, gen_files) {
+        outputs += [ gen.file ]
+        if (defined(gen.switch)) {
+          args += [
+            gen.switch,
+            rebase_path(gen.file, root_build_dir),
+          ]
+        }
+      }
+
+      if (false) {  #TODO
+        sources = [
+          get_metadata([ ":$banjo_target" ], [ "banjo_inputs" ]),
+        ]
+        args += [ get_metadata([ ":$banjo_target" ], [ "banjo_input_args" ]) ]
+      } else {
+        sources = invoker.sources
+        args += [ "--files" ] + rebase_path(sources, root_build_dir)
+      }
+    }
+  }
+}
