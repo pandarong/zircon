@@ -5,141 +5,159 @@
 # https://opensource.org/licenses/MIT
 
 import("$zx/kernel/syscalls/abigen.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
 
-# TODO(mcgrathr): Rename the source files and the abigen switch.
-if (zircon_cpu == "x86") {
-  zircon_cpu = "x86-64"
-  abigen_cpu = "x86"
-} else if (zircon_cpu == "arm64") {
-  abigen_cpu = "arm"
-}
-
-library("zircon") {
-  shared = true
-  static = false
-
-  # The vDSO is never installed as a file, only baked into the kernel.
-  install_path = false
-
-  sources = [
-    "data.S",
-    "syscall-wrappers.cpp",
-    "zx_cache_flush.cpp",
-    "zx_channel_call.cpp",
-    "zx_cprng_draw.cpp",
-    "zx_deadline_after.cpp",
-    "zx_status_get_string.cpp",
-    "zx_system_get_dcache_line_size.cpp",
-    "zx_system_get_features.cpp",
-    "zx_system_get_num_cpus.cpp",
-    "zx_system_get_physmem.cpp",
-    "zx_system_get_version.cpp",
-    "zx_ticks_get.cpp",
-    "zx_ticks_per_second.cpp",
-  ]
-
-  deps += [
-    ":config",
-    ":syscall-asm",
-    "$zx/kernel/lib/vdso:headers",
-  ]
-  public_deps = [
-    ":generated-public-headers",
-  ]
-
-  # Instruct the linker to preserve the hidden alternate entry points.
-  # Note, "./" makes GN realize this is a file rather than a -l switch.
-  libs = [ "./alternates.ld" ]
-
-  if (toolchain.environment == "user") {
-    # This doesn't get normal default deps on libc.
-    deps -= [ "$zx/public/gn/config:user" ]
-  }
-
-  # This library is on the whitelist for driver() shared library deps.
-  # It doesn't trigger the assert_no_metadata() check, and it prunes the
-  # metadata walk here so our own deps are not subject to the check.
-  if (false) {  #TODO
-    metadata = {
-      driver_blacklist = []
-      driver_blacklist_barrier = []
+if (toolchain.environment != "user") {
+  # References from other toolchains just redirect.  This prevents extra
+  # abigen runs in other toolchains just to get identical generated headers.
+  foreach(target,
+          [
+            "zircon",
+            "headers",
+          ]) {
+    select_toolchain(target) {
+      environment_label = "$zx/public/gn/toolchain:user"
+      deps = [
+        ":$target",
+      ]
     }
   }
-}
-
-config_group("config") {
-  visibility = [ ":*" ]
-
-  # This library should not depend on libc.
-  cflags = [ "-ffreestanding" ]
-  public_deps = [
-    "$zx/public/gn/config:no_sanitizers",
-  ]
-
-  include_dirs = [ target_gen_dir ]
-  deps = [
-    ":generate",
-  ]
-}
-
-source_set("syscall-asm") {
-  sources = [
-    "syscalls-$zircon_cpu.S",
-    "zx_futex_wake_handle_close_thread_exit-$zircon_cpu.S",
-    "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
-  ]
-  deps += [
-    ":config",
-    "$zx/kernel/syscalls:syscall-abi",
-  ]
-  if (toolchain.environment == "user") {
-    deps -= [ "$zx/public/gn/config:user" ]
+} else {
+  # TODO(mcgrathr): Rename the source files and the abigen switch.
+  if (zircon_cpu == "x86") {
+    zircon_cpu = "x86-64"
+    abigen_cpu = "x86"
+  } else if (zircon_cpu == "arm64") {
+    abigen_cpu = "arm"
   }
-}
 
-config_group("generated-public-headers") {
-  include_dirs = [ root_gen_dir ]
-  deps = [
-    ":generate",
-  ]
-}
+  library("zircon") {
+    shared = true
+    static = false
 
-abigen("generate") {
-  visibility = [ ":*" ]
-  gen = [
-    # These are the public headers.
-    {
-      args = [ "-user-header" ]
-      outputs = [
-        "$root_gen_dir/zircon/syscalls/definitions.h",
-      ]
-    },
-    {
-      args = [ "-rust" ]
-      outputs = [
-        "$root_gen_dir/zircon/syscalls/definitions.rs",
-      ]
-    },
+    # The vDSO is never installed as a file, only baked into the kernel.
+    install_path = false
 
-    # TODO(mcgrathr): Drop the zircon/ prefix from the remaining files.
-    # These are private.
-    {
-      args = [ "-vdso-header" ]
-      outputs = [
-        "$target_gen_dir/zircon/syscall-vdso-definitions.h",
-      ]
-    },
-    {
-      args = [ "-vdso-wrappers" ]
-      outputs = [
-        "$target_gen_dir/zircon/syscall-vdso-wrappers.inc",
-      ]
-    },
-    {
-      args = [ "-${abigen_cpu}-asm" ]
-      outputs = [
-        "$target_gen_dir/zircon/syscalls-$zircon_cpu.S",
-      ]
-    },
-  ]
+    sources = [
+      "data.S",
+      "syscall-wrappers.cpp",
+      "zx_cache_flush.cpp",
+      "zx_channel_call.cpp",
+      "zx_cprng_draw.cpp",
+      "zx_deadline_after.cpp",
+      "zx_status_get_string.cpp",
+      "zx_system_get_dcache_line_size.cpp",
+      "zx_system_get_features.cpp",
+      "zx_system_get_num_cpus.cpp",
+      "zx_system_get_physmem.cpp",
+      "zx_system_get_version.cpp",
+      "zx_ticks_get.cpp",
+      "zx_ticks_per_second.cpp",
+    ]
+
+    deps += [
+      ":config",
+      ":syscall-asm",
+      "$zx/kernel/lib/vdso:headers",
+    ]
+    public_deps = [
+      ":generated-public-headers",
+    ]
+
+    # Instruct the linker to preserve the hidden alternate entry points.
+    # Note, "./" makes GN realize this is a file rather than a -l switch.
+    libs = [ "./alternates.ld" ]
+
+    if (toolchain.environment == "user") {
+      # This doesn't get normal default deps on libc.
+      deps -= [ "$zx/public/gn/config:user" ]
+    }
+
+    # This library is on the whitelist for driver() shared library deps.
+    # It doesn't trigger the assert_no_metadata() check, and it prunes the
+    # metadata walk here so our own deps are not subject to the check.
+    if (false) {  #TODO
+      metadata = {
+        driver_blacklist = []
+        driver_blacklist_barrier = []
+      }
+    }
+  }
+
+  config_group("config") {
+    visibility = [ ":*" ]
+
+    # This library should not depend on libc.
+    cflags = [ "-ffreestanding" ]
+    public_deps = [
+      "$zx/public/gn/config:no_sanitizers",
+    ]
+
+    include_dirs = [ target_gen_dir ]
+    deps = [
+      ":generate",
+    ]
+  }
+
+  source_set("syscall-asm") {
+    sources = [
+      "syscalls-$zircon_cpu.S",
+      "zx_futex_wake_handle_close_thread_exit-$zircon_cpu.S",
+      "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
+    ]
+    deps += [
+      ":config",
+      "$zx/kernel/syscalls:syscall-abi",
+    ]
+    if (toolchain.environment == "user") {
+      deps -= [ "$zx/public/gn/config:user" ]
+    }
+  }
+
+  config_group("generated-public-headers") {
+    include_dirs = [ root_gen_dir ]
+    deps = [
+      ":generate",
+    ]
+  }
+
+  abigen("generate") {
+    visibility = [ ":*" ]
+    gen = [
+      # These are the public headers.
+      {
+        args = [ "-user-header" ]
+        outputs = [
+          "$root_gen_dir/zircon/syscalls/definitions.h",
+        ]
+      },
+      {
+        args = [ "-rust" ]
+        outputs = [
+          "$root_gen_dir/zircon/syscalls/definitions.rs",
+        ]
+      },
+
+      # TODO(mcgrathr): Drop the zircon/ prefix from the remaining files.
+      # These are private.
+      {
+        args = [ "-vdso-header" ]
+        outputs = [
+          "$target_gen_dir/zircon/syscall-vdso-definitions.h",
+        ]
+      },
+      {
+        args = [ "-vdso-wrappers" ]
+        outputs = [
+          "$target_gen_dir/zircon/syscall-vdso-wrappers.inc",
+        ]
+      },
+      {
+        args = [ "-${abigen_cpu}-asm" ]
+        outputs = [
+          "$target_gen_dir/zircon/syscalls-$zircon_cpu.S",
+        ]
+      },
+    ]
+  }
 }
