@@ -22,7 +22,6 @@ library("minfs") {
     "$zx/system/ulib/bitmap:headers",
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/fs:headers",
-    "$zx/system/ulib/zx:headers",
   ]
   deps += [
     "$zx/system/ulib/bitmap",
@@ -31,6 +30,7 @@ library("minfs") {
     "$zx/system/ulib/zircon-internal",
   ]
   if (is_fuchsia) {
+    public_deps += [ "$zx/system/ulib/zx:headers" ]
     deps += [
       "$zx/public/gn/config:visibility_hidden",
       "$zx/system/fidl/fuchsia-io:c",

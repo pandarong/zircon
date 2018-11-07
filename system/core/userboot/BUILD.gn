@@ -80,7 +80,7 @@ if (current_toolchain == default_toolchain) {
   toolchain_utils_action("gen-vdso-syms-header") {
     visibility = [ ":gen-vdso-syms-ld" ]
     deps = [
-      ":vdso",
+      "$zx/system/ulib/zircon",
     ]
     if (false) {  #TODO
       sources = [
@@ -105,14 +105,6 @@ if (current_toolchain == default_toolchain) {
       rebase_path(sources[0], root_build_dir),
 
       rebase_path(outputs[0], root_build_dir),
-    ]
-  }
-
-  # Redirect to the normal user environment vDSO shared library target.
-  select_toolchain("vdso") {
-    environment_label = "$zx/public/gn/toolchain:user"
-    deps = [
-      "$zx/system/ulib/zircon",
     ]
   }
 

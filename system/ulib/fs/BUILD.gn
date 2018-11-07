@@ -10,7 +10,6 @@ library("fs") {
     "$zx/system/ulib/async:headers",
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/fdio:headers",
-    "$zx/system/ulib/zx:headers",
   ]
   deps += [
     "$zx/system/ulib/fbl",
@@ -40,6 +39,8 @@ library("fs") {
       "watcher.cpp",
     ]
     public_deps += [
+      "$zx/system/ulib/zx:headers",
+
       # <fs/vnode.h> has #include <fuchsia/io/c/fidl.h>.
       "$zx/system/fidl/fuchsia-io:c.headers",
     ]
