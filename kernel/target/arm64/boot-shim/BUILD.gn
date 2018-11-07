@@ -32,7 +32,9 @@ template("boot_shim") {
   board = target_name
 
   if (toolchain.environment == "physmem") {
-    executable("${board}-boot-shim.elf") {
+    executable("${board}-boot-shim") {
+      output_extension = "elf"
+
       deps += [ ":common" ]
       sources = [
         "${board}-uart.c",
@@ -57,7 +59,7 @@ template("boot_shim") {
                                "visibility",
                              ])
       deps = [
-        ":${board}-boot-shim.elf",
+        ":${board}-boot-shim",
       ]
       outputs = [
         "$root_out_dir/${board}-boot-shim.bin",
