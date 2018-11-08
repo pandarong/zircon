@@ -44,16 +44,24 @@ driver("bus-acpi") {
     "iommu.c",
     "methods.cpp",
     "nhlt.c",
-    "pci.c",
-    "pci.cpp",
     "pciroot.cpp",
     "power.c",
     "resources.c",
     "util.c",
   ]
+
+  # Userspace PCI feature flag.  The scaffolding for the userspace pci bus
+  # driver is in pci.cpp.  If not enabled then the kernel pci bus driver
+  # initialization code in ACPI (kpci.c) will be built instead.
+  if (enable_user_pci) {
+    sources += [ "pci.cpp" ]
+  } else {
+    sources += [ "kpci.c" ]
+  }
   deps += [
     ":config",
     "$zx/system/banjo/ddk-protocol-acpi",
+    "$zx/system/fidl/fuchsia-power:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

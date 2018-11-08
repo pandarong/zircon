@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-sysinfo") {
+fidl_library("fuchsia-power") {
   sources = [
-    "sysinfo.fidl",
+    "power.fidl",
   ]
 }
