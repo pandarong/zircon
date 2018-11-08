@@ -128,7 +128,7 @@ group("utest") {
 group("host-tests") {
   testonly = true
   deps = [
-    #TODO: "banjo-compiler"
+    "banjo-compiler",
     "fbl",
     "fidl-compiler",
     "fit",
