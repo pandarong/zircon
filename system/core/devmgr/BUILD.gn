@@ -124,6 +124,7 @@ library("driver") {
     "devhost-rpc-server.cpp",
     "devhost-shared.cpp",
     "devhost.cpp",
+    "zx-device.cpp",
   ]
   deps += [
     ":enable_driver_tracing",
