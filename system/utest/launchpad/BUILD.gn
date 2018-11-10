@@ -4,7 +4,7 @@
 
 test("launchpad") {
   sources = [
-    "launchpad.c",
+    "launchpad.cpp",
   ]
   deps += [
     "$zx/system/ulib/elfload",

@@ -31,9 +31,7 @@ executable("devmgr") {
     "$zx/system/fidl/fuchsia-crash:c",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/fuchsia-mem:c",
-    "$zx/system/ulib/async",
-    "$zx/system/ulib/async:async-default",
-    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/bootdata",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver-info",
@@ -79,10 +77,6 @@ executable("fshost") {
   ]
   deps += [
     "$zx/system/fidl/fuchsia-io:c",
-    "$zx/system/ulib/async",
-    "$zx/system/ulib/async:async-cpp",
-    "$zx/system/ulib/async:async-default",
-    "$zx/system/ulib/async-loop",
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/bootdata",
     "$zx/system/ulib/fbl",

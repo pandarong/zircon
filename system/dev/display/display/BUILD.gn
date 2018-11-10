@@ -12,10 +12,7 @@ driver("display") {
   ]
   deps += [
     "$zx/system/fidl/fuchsia-display:c",
-    "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
-    "$zx/system/ulib/async:async-default",
-    "$zx/system/ulib/async-loop",
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",
