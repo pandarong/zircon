@@ -46,7 +46,6 @@ if (current_toolchain == default_toolchain) {
     output_dir = root_out_dir
     output_name = "boot${current_cpu}"
     output_extension = "efi"
-    pdb = "$output_dir/$output_name.pdb"
     deps += [
       "lib",
       "src",
@@ -55,14 +54,6 @@ if (current_toolchain == default_toolchain) {
       "-nostdlib",
       "-Wl,/subsystem:efi_application",
       "-Wl,/entry:efi_main",
-
-      # TODO: teach the toolchain to do this
-      # ??? This produces the .pdb file, but it doesn't seem
-      # to get the DWARF data out of the main output file.
-      "-Wl,/pdb:" + rebase_path(pdb, root_build_dir),
-
-      # What exactly does this do???
-      "-Wl,/debug",
     ]
   }
 } else {
