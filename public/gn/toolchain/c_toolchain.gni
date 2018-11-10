@@ -147,6 +147,12 @@ template("define_c_toolchain") {
         switches += " -Wl,-Map,$mapfile"
       }
     }
+    if (invoker.os == "win") {
+      # This assumes "-Wl,/debug" or suchlike is in ldflags.  If it's not
+      # but nothing depends on the .pdb file, then it should be OK that
+      # Ninja thinks it's an additional output but it doesn't get created.
+      outputs += [ "{{output_dir}}/{{target_output_name}}.pdb" ]
+    }
   }
 
   define_toolchain(target_name) {

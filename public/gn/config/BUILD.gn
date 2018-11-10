@@ -226,6 +226,11 @@ config_group("symbol_level") {
   } else if (symbol_level == 2) {
     compiler_flags = [ "-g3" ]
   }
+  if (symbol_level > 0 && current_os == "win") {
+    # TODOD: ??? This produces the .pdb file, but it doesn't seem
+    # to get the DWARF data out of the main output file.
+    ldflags = [ "-Wl,/debug:full" ]
+  }
 }
 
 config_group("werror") {
