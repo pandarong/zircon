@@ -46,7 +46,9 @@ standard_fuchsia_cpus = [
   "x64",
 ]
 
-# All the {cpu, os} combinations supported as build or SDK hosts.
+# All the {cpu, os} combinations supported as build or SDK hosts.  The
+# build will define toolchains for all of these.  Successful
+# cross-compilation may require a sysroot be installed and configured.
 standard_build_hosts = [
   {
     cpu = "arm64"
@@ -55,6 +57,10 @@ standard_build_hosts = [
   {
     cpu = "x64"
     os = "linux"
+  },
+  {
+    cpu = "x64"
+    os = "win"
   },
 ]
 
