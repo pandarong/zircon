@@ -6,7 +6,7 @@ executable("lsblk") {
   sources = [
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/gpt",

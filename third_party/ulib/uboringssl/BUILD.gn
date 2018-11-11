@@ -17,7 +17,7 @@ library("uboringssl") {
     sources += [ "crypto/chacha/chacha.c" ]
 
     # Avoid circularity.
-    deps -= [ "$zx/kernel/vm:headers" ]
+    configs -= [ "$zx/kernel/vm:headers" ]
 
     defines = [
       # The assembly code uses vector registers, which is not allowed in
@@ -27,7 +27,7 @@ library("uboringssl") {
     ]
   } else {
     if (is_fuchsia) {
-      deps += [
+      deps = [
         "$zx/system/ulib/fdio",
         "$zx/system/ulib/zircon",
       ]

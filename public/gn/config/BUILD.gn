@@ -32,7 +32,7 @@ if (sysroot == "") {
   ]
 }
 
-config_group("sysroot") {
+config("sysroot") {
   foreach(host, sysroot) {
     if (host.cpu == current_cpu && host.os == current_os) {
       compiler_flags =
@@ -41,7 +41,7 @@ config_group("sysroot") {
   }
 }
 
-config_group("compiler") {
+config("compiler") {
   ldflags = []
 
   # For GCC, the compiler command implies the target.
@@ -81,12 +81,12 @@ config_group("compiler") {
   }
 }
 
-config_group("language") {
+config("language") {
   cflags_c = [ "-std=c11" ]
   cflags_cc = [ "-std=c++17" ]
 }
 
-config_group("color_diagnostics") {
+config("color_diagnostics") {
   # GCC correctly defaults this from the terminal, so leave it alone.
   if (!is_gcc) {
     compiler_flags = [ "-fcolor-diagnostics" ]
@@ -98,7 +98,7 @@ config_group("color_diagnostics") {
   }
 }
 
-config_group("relative_paths") {
+config("relative_paths") {
   # Make builds independent of absolute file path.  The file names embedded
   # in debugging information will be expressed as relative to the build
   # directory, e.g. "../.." for an "out/subdir" under //.  This is
@@ -130,7 +130,7 @@ config_group("relative_paths") {
   }
 }
 
-config_group("nostdlib") {
+config("nostdlib") {
   # Don't actually use -nostdlib, because the builtins and -lc++ are what
   # we want and are otherwise annoying to find and specify.  It's just the
   # -lc that we really want to defeat, and that's handled by giving a -L
@@ -139,11 +139,11 @@ config_group("nostdlib") {
   lib_dirs = [ "libc-dummy" ]
 }
 
-config_group("data_sections") {
+config("data_sections") {
   cflags = [ "-fdata-sections" ]
 }
 
-config_group("linker_gc") {
+config("linker_gc") {
   public_deps = [
     ":data_sections",
   ]
@@ -158,7 +158,7 @@ config_group("linker_gc") {
   }
 }
 
-config_group("assert_level") {
+config("assert_level") {
   assert(assert_level >= 0)
   defines = [ "ZX_DEBUGLEVEL=$assert_level" ]
   if (is_kernel) {
@@ -169,7 +169,7 @@ config_group("assert_level") {
   }
 }
 
-config_group("opt_level") {
+config("opt_level") {
   if (opt_level == -1) {
     compiler_flags = [ "-O0" ]
   } else {
@@ -208,7 +208,7 @@ config_group("opt_level") {
 }
 
 # This is separate from opt_level so it can be removed.
-config_group("default_linker_gc") {
+config("default_linker_gc") {
   # TODO(mcgrathr): Kernel can't be built without --gc-sections.
   if (opt_level > 0 || toolchain.environment == "kernel") {
     public_deps = [
@@ -217,7 +217,7 @@ config_group("default_linker_gc") {
   }
 }
 
-config_group("symbol_level") {
+config("symbol_level") {
   assert(symbol_level >= 0 && symbol_level <= 2)
   if (symbol_level == 0) {
     compiler_flags = [ "-g0" ]
@@ -233,7 +233,7 @@ config_group("symbol_level") {
   }
 }
 
-config_group("werror") {
+config("werror") {
   cflags = [
     "-Werror",
 
@@ -250,7 +250,7 @@ config_group("werror") {
   }
 }
 
-config_group("default_warnings") {
+config("default_warnings") {
   cflags = [
     "-Wall",
     "-Wextra",
@@ -282,7 +282,7 @@ config_group("default_warnings") {
   }
 }
 
-config_group("icf") {
+config("icf") {
   # This changes C/C++ semantics and might be incompatible with third-party
   # code that relies on function pointers comparison.
   if (current_os == "win") {
@@ -292,39 +292,39 @@ config_group("icf") {
   }
 }
 
-config_group("exceptions") {
+config("exceptions") {
   cflags_cc = [ "-fexceptions" ]
   cflags_objcc = cflags_cc
 }
 
-config_group("no_exceptions") {
+config("no_exceptions") {
   cflags_cc = [ "-fno-exceptions" ]
   cflags_objcc = cflags_cc
 }
 
-config_group("rtti") {
+config("rtti") {
   cflags_cc = [ "-frtti" ]
   cflags_objcc = cflags_cc
 }
 
-config_group("no_rtti") {
+config("no_rtti") {
   cflags_cc = [ "-fno-rtti" ]
   cflags_objcc = cflags_cc
 }
 
-config_group("no_threadsafe_statics") {
+config("no_threadsafe_statics") {
   cflags_cc = [ "-fno-threadsafe-statics" ]
   cflags_objcc = cflags_cc
 }
 
-config_group("default_include_dirs") {
+config("default_include_dirs") {
   include_dirs = [
     "$zx/system/public",
     "$zx/system/private",
   ]
 }
 
-config_group("default_frame_pointers") {
+config("default_frame_pointers") {
   if (true || opt_level < 2) {
     public_deps = [
       ":frame_pointers",
@@ -336,35 +336,35 @@ config_group("default_frame_pointers") {
   }
 }
 
-config_group("frame_pointers") {
+config("frame_pointers") {
   defines = [ "WITH_FRAME_POINTERS=1" ]
   cflags = [ "-fno-omit-frame-pointer" ]
 }
 
-config_group("no_frame_pointers") {
+config("no_frame_pointers") {
   defines = [ "WITH_FRAME_POINTERS=0" ]
   cflags = [ "-fomit-frame-pointer" ]
 }
 
-config_group("thread_safety_annotations") {
+config("thread_safety_annotations") {
   if (!is_gcc) {
     cflags = [ "-Wthread-safety" ]
     defines = [ "_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS=1" ]
   }
 }
 
-config_group("no_stack_protector") {
+config("no_stack_protector") {
   cflags = [ "-fno-stack-protector" ]
 }
 
-config_group("no_safestack") {
+config("no_safestack") {
   cflags = [ "-fno-sanitize=safe-stack" ]
   public_deps = [
     ":no_stack_protector",
   ]
 }
 
-config_group("no_sanitizers") {
+config("no_sanitizers") {
   cflags = [ "-fno-sanitize=all" ]
   public_deps = [
     ":no_stack_protector",
@@ -372,7 +372,7 @@ config_group("no_sanitizers") {
 }
 
 # Compile code appropriately to be linked into a shared library.
-config_group("shared_library_config") {
+config("shared_library_config") {
   if (current_os != "mac") {
     # Assembly code can use `#ifdef __PIC__`.
     compiler_flags = [ "-fPIC" ]
@@ -381,7 +381,7 @@ config_group("shared_library_config") {
 
 # Don't allow dangling undefined references in shared libraries.
 # All references should be satisfied by link-time library dependencies.
-config_group("no_undefined_symbols") {
+config("no_undefined_symbols") {
   if (current_os == "mac") {
     ldflags = [ "-Wl,-undefined,error" ]
   } else {
@@ -389,11 +389,11 @@ config_group("no_undefined_symbols") {
   }
 }
 
-config_group("visibility_hidden") {
+config("visibility_hidden") {
   cflags = [ "-fvisibility=hidden" ]
 }
 
-config_group("machine") {
+config("machine") {
   ldflags = []
   if (current_cpu == "arm64") {
     # The linker rewrites instructions to work around a CPU bug.
@@ -404,7 +404,7 @@ config_group("machine") {
   }
 }
 
-config_group("user") {
+config("user") {
   defines = [
     "_ALL_SOURCE",
     "ZIRCON_TOOLCHAIN",
@@ -417,14 +417,14 @@ config_group("user") {
   }
 }
 
-config_group("integer-paranoia") {
+config("integer-paranoia") {
   cflags = [
     "-fsanitize=integer-divide-by-zero,signed-integer-overflow",
     "-fsanitize-undefined-trap-on-error",
   ]
 }
 
-config_group("static-libc++") {
+config("static-libc++") {
   ldflags = [ "-static-libstdc++" ]
   if (current_os == "linux") {
     # TODO(TC-74): The implicitly linked static libc++.a depends on these.

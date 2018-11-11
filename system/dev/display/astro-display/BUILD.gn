@@ -15,7 +15,7 @@ driver("astro-display") {
     "osd.cpp",
     "vpu.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

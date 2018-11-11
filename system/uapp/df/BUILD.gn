@@ -6,7 +6,7 @@ executable("df") {
   sources = [
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

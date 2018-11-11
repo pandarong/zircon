@@ -10,8 +10,8 @@ library("zxs") {
     # <lib/zxs/zxs.h> has #include <fuchsia/net/c/fidl.h>.
     "$zx/system/fidl/fuchsia-net:c.headers",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/fidl/fuchsia-net:c",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

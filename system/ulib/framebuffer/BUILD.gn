@@ -6,8 +6,8 @@ library("framebuffer") {
   sources = [
     "framebuffer.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/fidl/fuchsia-display:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",

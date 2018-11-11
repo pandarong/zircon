@@ -6,7 +6,7 @@ executable("waitfor") {
   sources = [
     "waitfor.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/gpt",
     "$zx/system/ulib/zircon",

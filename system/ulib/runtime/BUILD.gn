@@ -9,13 +9,16 @@ library("runtime") {
     "thread.c",
   ]
 
+  deps = [
+    "$zx/system/ulib/zircon",
+  ]
+
   if (toolchain.environment == "user") {
-    deps -= [ "$zx/public/gn/config:user" ]
+    configs -= [ "$zx/public/gn/config:user" ]
   }
 
-  deps += [
+  configs += [
     "$zx/public/gn/config:visibility_hidden",
-    "$zx/system/ulib/zircon",
 
     # This code is used in early startup, where safe-stack is not ready yet.
     "$zx/public/gn/config:no_sanitizers",

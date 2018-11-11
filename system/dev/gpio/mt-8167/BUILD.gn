@@ -7,7 +7,7 @@ driver("mt-8167") {
     "bind.c",
     "mt8167-gpio.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/mt8167",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

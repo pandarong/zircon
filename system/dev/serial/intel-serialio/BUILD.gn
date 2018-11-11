@@ -11,7 +11,7 @@ driver("intel-serialio") {
     "uart/uart.c",
   ]
   include_dirs = [ "intel-serialio-include" ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

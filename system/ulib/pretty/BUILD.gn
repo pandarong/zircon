@@ -13,7 +13,7 @@ library("pretty") {
     "sizes.c",
   ]
   if (!is_kernel && is_fuchsia) {
-    deps += [
+    deps = [
       "$zx/system/ulib/c",
       "$zx/system/ulib/fdio",
     ]

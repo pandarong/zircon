@@ -8,7 +8,7 @@ test("digest") {
     "main.c",
     "merkle-tree.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

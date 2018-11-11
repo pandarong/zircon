@@ -9,7 +9,7 @@ library("fvm") {
     "fvm-lz4.cpp",
     "fvm.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",

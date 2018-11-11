@@ -6,7 +6,7 @@ test("blobfs-bench") {
   sources = [
     "blobfs-bench.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",

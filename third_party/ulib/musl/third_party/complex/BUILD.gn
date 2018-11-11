@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 source_set("complex") {
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   include_dirs = [ "$zx/third_party/ulib/musl/third_party/include" ]
   sources = [
     "__cexp.c",

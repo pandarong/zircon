@@ -7,7 +7,7 @@
 import("$zx/kernel/params.gni")
 
 # This is used pervasively throughout the kernel on x86.
-config_group("kernel") {
+config("kernel") {
   cflags = [
     "-mno-red-zone",
 
@@ -101,7 +101,7 @@ library("x86") {
     "user_copy.cpp",
     "uspace_entry.S",
   ]
-  deps += [
+  deps = [
     ":syscall",
     ":tests",
     "$zx/kernel/dev/hw_rng",
@@ -139,12 +139,16 @@ source_set("syscall") {
   sources = [
     "syscall.S",
   ]
-  deps += [ "$zx/kernel/syscalls:syscall-abi" ]
+  deps = [
+    "$zx/kernel/syscalls:syscall-abi",
+  ]
 }
 
 source_set("tests") {
   sources = [
     "mmu_tests.cpp",
   ]
-  deps += [ "$zx/kernel/lib/unittest" ]
+  deps = [
+    "$zx/kernel/lib/unittest",
+  ]
 }

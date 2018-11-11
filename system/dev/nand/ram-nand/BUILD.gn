@@ -7,7 +7,7 @@ driver("ram-nand") {
     "ram-nand-ctl.cpp",
     "ram-nand.c",
   ]
-  deps += [
+  deps = [
     ":common",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
@@ -26,7 +26,7 @@ source_set("common") {
   sources = [
     "ram-nand.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/sync",
@@ -42,7 +42,7 @@ test("ram-nand-test") {
     "test/ram-nand.cpp",
   ]
   include_dirs = [ "." ]
-  deps += [
+  deps = [
     ":common",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",

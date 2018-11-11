@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 source_set("jemalloc") {
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [
+  configs -= [ "$zx/public/gn/config:user" ]
+  deps = [
     "$zx/system/ulib/c:headers",
     "$zx/system/ulib/zircon",
   ]

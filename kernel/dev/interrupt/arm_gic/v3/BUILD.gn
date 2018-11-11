@@ -10,7 +10,7 @@ library("v3") {
     "arm_gicv3.cpp",
     "arm_gicv3_pcie.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/interrupt/arm_gic/common",
     "$zx/kernel/dev/interrupt/arm_gic/v2:headers",

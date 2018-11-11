@@ -13,7 +13,7 @@ test("async") {
     "trap_tests.cpp",
     "wait_tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

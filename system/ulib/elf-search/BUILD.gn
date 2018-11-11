@@ -10,7 +10,7 @@ library("elf-search") {
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/zx:headers",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

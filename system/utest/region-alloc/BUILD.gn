@@ -8,7 +8,7 @@ test("region-alloc") {
     "region-alloc-c-api.c",
     "region-alloc.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/region-alloc",

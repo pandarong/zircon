@@ -41,7 +41,7 @@ assert(standard_host,
 foreach(cpu, standard_fuchsia_cpus) {
   define_environment("user") {
     cpu = cpu
-    public_deps += standard_fuchsia_configs + standard_fuchsia_user_configs
+    configs += standard_fuchsia_configs + standard_fuchsia_user_configs
     shlib = true
     strip = "--strip-sections"
   }

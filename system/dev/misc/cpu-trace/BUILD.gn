@@ -10,7 +10,7 @@ driver("cpu-trace") {
     "intel-pm.c",
     "intel-pt.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",

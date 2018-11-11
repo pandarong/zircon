@@ -6,7 +6,7 @@ test("elf-search") {
   sources = [
     "elf-search-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/elf-search",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

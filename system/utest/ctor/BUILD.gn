@@ -6,7 +6,7 @@ test("ctor") {
   sources = [
     "ctor.cpp",
   ]
-  deps += [
+  deps = [
     ":dso-ctor",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
@@ -21,7 +21,7 @@ library("dso-ctor") {
   sources = [
     "dso-ctor/dso-ctor.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zxcpp",
   ]

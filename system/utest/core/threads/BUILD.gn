@@ -8,7 +8,7 @@ source_set("threads") {
     "register-set.cpp",
     "threads.cpp",
   ]
-  deps += [
+  deps = [
     ":thread-functions",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/runtime",
@@ -23,8 +23,8 @@ source_set("thread-functions") {
   sources = [
     "thread-functions/thread-functions.cpp",
   ]
-  deps += [
-    "$zx/public/gn/config:no_sanitizers",
+  configs += [ "$zx/public/gn/config:no_sanitizers" ]
+  deps = [
     "$zx/system/ulib/runtime",
     "$zx/system/ulib/zircon",
   ]

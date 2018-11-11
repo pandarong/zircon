@@ -11,7 +11,7 @@ driver("optee") {
     "shared-memory.cpp",
     "util.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-tee:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

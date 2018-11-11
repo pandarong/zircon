@@ -60,7 +60,7 @@ test("fs") {
     ldflags += [ "-Wl,--wrap,$symbol" ]
   }
 
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/fuchsia-minfs:c",
     "$zx/system/ulib/async",

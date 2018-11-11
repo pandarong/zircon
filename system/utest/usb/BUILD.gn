@@ -6,7 +6,7 @@ test("usb") {
   sources = [
     "usb-test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-usb-tester:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",

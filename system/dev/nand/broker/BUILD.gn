@@ -13,7 +13,7 @@ driver("nand-broker") {
     "bind.c",
     "broker.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-nand:c",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
@@ -31,7 +31,7 @@ test("nand") {
     "test/broker-test.cpp",
     "test/main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-nand:c",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/fbl",

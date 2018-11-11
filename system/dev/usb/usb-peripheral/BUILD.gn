@@ -6,7 +6,7 @@ driver("usb-peripheral") {
   sources = [
     "usb-peripheral.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-peripheral:c",
     "$zx/system/ulib/ddk",

@@ -55,8 +55,8 @@ if (toolchain.environment != "user") {
       "zx_ticks_per_second.cpp",
     ]
 
-    deps += [
-      ":config",
+    configs += [ ":config" ]
+    deps = [
       ":syscall-asm",
       "$zx/kernel/lib/vdso:headers",
     ]
@@ -70,7 +70,7 @@ if (toolchain.environment != "user") {
 
     if (toolchain.environment == "user") {
       # This doesn't get normal default deps on libc.
-      deps -= [ "$zx/public/gn/config:user" ]
+      configs -= [ "$zx/public/gn/config:user" ]
     }
 
     # This library is on the whitelist for driver() shared library deps.
@@ -84,7 +84,7 @@ if (toolchain.environment != "user") {
     }
   }
 
-  config_group("config") {
+  config("config") {
     visibility = [ ":*" ]
 
     # This library should not depend on libc.
@@ -105,16 +105,16 @@ if (toolchain.environment != "user") {
       "zx_futex_wake_handle_close_thread_exit-$zircon_cpu.S",
       "zx_vmar_unmap_handle_close_thread_exit-$zircon_cpu.S",
     ]
-    deps += [
-      ":config",
+    configs += [ ":config" ]
+    deps = [
       "$zx/kernel/syscalls:syscall-abi",
     ]
     if (toolchain.environment == "user") {
-      deps -= [ "$zx/public/gn/config:user" ]
+      configs -= [ "$zx/public/gn/config:user" ]
     }
   }
 
-  config_group("generated-public-headers") {
+  config("generated-public-headers") {
     include_dirs = [ root_gen_dir ]
     deps = [
       ":generate",

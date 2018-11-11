@@ -8,7 +8,7 @@ driver("usb-tester") {  # TODO: test_driver?
     "bind.c",
     "usb-tester.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-tester:c",
     "$zx/system/ulib/ddktl",

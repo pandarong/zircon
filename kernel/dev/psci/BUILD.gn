@@ -9,7 +9,7 @@ library("psci") {
   sources = [
     "psci.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/pdev",
     "$zx/kernel/lib/console",
   ]

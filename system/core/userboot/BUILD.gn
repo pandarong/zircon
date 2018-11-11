@@ -16,7 +16,7 @@ if (current_toolchain == default_toolchain) {
   foreach(cpu, standard_fuchsia_cpus) {
     define_environment("userboot") {
       cpu = cpu
-      public_deps += standard_fuchsia_configs + [ ":userboot_config" ]
+      configs += standard_fuchsia_configs + [ ":userboot_config" ]
 
       # This doesn't get a separate shlib sub-toolchain, but the main one
       # can do loadable_module().
@@ -32,7 +32,7 @@ if (current_toolchain == default_toolchain) {
   }
 } else if (toolchain.environment == "userboot") {
   # Everything in userboot gets compiled this way.
-  config_group("userboot_config") {
+  config("userboot_config") {
     public_deps = [
       "$zx/public/gn/config:no_sanitizers",
       "$zx/system/ulib/c:headers",
@@ -62,7 +62,7 @@ if (current_toolchain == default_toolchain) {
       "util.c",
     ]
     libs = [ vdso_syms_ld ]
-    deps += [
+    deps = [
       ":gen-vdso-syms-ld",
       "$zx/system/ulib/bootdata",
       "$zx/system/ulib/elfload",

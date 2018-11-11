@@ -21,14 +21,16 @@ host_tool("netruncmd") {
   sources = [
     "netruncmd.c",
   ]
-  deps += [ ":common" ]
+  deps = [
+    ":common",
+  ]
 }
 
 host_tool("netcp") {
   sources = [
     "netcp.c",
   ]
-  deps += [
+  deps = [
     ":common",
     "$zx/system/ulib/tftp",
   ]
@@ -38,12 +40,16 @@ host_tool("netls") {
   sources = [
     "netls.c",
   ]
-  deps += [ ":common" ]
+  deps = [
+    ":common",
+  ]
 }
 
 host_tool("netaddr") {
   sources = [
     "netaddr.c",
   ]
-  deps += [ ":common" ]
+  deps = [
+    ":common",
+  ]
 }

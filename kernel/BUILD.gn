@@ -16,8 +16,8 @@ if (current_toolchain == default_toolchain) {
       globals = {
         is_kernel = true
       }
-      public_deps += standard_fuchsia_configs
-      public_deps += [
+      configs += standard_fuchsia_configs
+      configs += [
         ":kernel_config",
         "lib/libc:headers",
 
@@ -43,7 +43,7 @@ if (current_toolchain == default_toolchain) {
   ]
 
   # This is the top config for all kernel code.
-  config_group("kernel_config") {
+  config("kernel_config") {
     public_deps = [
       ":headers",
       ":lock_dep",
@@ -71,12 +71,12 @@ if (current_toolchain == default_toolchain) {
     cflags = [ "-fpie" ]
   }
 
-  config_group("headers") {
+  config("headers") {
     include_dirs = [ "include" ]
   }
 
   # For any standalone static binary.
-  config_group("standalone") {
+  config("standalone") {
     ldflags = [ "-nostdlib" ]
 
     cflags = [
@@ -107,7 +107,7 @@ if (current_toolchain == default_toolchain) {
     ]
   }
 
-  config_group("warnings") {
+  config("warnings") {
     cflags = [
       "-Wformat=2",
       "-Wvla",
@@ -121,7 +121,7 @@ if (current_toolchain == default_toolchain) {
     cflags_c = [ "-Wmissing-prototypes" ]
   }
 
-  config_group("lock_dep") {
+  config("lock_dep") {
     visibility = [ ":*" ]
     defines = []
     if (enable_lock_dep) {
@@ -150,13 +150,12 @@ if (current_toolchain == default_toolchain) {
     inputs = [
       "kernel.ld",
     ]
+    configs += [ ":kernel_defsym" ]
 
-    deps += [
-      ":kernel_defsym",
+    deps = [
       ":test",  # TODO: make optional, add testonly taint
       "top",
     ]
-
     if (current_cpu == "arm64") {
       deps += [ "platform/generic-arm" ]
     } else if (current_cpu == "x64") {
@@ -171,7 +170,7 @@ if (current_toolchain == default_toolchain) {
   image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
 
   # This supplies those variables for use in linker scripts.
-  config_group("kernel_defsym") {
+  config("kernel_defsym") {
     visibility = [ ":*" ]
     ldflags = []
     foreach(assignment, kernel_defines + image_defines) {
@@ -235,9 +234,9 @@ if (current_toolchain == default_toolchain) {
 
   executable("image") {
     visibility = [ ":kernel" ]
-    deps += [
+    configs += [ ":kernel_defsym" ]
+    deps = [
       ":fixups",
-      ":kernel_defsym",
       ":raw",
       ":zircon",
     ]

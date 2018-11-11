@@ -7,7 +7,7 @@ driver("qemu") {
     "qemu-bus.c",
     "qemu-test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -31,7 +31,7 @@ driver("qemu-test-parent") {
   sources = [
     "test/parent.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -41,7 +41,7 @@ driver("qemu-test-child-1") {
   sources = [
     "test/child-1.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -51,7 +51,7 @@ driver("qemu-test-child-2") {
   sources = [
     "test/child-2.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -61,7 +61,7 @@ driver("qemu-test-child-3") {
   sources = [
     "test/child-3.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

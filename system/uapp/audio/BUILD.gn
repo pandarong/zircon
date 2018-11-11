@@ -10,7 +10,7 @@ executable("audio") {
     "wav-sink.cpp",
     "wav-source.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/audio-utils",
     "$zx/system/ulib/fbl",

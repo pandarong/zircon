@@ -6,7 +6,7 @@ library("designware") {
   sources = [
     "dw-pcie.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/driver",

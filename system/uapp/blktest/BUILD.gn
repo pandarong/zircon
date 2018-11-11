@@ -7,7 +7,7 @@ executable("blktest") {
   sources = [
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/blktest",
     "$zx/system/ulib/unittest",
   ]

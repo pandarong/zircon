@@ -7,7 +7,7 @@ driver("mt8167s-display") {
     "bind.c",
     "mt8167s-display.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

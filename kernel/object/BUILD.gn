@@ -49,7 +49,7 @@ library("object") {
     "vm_object_dispatcher.cpp",
     "wait_state_observer.cpp",
   ]
-  deps += [
+  deps = [
     ":tests",
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/iommu/dummy",
@@ -78,13 +78,14 @@ library("object") {
 }
 
 source_set("tests") {
+  # TODO: testonly = true
   sources = [
     "buffer_chain_tests.cpp",
     "mbuf_tests.cpp",
     "message_packet_tests.cpp",
     "state_tracker_tests.cpp",
   ]
-  deps += [
+  deps = [
     ":headers",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/unittest",

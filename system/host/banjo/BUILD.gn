@@ -30,7 +30,9 @@ if (defined(zx)) {
     sources = [
       "compiler/main.cpp",
     ]
-    deps += [ ":banjo" ]
+    deps = [
+      ":banjo",
+    ]
   }
 } else {
   #TODO: what uses this old BUILD.gn???

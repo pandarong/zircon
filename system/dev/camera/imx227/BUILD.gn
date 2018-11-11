@@ -7,7 +7,7 @@ driver("imx227") {
     "binding.c",
     "imx227.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-camera:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

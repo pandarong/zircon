@@ -7,7 +7,7 @@ test("runtests-utils") {
     "runtests-utils-test-utils.cpp",
     "runtests-utils-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/runtests-utils",
     "$zx/system/ulib/unittest",
@@ -34,7 +34,7 @@ if (is_fuchsia) {
     sources = [
       "helper/publish-data-helper.c",
     ]
-    deps += [
+    deps = [
       "$zx/system/ulib/fdio",
       "$zx/system/ulib/unittest",
       "$zx/system/ulib/zircon",

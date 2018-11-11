@@ -17,7 +17,7 @@ driver("usb-audio") {
     "usb-midi-sink.c",
     "usb-midi-source.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",

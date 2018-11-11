@@ -6,7 +6,7 @@ driver("machina") {
   sources = [
     "machina.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

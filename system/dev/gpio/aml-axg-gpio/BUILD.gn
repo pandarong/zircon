@@ -6,7 +6,7 @@ driver("aml-axg-gpio") {
   sources = [
     "aml-axg-gpio.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

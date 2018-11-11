@@ -7,7 +7,7 @@ source_set("elf-tls") {
   sources = [
     "tls.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

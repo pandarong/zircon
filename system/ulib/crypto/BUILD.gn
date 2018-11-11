@@ -14,7 +14,7 @@ library("crypto") {
     "hmac.cpp",
     "secret.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/explicit-memory",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

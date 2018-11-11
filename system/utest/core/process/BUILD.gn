@@ -7,7 +7,7 @@ source_set("process") {
   sources = [
     "process.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/mini-process",
     "$zx/system/ulib/unittest",

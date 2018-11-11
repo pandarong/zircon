@@ -13,7 +13,7 @@ driver("gauss") {
     "gauss-usb.c",
     "gauss.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/pci/designware",
     "$zx/system/ulib/ddk",
@@ -29,7 +29,7 @@ driver("gauss-i2c-test") {
   sources = [
     "gauss-i2c-test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
@@ -41,7 +41,7 @@ if (false) {  #TODO: ifeq (PLEASE_DISCUSS_WITH_SWETLAND,)
     sources = [
       "gauss-led.c",
     ]
-    deps += [
+    deps = [
       "$zx/system/ulib/ddk",
       "$zx/system/ulib/sync",
       "$zx/system/ulib/zircon",

@@ -13,7 +13,7 @@ test("fs-host") {
     "test-truncate.cpp",
     "util.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/minfs",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon-internal",

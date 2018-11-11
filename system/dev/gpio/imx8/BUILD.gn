@@ -13,7 +13,7 @@ driver("imx8.m") {
   sources = [
     "imx8m-gpio.c",
   ]
-  deps += [
+  deps = [
     ":common",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
@@ -26,7 +26,7 @@ driver("imx8.m-mini") {
   sources = [
     "imx8m-mini-gpio.c",
   ]
-  deps += [
+  deps = [
     ":common",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
@@ -39,7 +39,7 @@ source_set("common") {
   sources = [
     "imx8-gpio.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
   ]

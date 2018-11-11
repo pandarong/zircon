@@ -16,8 +16,7 @@ library("tftp") {
   }
   if (!is_kernel && is_fuchsia) {
     defines = [ "TFTP_USERLIB" ]
-    deps += [
-      "$zx/system/ulib/c",
+    deps = [
       "$zx/system/ulib/zircon",
     ]
   }
@@ -30,7 +29,7 @@ if (!is_kernel) {
       "tftp-file-test.cpp",
       "tftp-test.cpp",
     ]
-    deps += [
+    deps = [
       "$zx/system/ulib/fbl",
       "$zx/system/ulib/fdio",
       "$zx/system/ulib/tftp",
@@ -43,6 +42,8 @@ if (!is_kernel) {
     sources = [
       "tftp-example.c",
     ]
-    deps += [ ":tftp" ]
+    deps = [
+      ":tftp",
+    ]
   }
 }

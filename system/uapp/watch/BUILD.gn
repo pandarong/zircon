@@ -6,5 +6,7 @@ executable("watch") {
   sources = [
     "watch.c",
   ]
-  deps += [ "$zx/system/ulib/fdio" ]
+  deps = [
+    "$zx/system/ulib/fdio",
+  ]
 }

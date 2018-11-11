@@ -20,7 +20,7 @@ library("jitterentropy") {
   # compiler changes.
   #
   # The original Makefile also specifies -fwrapv.
-  deps -= [ "$zx/public/gn/config:opt_level" ]
+  configs -= [ "$zx/public/gn/config:opt_level" ]
   cflags = [
     "-O0",
     "-fwrapv",

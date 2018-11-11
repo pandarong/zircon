@@ -9,15 +9,15 @@ test("int-types") {
     "wchar-type.c",
     "wchar-type.cpp",
   ]
-  deps += [
-    ":config",
+  configs += [ ":config" ]
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
   ]
 }
 
-config_group("config") {
+config("config") {
   visibility = [ ":*" ]
 
   # The C file here uses a macro to detect whether a type is signed, by

@@ -6,7 +6,7 @@ library("elfload") {
   sources = [
     "elf-load.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/zircon",
   ]
 }

@@ -7,7 +7,7 @@ driver("aml-rawnand") {
     "aml-rawnand.c",
     "onfi.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/fidl/zircon-nand",
     "$zx/system/ulib/ddk",

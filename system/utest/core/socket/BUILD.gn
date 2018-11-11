@@ -7,7 +7,7 @@ source_set("socket") {
   sources = [
     "socket.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

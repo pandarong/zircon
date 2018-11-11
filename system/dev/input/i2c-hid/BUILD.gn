@@ -6,7 +6,7 @@ driver("i2c-hid") {
   sources = [
     "i2c-hid.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/hid",
     "$zx/system/ulib/sync",

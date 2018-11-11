@@ -7,7 +7,7 @@ driver("aml-gpu") {
     "aml-gpu.c",
     "aml-s905d2g.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

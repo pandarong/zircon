@@ -17,7 +17,7 @@ template("banjo_library") {
 
   gen_target = "${banjo_target}._generate"
 
-  config_group(banjo_target) {
+  config(banjo_target) {
     forward_variables_from(invoker,
                            [
                              "testonly",

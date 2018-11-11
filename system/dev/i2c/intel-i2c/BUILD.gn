@@ -7,7 +7,7 @@ driver("intel-i2c") {
     "intel-i2c-controller.c",
     "intel-i2c-slave.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

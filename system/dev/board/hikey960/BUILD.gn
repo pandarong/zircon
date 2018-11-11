@@ -9,7 +9,7 @@ driver("hikey960") {
     "hikey960-usb.c",
     "hikey960.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/gpio/pl061",
     "$zx/system/dev/lib/hi3660",
     "$zx/system/ulib/ddk",
@@ -27,7 +27,7 @@ driver("hi3660-i2c-test") {
   sources = [
     "hikey960-i2c-test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

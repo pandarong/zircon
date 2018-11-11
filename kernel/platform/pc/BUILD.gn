@@ -22,7 +22,7 @@ library("pc") {
     "smbios.cpp",
     "timer.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/dev/pcie",
     "$zx/kernel/lib/cbuf",

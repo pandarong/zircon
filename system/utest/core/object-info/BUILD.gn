@@ -7,7 +7,7 @@ source_set("object-info") {
   sources = [
     "object-info.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/mini-process",

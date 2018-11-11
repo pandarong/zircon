@@ -54,7 +54,7 @@ if (current_toolchain == default_toolchain) {
       "using_tests.cpp",
       "visitor_unittests.cpp",
     ]
-    deps += [
+    deps = [
       ":examples",
       "$zx/system/host/banjo",
       "$zx/system/ulib/unittest",
@@ -68,6 +68,8 @@ if (current_toolchain == default_toolchain) {
     sources = [
       "$gen_dir/examples.cpp",
     ]
-    deps += [ gen_label ]
+    deps = [
+      gen_label,
+    ]
   }
 }

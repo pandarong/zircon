@@ -11,7 +11,7 @@ driver("sdmmc") {
     "sdio.c",
     "sdmmc.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",

@@ -6,7 +6,7 @@ test("rtc-lib") {
   sources = [
     "rtc.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fdio",

@@ -17,11 +17,13 @@ library("c") {
 
   # The code comes from musl, where a source_set is defined.
   sources = []
-  deps += [ "$zx/third_party/ulib/musl" ]
+  deps = [
+    "$zx/third_party/ulib/musl",
+  ]
 
   if (toolchain.environment == "user") {
     # Suppress the circularity.
-    deps -= [ "$zx/public/gn/config:user" ]
+    configs -= [ "$zx/public/gn/config:user" ]
   }
 
   # This library is on the whitelist for driver() shared library deps.

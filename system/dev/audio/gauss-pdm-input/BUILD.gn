@@ -11,7 +11,7 @@ driver("gauss-pdm-input") {
     "gauss-pdm-input.c",
     "vmo_helper.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",

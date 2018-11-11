@@ -8,7 +8,7 @@ test("zxio") {
     "null-test.cpp",
     "zxio-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",

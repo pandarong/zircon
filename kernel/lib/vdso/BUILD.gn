@@ -25,7 +25,7 @@ library("vdso") {
   # is reassembled with the new vDSO contents.
   #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
   if (is_kernel) {
-    deps += [
+    deps = [
       ":gen-categories",
       ":rodso",
       ":vdso-code-header",
@@ -46,10 +46,12 @@ source_set("rodso") {
   sources = [
     "rodso.cpp",
   ]
-  deps += [ ":headers" ]
+  deps = [
+    ":headers",
+  ]
 }
 
-config_group("vdso-valid-sysret") {
+config("vdso-valid-sysret") {
   include_dirs = [ target_gen_dir ]
   deps = [
     ":gen-vdso-valid-sysret",
@@ -81,7 +83,7 @@ select_toolchain("userland") {
   ]
 }
 
-config_group("vdso-code-header") {
+config("vdso-code-header") {
   include_dirs = [ target_gen_dir ]
   deps = [
     ":gen-vdso-code-header",

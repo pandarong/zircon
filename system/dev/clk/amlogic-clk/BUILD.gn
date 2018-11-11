@@ -7,7 +7,7 @@ driver("amlogic-clk") {
     "aml-clk.c",
     "aml-clk.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

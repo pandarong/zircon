@@ -6,7 +6,7 @@ test("biotime") {
   sources = [
     "biotime-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fs-management",

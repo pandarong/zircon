@@ -6,7 +6,7 @@ driver("mbr") {
   sources = [
     "mbr.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/gpt",
     "$zx/system/ulib/sync",

@@ -42,13 +42,13 @@ if (current_toolchain == default_toolchain) {
       "PLATFORM=\"XXX\"",
       "TARGET=\"XXX\"",
     ]
-    deps += [
+    deps = [
       ":config-buildid-header",
       "$zx/kernel/lib/console",
     ]
   }
 
-  config_group("config-buildid-header") {
+  config("config-buildid-header") {
     if (kernel_version_string != "") {
       defines = [ "BUILDID='\"$kernel_version_string\"'" ]
     } else {

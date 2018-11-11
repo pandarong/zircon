@@ -8,7 +8,7 @@ driver("usb-bus") {
     "usb-device.c",
     "util.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-device:c",
     "$zx/system/ulib/ddk",

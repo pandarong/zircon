@@ -6,7 +6,7 @@ test("thread-state") {
   sources = [
     "thread-state.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

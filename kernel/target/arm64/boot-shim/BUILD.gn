@@ -20,7 +20,9 @@ if (toolchain.environment == "physmem") {
       "devicetree.c",
       "util.c",
     ]
-    deps += [ "$zx/kernel/lib/libc/string" ]
+    deps = [
+      "$zx/kernel/lib/libc/string",
+    ]
     public_deps = [
       "$zx/system/ulib/ddk:headers",
       "$zx/system/ulib/libzbi",
@@ -35,7 +37,9 @@ template("boot_shim") {
     executable("${board}-boot-shim") {
       output_extension = "elf"
 
-      deps += [ ":common" ]
+      deps = [
+        ":common",
+      ]
       sources = [
         "${board}-uart.c",
         "boot-shim.c",
@@ -120,6 +124,6 @@ boot_shim("qemu") {
 }
 
 boot_shim("sherlock") {
-  script = "..." # TODO: kdtb
+  script = "..."  # TODO: kdtb
   args = []
 }

@@ -12,7 +12,7 @@ library("digest") {
     "merkle-tree.cpp",
   ]
 
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/third_party/ulib/uboringssl",
   ]

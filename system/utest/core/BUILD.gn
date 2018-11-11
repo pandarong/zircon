@@ -64,7 +64,7 @@ group("core") {
 # runs all the individual test() binaries created below.
 executable("core-tests") {
   testonly = true
-  deps += core_tests + unified_only
+  deps = core_tests + unified_only
   sources = [
     "main.c",
   ]
@@ -81,13 +81,15 @@ source_set("unittest_main") {
   sources = [
     "unittest_main.c",
   ]
-  deps += [ "$zx/system/ulib/unittest" ]
+  deps = [
+    "$zx/system/ulib/unittest",
+  ]
 }
 
 foreach(test_name, core_tests) {
   test(test_name) {
     test_group = "core"
-    deps += [
+    deps = [
       ":unittest_main",
       test_name,
     ]

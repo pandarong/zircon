@@ -6,7 +6,7 @@ executable("channel-perf") {
   sources = [
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",

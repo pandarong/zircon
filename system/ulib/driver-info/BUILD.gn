@@ -6,14 +6,14 @@ library("driver-info") {
   sources = [
     "driver-info.c",
   ]
-  deps += [ "$zx/public/gn/config:visibility_hidden" ]
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
 }
 
 executable("driverinfo") {
   sources = [
     "driver-info-app.c",
   ]
-  deps += [
+  deps = [
     ":driver-info",
     "$zx/system/ulib/fdio",
   ]

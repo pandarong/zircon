@@ -6,7 +6,7 @@ test("logger") {
   sources = [
     "test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",

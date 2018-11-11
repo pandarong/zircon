@@ -33,7 +33,7 @@ source_set("syscalls") {
     "vmo.cpp",
     "zircon.cpp",
   ]
-  deps += [
+  deps = [
     ":dispatch",
     ":syscall-abi",
     "$zx/kernel/dev/udisplay",
@@ -60,13 +60,13 @@ source_set("dispatch") {
   sources = [
     "syscalls.cpp",
   ]
-  deps += [
+  deps = [
     ":syscall-abi",
     "$zx/kernel/lib/vdso:headers",
   ]
 }
 
-config_group("syscall-abi") {
+config("syscall-abi") {
   visibility = [
     ":*",
     "$zx/kernel/arch/$zircon_cpu:*",

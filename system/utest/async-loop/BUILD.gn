@@ -7,7 +7,7 @@ test("async-loop") {
     "loop_tests.cpp",
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

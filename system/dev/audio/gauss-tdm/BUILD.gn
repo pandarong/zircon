@@ -8,7 +8,7 @@ driver("gauss-tdm") {
     "gauss-tdm-stream.cpp",
     "tas57xx.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",

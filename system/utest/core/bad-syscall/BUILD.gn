@@ -11,7 +11,7 @@ source_set("bad-syscall") {
     "syscall.S",
   ]
   defines = [ "KERNEL_ASPACE_BASE=$kernel_aspace_base" ]
-  deps += [
+  deps = [
     "$zx/kernel/syscalls:syscall-abi",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",

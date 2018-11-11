@@ -6,8 +6,8 @@ library("gfx") {
   sources = [
     "gfx.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/zircon",
   ]
 }

@@ -15,7 +15,7 @@ test("trace") {
     "no_optimization.c",
     "record_tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

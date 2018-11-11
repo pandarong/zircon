@@ -8,7 +8,7 @@ library("blktest") {
   sources = [
     "blktest.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

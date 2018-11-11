@@ -6,7 +6,7 @@ executable("audio-codec") {
   sources = [
     "audio-codec.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

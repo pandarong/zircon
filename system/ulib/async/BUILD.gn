@@ -6,8 +6,8 @@ library("async") {
   sources = [
     "ops.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/zircon",
   ]
 }
@@ -20,9 +20,9 @@ library("async-cpp") {
     "trap.cpp",
     "wait.cpp",
   ]
-  deps += [
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     ":async",
-    "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
@@ -34,5 +34,5 @@ library("async-default") {
   sources = [
     "default.c",
   ]
-  deps += [ "$zx/public/gn/config:visibility_hidden" ]
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
 }

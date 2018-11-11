@@ -11,8 +11,8 @@ library("trace") {
     # <trace/internal/event_common.h> has #include <trace-engine/instrumentation.h>.
     "$zx/system/ulib/trace-engine:headers",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/fbl",

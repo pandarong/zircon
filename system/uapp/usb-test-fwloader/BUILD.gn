@@ -7,7 +7,7 @@ executable("usb-test-fwloader") {
   sources = [
     "usb-test-fwloader.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/fidl/zircon-usb-tester:c",
     "$zx/system/ulib/fbl",

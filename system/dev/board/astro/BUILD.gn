@@ -22,7 +22,7 @@ driver("astro") {
     "astro-video.c",
     "astro.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/lib/broadcom",
     "$zx/system/ulib/ddk",

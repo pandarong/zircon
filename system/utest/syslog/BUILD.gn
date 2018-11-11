@@ -8,7 +8,7 @@ test("syslog") {
     "syslog_socket_tests.cpp",
     "syslog_tests.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/syslog",

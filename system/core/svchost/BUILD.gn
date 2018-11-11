@@ -6,7 +6,7 @@ executable("svchost") {
   sources = [
     "svchost.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/core/crashanalyzer",
     "$zx/system/fidl/fuchsia-crash:c",
     "$zx/system/fidl/fuchsia-io:c",

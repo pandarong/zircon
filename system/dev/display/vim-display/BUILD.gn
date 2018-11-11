@@ -14,7 +14,7 @@ driver("vim-display") {
     "vim-spdif-audio-stream.cpp",
     "vpp.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/audio/lib/simple-audio-stream",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/audio-driver-proto",

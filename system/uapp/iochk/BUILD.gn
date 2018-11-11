@@ -6,7 +6,7 @@ executable("iochk") {
   sources = [
     "iochk.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/fbl",

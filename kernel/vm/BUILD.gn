@@ -26,7 +26,7 @@ library("vm") {
     "vm_page_list.cpp",
     "vmm.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/user_copy",
@@ -50,5 +50,7 @@ source_set("tests") {
   sources = [
     "vm_unittest.cpp",
   ]
-  deps += [ "$zx/kernel/lib/unittest" ]
+  deps = [
+    "$zx/kernel/lib/unittest",
+  ]
 }

@@ -6,7 +6,7 @@ test("vdso") {
   sources = [
     "vdso.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/elfload",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

@@ -12,7 +12,7 @@ group("acpi") {
   ]
 }
 
-config_group("config") {
+config("config") {
   visibility = [ ":*" ]
 
   include_dirs = [ "include" ]
@@ -58,8 +58,8 @@ driver("bus-acpi") {
   } else {
     sources += [ "kpci.c" ]
   }
-  deps += [
-    ":config",
+  configs += [ ":config" ]
+  deps = [
     "$zx/system/banjo/ddk-protocol-acpi",
     "$zx/system/fidl/fuchsia-power:c",
     "$zx/system/ulib/ddk",

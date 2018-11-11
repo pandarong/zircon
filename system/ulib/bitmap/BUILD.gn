@@ -16,7 +16,7 @@ library("bitmap") {
     "$zx/system/ulib/fbl:headers",
   ]
   if (!is_kernel && !is_host) {
-    deps += [
+    deps = [
       "$zx/system/ulib/fbl",
       "$zx/system/ulib/zircon",
       "$zx/system/ulib/zx",

@@ -6,7 +6,7 @@ test("getentropy") {
   sources = [
     "getentropy.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

@@ -6,7 +6,7 @@ executable("dump1") {
   sources = [
     "dump1.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

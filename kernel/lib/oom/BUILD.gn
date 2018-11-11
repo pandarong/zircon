@@ -9,7 +9,7 @@ library("oom") {
   sources = [
     "oom.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/lib/console",
     "$zx/system/ulib/pretty",
   ]

@@ -7,7 +7,7 @@ test("crypto") {
     "main.c",
     "utils.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

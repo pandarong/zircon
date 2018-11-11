@@ -6,7 +6,7 @@ test("register-state") {
   sources = [
     "register-state-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

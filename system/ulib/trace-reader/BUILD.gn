@@ -8,8 +8,8 @@ library("trace-reader") {
     "reader.cpp",
     "records.cpp",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/trace-engine",
   ]

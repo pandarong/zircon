@@ -6,7 +6,7 @@ executable("hidsensor") {
   sources = [
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/hid",

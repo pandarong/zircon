@@ -9,7 +9,7 @@ executable("display-test") {
     "main.cpp",
     "virtual-layer.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-display:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

@@ -10,5 +10,7 @@ library("hwreg") {
   sources = [
     "printers.cpp",
   ]
-  deps += [ "$zx/kernel/lib/fbl" ]
+  deps = [
+    "$zx/kernel/lib/fbl",
+  ]
 }

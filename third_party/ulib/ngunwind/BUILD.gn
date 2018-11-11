@@ -6,8 +6,8 @@ import("$zx/public/gn/config/levels.gni")
 
 library("ngunwind") {
   shared = true
-  deps += [
-    ":private_config",
+  configs += [ ":private_config" ]
+  deps = [
     "$zx/system/ulib/zircon",
   ]
   sources = [
@@ -77,17 +77,17 @@ library("ngunwind") {
 
   # Compile this with frame pointers so that if we crash
   # the simplistic unwinder will work.
-  deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
-  deps += [ "$zx/public/gn/config:frame_pointers" ]
+  configs -= [ "$zx/public/gn/config:default_frame_pointers" ]
+  configs += [ "$zx/public/gn/config:frame_pointers" ]
 
   if (opt_level < 2) {
     # Force -O2 since the library doesn't build with -Og.
-    deps -= [ "$zx/public/gn/config:opt_level" ]
+    configs -= [ "$zx/public/gn/config:opt_level" ]
     cflags = [ "-O2" ]
   }
 }
 
-config_group("private_config") {
+config("private_config") {
   visibility = [ ":*" ]
 
   defines = [ "DEBUG" ]

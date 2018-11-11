@@ -59,9 +59,9 @@ source_set("complex") {
     "ctanhl.c",
     "ctanl.c",
   ]
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [
-    "$zx/third_party/ulib/musl:musl_config",
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  deps = [
     "$zx/third_party/ulib/musl/third_party/complex",
   ]
 }

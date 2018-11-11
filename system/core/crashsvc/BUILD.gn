@@ -6,7 +6,7 @@ executable("crashsvc") {
   sources = [
     "crashsvc.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

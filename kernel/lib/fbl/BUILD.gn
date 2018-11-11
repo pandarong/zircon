@@ -9,7 +9,9 @@ library("fbl") {
   sources = [
     "arena.cpp",
   ]
-  deps += [ ":tests" ]
+  deps = [
+    ":tests",
+  ]
   public_deps = [
     "$zx/system/ulib/fbl",
 
@@ -19,6 +21,7 @@ library("fbl") {
 }
 
 source_set("tests") {
+  #TODO: testonly = true
   visibility = [ ":*" ]
   sources = [
     "arena_tests.cpp",
@@ -26,7 +29,7 @@ source_set("tests") {
     "name_tests.cpp",
   ]
 
-  deps += [
+  deps = [
     ":headers",
     "$zx/kernel/lib/unittest",
   ]

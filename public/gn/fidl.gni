@@ -80,7 +80,7 @@ template("fidl_library") {
     gen_target = "${invoker.fidl_target}._generate.${gen.name}"
     library(target_name) {
       forward_variables_from(invoker, "*", [ "deps" ])
-      deps += invoker.deps
+      deps = invoker.deps
 
       # Users of the bindings library need the generated headers.
       public_deps = [
@@ -101,7 +101,7 @@ template("fidl_library") {
         "$zx/system/ulib/zircon",
       ]
     }
-    config_group("${target_name}_config") {
+    config("${target_name}_config") {
       forward_variables_from(invoker,
                              [
                                "testonly",

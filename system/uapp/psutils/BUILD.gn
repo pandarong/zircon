@@ -20,7 +20,7 @@ executable("ps") {
   sources = [
     "ps.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
@@ -33,7 +33,7 @@ executable("top") {
   sources = [
     "top.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
@@ -46,7 +46,7 @@ executable("kill") {
   sources = [
     "kill.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
@@ -58,7 +58,7 @@ executable("killall") {
   sources = [
     "killall.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",
@@ -70,7 +70,7 @@ executable("vmaps") {
   sources = [
     "vmaps.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
@@ -84,7 +84,7 @@ executable("vmos") {
     "vmo-utils.c",
     "vmos.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
@@ -100,7 +100,7 @@ executable("memgraph") {
     "vmo-utils.c",
   ]
   include_dirs = [ target_gen_dir ]
-  deps += [
+  deps = [
     ":gen-memgraph-schema",
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
@@ -128,7 +128,7 @@ executable("kstats") {
     "kstats.c",
     "resources.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
@@ -140,7 +140,7 @@ executable("threads") {
   sources = [
     "threads.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

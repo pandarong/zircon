@@ -8,8 +8,8 @@ test("channel-fatal") {
   sources = [
     "channel-fatal-test.c",
   ]
-  deps += [
-    ":vdso_code_config",
+  configs += [ ":vdso_code_config" ]
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/unittest",
@@ -19,5 +19,7 @@ test("channel-fatal") {
 
 select_toolchain("vdso_code_config") {
   environment_label = "$zx/kernel"
-  deps = [ "$zx/kernel/lib/vdso:vdso-code-header"]
+  deps = [
+    "$zx/kernel/lib/vdso:vdso-code-header",
+  ]
 }

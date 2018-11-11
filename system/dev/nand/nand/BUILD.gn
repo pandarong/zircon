@@ -6,7 +6,7 @@ driver("nand") {
   sources = [
     "nand.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

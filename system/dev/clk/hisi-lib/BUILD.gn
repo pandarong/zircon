@@ -6,7 +6,7 @@ library("hisi-lib") {
   sources = [
     "hisi-clk.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver",
     "$zx/system/ulib/sync",

@@ -8,7 +8,7 @@ driver("realtek") {
     "realtek-codec.cpp",
     "realtek-stream.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",

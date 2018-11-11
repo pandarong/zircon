@@ -9,7 +9,7 @@ library("udisplay") {
   sources = [
     "udisplay.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/lib/crashlog",
     "$zx/kernel/lib/debuglog",
     "$zx/kernel/lib/fbl",

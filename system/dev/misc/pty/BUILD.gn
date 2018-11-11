@@ -8,7 +8,7 @@ driver("pty") {
     "pty-driver.c",
     "pty-fifo.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

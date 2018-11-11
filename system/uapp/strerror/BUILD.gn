@@ -6,7 +6,7 @@ executable("strerror") {
   sources = [
     "strerror.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/runtime",
     "$zx/system/ulib/zircon",

@@ -6,7 +6,7 @@ driver("goodix") {
   sources = [
     "gt92xx.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

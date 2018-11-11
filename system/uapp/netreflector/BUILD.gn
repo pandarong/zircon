@@ -6,7 +6,7 @@ executable("netreflector") {
   sources = [
     "netreflector.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",

@@ -6,8 +6,8 @@ library("rtc") {
   sources = [
     "librtc.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver",

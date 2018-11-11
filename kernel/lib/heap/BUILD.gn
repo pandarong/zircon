@@ -9,8 +9,8 @@ library("heap") {
   sources = [
     "heap_wrapper.cpp",
   ]
-  deps += [
-    "cmpctmalloc",
+  deps = [
     "$zx/kernel/lib/console",
+    "cmpctmalloc",
   ]
 }

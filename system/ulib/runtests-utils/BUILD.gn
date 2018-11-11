@@ -21,7 +21,7 @@ library("runtests-utils") {
   } else {
     sources += [ "posix-run-test.cpp" ]
   }
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon-internal",

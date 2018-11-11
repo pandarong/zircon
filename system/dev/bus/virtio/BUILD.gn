@@ -18,7 +18,7 @@ driver("virtio") {
     "virtio_c.c",
     "virtio_driver.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

@@ -7,7 +7,7 @@ driver("hid-buttons") {
     "bind.c",
     "hid-buttons.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

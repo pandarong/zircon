@@ -6,7 +6,7 @@ test("spawn") {
   sources = [
     "spawn.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
@@ -24,7 +24,7 @@ executable("spawn-child") {
   sources = [
     "child.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]
@@ -36,7 +36,7 @@ executable("spawn-launcher") {
   sources = [
     "launcher.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/zircon",

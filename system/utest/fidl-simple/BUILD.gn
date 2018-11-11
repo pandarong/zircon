@@ -14,7 +14,7 @@ if (is_fuchsia) {
       "spaceship_tests.c",
       "spaceship_tests.cpp",
     ]
-    deps += [
+    deps = [
       ":fidl.test.spaceship.c",
       "$zx/system/fidl/fuchsia-crash:c",
       "$zx/system/fidl/fuchsia-ldsvc:c",

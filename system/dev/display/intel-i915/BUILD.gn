@@ -17,7 +17,7 @@ driver("intel-i915") {
     "pipe.cpp",
     "power.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-backlight:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

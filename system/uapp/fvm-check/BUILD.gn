@@ -6,7 +6,7 @@ executable("fvm-check") {
   sources = [
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

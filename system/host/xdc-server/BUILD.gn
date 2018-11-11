@@ -7,7 +7,7 @@ host_tool("xdc-server") {
     "usb-handler.cpp",
     "xdc-server.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fit",
     "$zx/system/ulib/xdc-host-utils",

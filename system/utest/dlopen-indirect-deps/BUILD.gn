@@ -6,7 +6,7 @@ test("dlopen-indirect-deps") {
   sources = [
     "dlopen-indirect-deps.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
   ]
@@ -22,7 +22,9 @@ library("dlopen-indirect-deps-test-module") {
   sources = [
     "dlopen-indirect-deps-test-module/test-module.c",
   ]
-  deps += [ ":dlopen-indirect-deps-test-liba" ]
+  deps = [
+    ":dlopen-indirect-deps-test-liba",
+  ]
 }
 
 library("dlopen-indirect-deps-test-liba") {
@@ -32,7 +34,9 @@ library("dlopen-indirect-deps-test-liba") {
   sources = [
     "dlopen-indirect-deps-test-module/dlopen-indirect-deps-test-liba/liba.c",
   ]
-  deps += [ ":dlopen-indirect-deps-test-libb" ]
+  deps = [
+    ":dlopen-indirect-deps-test-libb",
+  ]
 }
 
 library("dlopen-indirect-deps-test-libb") {

@@ -7,7 +7,7 @@ test("hid-parser") {
     "hid-parser-test.cpp",
     "hid-report-data.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/hid-parser",
@@ -15,5 +15,4 @@ test("hid-parser") {
     "$zx/system/ulib/zxcpp",
   ]
 }
-
 # TODO(fuzztest): sources=["hid-parser-fuzztest.cpp"]

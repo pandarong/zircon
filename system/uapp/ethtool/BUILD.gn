@@ -6,10 +6,11 @@ executable("ethtool") {
   sources = [
     "ethtool.c",
   ]
-  deps += [
+  deps = [
+    "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
-"$zx/system/fidl/zircon-ethernet:c"]
+  ]
 }
