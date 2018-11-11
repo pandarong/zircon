@@ -8,7 +8,7 @@ executable("crasher") {
     "crasher.c",
   ]
   cflags = [ "-fstack-protector-all" ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",

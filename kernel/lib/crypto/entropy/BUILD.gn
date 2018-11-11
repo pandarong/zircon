@@ -12,7 +12,7 @@ source_set("entropy") {
     "jitterentropy_collector.cpp",
     "quality_test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/hw_rng",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/unittest",

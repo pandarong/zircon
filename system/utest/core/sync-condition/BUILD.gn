@@ -7,7 +7,7 @@ source_set("sync-condition") {
   sources = [
     "condition.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/unittest",

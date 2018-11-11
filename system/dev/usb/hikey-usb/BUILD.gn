@@ -7,7 +7,7 @@ driver("hikey-usb") {
     "bind.c",
     "hikey-usb.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

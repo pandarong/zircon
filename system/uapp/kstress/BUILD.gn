@@ -8,7 +8,7 @@ executable("kstress") {
     "stress_test.cpp",
     "vmstress.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

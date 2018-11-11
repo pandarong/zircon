@@ -6,7 +6,7 @@ driver("usb-hub") {
   sources = [
     "usb-hub.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",

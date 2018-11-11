@@ -10,7 +10,7 @@ test("fs-test-utils") {
     "perftest_test.cpp",
     "unittest_test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",

@@ -1,4 +1,4 @@
-# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Copyright 018 The Fuchsia Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -7,7 +7,7 @@ executable("xdc-test") {
     "xdc-device.cpp",
     "xdc-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-usb-debug:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
@@ -23,7 +23,7 @@ host_tool("xdc-test-host") {
     "xdc-host.cpp",
     "xdc-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/xdc-host-utils",
     "$zx/system/ulib/xdc-server-utils",

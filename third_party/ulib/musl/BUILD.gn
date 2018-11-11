@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-config_group("headers") {
+config("headers") {
   visibility = [
     "./*",
     "$zx/system/ulib/c:*",
@@ -10,7 +10,7 @@ config_group("headers") {
   include_dirs = [ "include" ]
 }
 
-config_group("musl_config") {
+config("musl_config") {
   visibility = [ "./*" ]
   include_dirs = [
     "src/internal",
@@ -89,7 +89,7 @@ if (toolchain.environment == "user") {
 
   source_set("crt1") {
     visibility = [ "$zx/system/ulib/c:crt1" ]
-    deps -= [ "$zx/public/gn/config:user" ]
+    configs -= [ "$zx/public/gn/config:user" ]
     sources = [
       "arch/${toolchain.cpu}/Scrt1.S",
     ]

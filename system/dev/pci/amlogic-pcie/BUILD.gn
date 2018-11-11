@@ -9,7 +9,7 @@ driver("amlogic-pcie") {
     "aml-pcie.cpp",
     "binding.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/pci/designware",
     "$zx/system/ulib/ddk",

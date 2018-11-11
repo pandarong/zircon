@@ -13,7 +13,7 @@ source_set("userboot") {
   ]
 
   include_dirs = [ target_gen_dir ]
-  deps += [
+  deps = [
     ":gen-userboot-code-header",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/vdso",

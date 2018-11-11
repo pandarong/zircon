@@ -9,8 +9,8 @@ library("inspector") {
     "registers.cpp",
     "utils.cpp",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/elf-search",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
@@ -21,6 +21,6 @@ library("inspector") {
 
   # Compile this with frame pointers so that if we crash
   # the simplistic unwinder will work.
-  deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
-  deps += [ "$zx/public/gn/config:frame_pointers" ]
+  configs -= [ "$zx/public/gn/config:default_frame_pointers" ]
+  configs += [ "$zx/public/gn/config:frame_pointers" ]
 }

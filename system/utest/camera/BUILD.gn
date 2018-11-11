@@ -6,7 +6,7 @@ test("camera") {
   sources = [
     "camera.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-camera:c",
     "$zx/system/ulib/async:async-default",
     "$zx/system/ulib/ddk",

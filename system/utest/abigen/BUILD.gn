@@ -6,7 +6,7 @@ test("abigen") {
   sources = [
     "abigen.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/unittest",

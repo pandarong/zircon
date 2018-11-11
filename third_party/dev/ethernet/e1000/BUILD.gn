@@ -25,7 +25,7 @@ driver("e1000") {
     "e1000_vf.c",
     "fuchsia.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

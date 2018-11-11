@@ -11,7 +11,7 @@ driver("dwc3") {
     "dwc3-events.cpp",
     "dwc3.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

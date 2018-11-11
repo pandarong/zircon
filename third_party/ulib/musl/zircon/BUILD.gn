@@ -9,9 +9,9 @@ source_set("zircon") {
     "take_startup_handle.c",
     "thrd_get_zx_handle.c",
   ]
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  deps = [
     "$zx/system/ulib/runtime",
-    "$zx/third_party/ulib/musl:musl_config",
   ]
 }

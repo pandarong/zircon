@@ -6,7 +6,7 @@ test("ethernet") {
   sources = [
     "ethernet.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fbl",

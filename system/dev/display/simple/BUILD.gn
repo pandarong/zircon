@@ -7,7 +7,7 @@ source_set("shared") {
   sources = [
     "simple-display.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
   ]
@@ -32,7 +32,7 @@ foreach(driver, simple_drivers) {
     sources = [
       "simple-$driver.c",
     ]
-    deps += [
+    deps = [
       ":shared",
       "$zx/system/ulib/ddk",
     ]

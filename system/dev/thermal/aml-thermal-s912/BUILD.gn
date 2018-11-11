@@ -7,7 +7,7 @@ driver("aml-thermal-s912") {
     "aml-thermal.c",
     "aml-thermal.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

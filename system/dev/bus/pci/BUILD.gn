@@ -23,7 +23,7 @@ driver("bus-pci") {
       "kpci.c",
     ]
   }
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -33,7 +33,7 @@ driver("bus-pci.proxy") {
   sources = [
     "proxy.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

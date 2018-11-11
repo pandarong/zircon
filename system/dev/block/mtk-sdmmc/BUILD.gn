@@ -7,7 +7,7 @@ driver("mtk-sdmmc") {
     "binding.c",
     "mtk-sdmmc.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

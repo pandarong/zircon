@@ -11,6 +11,8 @@ library("explicit-memory") {
     "bytes.c",
   ]
   if (!is_kernel) {
-    deps += [ "$zx/system/ulib/fbl" ]
+    deps = [
+      "$zx/system/ulib/fbl",
+    ]
   }
 }

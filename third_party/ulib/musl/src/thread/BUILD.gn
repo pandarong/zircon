@@ -3,10 +3,10 @@
 # found in the LICENSE file.
 
 source_set("thread") {
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  deps = [
     "$zx/system/ulib/sync",
-    "$zx/third_party/ulib/musl:musl_config",
   ]
   sources = [
     "__timedwait.c",

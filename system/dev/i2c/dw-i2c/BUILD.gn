@@ -6,7 +6,7 @@ driver("dw-i2c") {
   sources = [
     "dw-i2c.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

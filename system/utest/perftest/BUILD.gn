@@ -16,7 +16,7 @@ test("perftest") {
     "sleep-test.cpp",
     "syscalls-test.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

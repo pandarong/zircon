@@ -8,7 +8,7 @@ library("mini-process") {
   sources = [
     "mini-process.c",
   ]
-  deps += [
+  deps = [
     ":subprocess",
     "$zx/system/ulib/elfload",
     "$zx/system/ulib/zircon",
@@ -21,9 +21,9 @@ source_set("subprocess") {
   sources = [
     "subprocess.c",
   ]
-  deps += [
+  configs += [ "$zx/public/gn/config:no_sanitizers" ]
+  deps = [
     ":headers",
-    "$zx/public/gn/config:no_sanitizers",
     "$zx/system/ulib/zircon",
   ]
 }

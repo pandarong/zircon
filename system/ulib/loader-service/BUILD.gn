@@ -6,8 +6,8 @@ library("loader-service") {
   sources = [
     "loader-service.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async-loop",
     "$zx/system/ulib/fdio",

@@ -6,7 +6,7 @@ library("bootdata") {
   sources = [
     "decompress.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/c",
     "$zx/system/ulib/zircon",
     "$zx/third_party/ulib/lz4",

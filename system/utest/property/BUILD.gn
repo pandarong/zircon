@@ -6,7 +6,7 @@ test("property") {
   sources = [
     "property.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/test-utils",

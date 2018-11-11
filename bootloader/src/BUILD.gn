@@ -21,5 +21,7 @@ source_set("src") {
     "zircon.c",
   ]
   include_dirs = [ "." ]
-  deps += [ "$zx/system/ulib/tftp" ]
+  deps = [
+    "$zx/system/ulib/tftp",
+  ]
 }

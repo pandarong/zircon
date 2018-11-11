@@ -18,6 +18,6 @@ library("backtrace") {
 
   # Compile this with frame pointers so that if we crash
   # the simplistic unwinder will work.
-  deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
-  deps += [ "$zx/public/gn/config:frame_pointers" ]
+  configs -= [ "$zx/public/gn/config:default_frame_pointers" ]
+  configs += [ "$zx/public/gn/config:frame_pointers" ]
 }

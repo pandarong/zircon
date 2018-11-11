@@ -9,7 +9,7 @@ test_driver("ddk-test") {
     "metadata-test.c",
     "usb-request-test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fdio",

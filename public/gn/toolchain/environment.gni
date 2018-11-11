@@ -38,15 +38,15 @@ import("c_toolchain.gni")
 #     and/or loadable_module() targets.  Mutually exclusive with $shlib.
 #     Default: false
 #
-#   public_deps
+#   configs
 #     Preset: $standard_configs
-#     Required: List of labels, usually config_group() targets.
+#     Required: List of labels, usually config() targets.
 #     These are the default `deps` in all compiling targets.
 #
-#   shlib_public_deps
+#   shlib_configs
 #     Preset: $standard_shlib_configs
-#     Required: List of labels, usually config_group() targets.
-#     Added to $public_deps in the `.shlib` companion toolchain.
+#     Required: List of labels, usually config() targets.
+#     Added to $configs in the `.shlib` companion toolchain.
 #     Ignored if $shlib is false.
 #
 #   globals
@@ -89,8 +89,8 @@ template("define_environment") {
   # Define a primary toolchain, and possibly also a shlib toolchain,
   # for each variant.  If there are two, both toolchains get a
   # ${toolchain.shlib} value pointing to the shlib toolchain.  The
-  # shlib toolchain has additional ${toolchain.public_deps} appended
-  # from $shlib_public_deps and then shared_library() in the primary
+  # shlib toolchain has additional ${toolchain.configs} appended
+  # from $shlib_configs and then shared_library() in the primary
   # toolchain redirects to the shlib toolchain.
   foreach(variant, live_variants) {
     toolchains = []  # Clear from previous iteration.
@@ -99,7 +99,7 @@ template("define_environment") {
     toolchains = [
       {
         name = tc_name
-        public_deps = invoker.public_deps
+        configs = invoker.configs
         if (shlib) {
           shlib_name = "${name}.shlib"
         }
@@ -110,7 +110,7 @@ template("define_environment") {
         {
           name = "${tc_name}.shlib"
           shlib_name = name
-          public_deps = invoker.public_deps + invoker.shlib_public_deps
+          configs = invoker.configs + invoker.shlib_configs
         },
       ]
     }
@@ -146,9 +146,9 @@ template("define_environment") {
           # This is used by $zx/public/gn/BUILDCONFIG.gn for set_defaults().
           # The labels must be absolute since they will be used all over in
           # the new toolchain, not just where the define_environment() is.
-          public_deps = []
-          foreach(label, tc.public_deps) {
-            public_deps += [ get_label_info(label, "label_no_toolchain") ]
+          configs = []
+          foreach(label, tc.configs) {
+            configs += [ get_label_info(label, "label_no_toolchain") ]
           }
 
           if (defined(invoker.globals)) {
@@ -159,10 +159,10 @@ template("define_environment") {
             forward_variables_from(invoker.toolchain_vars,
                                    "*",
                                    [
+                                     "configs",
                                      "environment",
                                      "environment_label",
                                      "globals",
-                                     "public_deps",
                                      "shlib",
                                      "strip",
                                    ])
@@ -174,6 +174,6 @@ template("define_environment") {
 }
 
 set_defaults("define_environment") {
-  public_deps = standard_configs
-  shlib_public_deps = standard_shlib_configs
+  configs = standard_configs
+  shlib_configs = standard_shlib_configs
 }

@@ -6,13 +6,13 @@ executable("kilo") {
   sources = [
     "kilo.c",
   ]
-  deps += [
-    ":config",
+  configs += [ ":config" ]
+  deps = [
     "$zx/system/ulib/fdio",
   ]
 }
 
-config_group("config") {
+config("config") {
   visibility = [ ":*" ]
   if (is_gcc) {
     cflags = [ "-Wno-discarded-qualifiers" ]

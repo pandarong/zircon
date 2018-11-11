@@ -6,7 +6,7 @@ test("vdso-variant") {
   sources = [
     "vdso-variant.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/zircon",
@@ -22,7 +22,7 @@ executable("vdso-variant-helper") {
   sources = [
     "helper/vdso-variant-helper.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

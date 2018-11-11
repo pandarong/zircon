@@ -10,7 +10,7 @@ library("hi3660") {
     "hi3660-usb.c",
     "hi3660.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/gpio/pl061",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/driver",

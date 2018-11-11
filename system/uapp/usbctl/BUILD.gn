@@ -6,7 +6,7 @@ executable("usbctl") {
   sources = [
     "usbctl.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-usb-peripheral:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",

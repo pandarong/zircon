@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 source_set("stdio") {
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "__fclose_ca.c",
     "__fdopen.c",

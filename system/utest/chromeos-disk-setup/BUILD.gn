@@ -6,7 +6,7 @@ test("chromeos-disk-setup") {
   sources = [
     "chromeos-disk-setup.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/chromeos-disk-setup",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

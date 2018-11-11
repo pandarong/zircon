@@ -11,5 +11,7 @@ library("usb") {
     # <ddk/usb/usb.h> has #include <ddk/protocol/usb.h>.
     "$zx/system/ulib/ddk:headers",
   ]
-  deps += [ "$zx/system/ulib/ddk" ]
+  deps = [
+    "$zx/system/ulib/ddk",
+  ]
 }

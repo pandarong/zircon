@@ -9,7 +9,7 @@ driver("fx3") {  # TODO: test_driver?
   sources = [
     "fx3.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",

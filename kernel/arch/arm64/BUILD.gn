@@ -15,11 +15,11 @@ if (current_toolchain == default_toolchain) {
     globals = {
       is_kernel = true
     }
-    public_deps += standard_fuchsia_configs + [ ":physmem_config" ]
+    configs += standard_fuchsia_configs + [ ":physmem_config" ]
   }
 } else {
   # This is the top config for the physmem environment.
-  config_group("physmem_config") {
+  config("physmem_config") {
     public_deps = [
       ":headers",
       "$zx/kernel:headers",
@@ -45,7 +45,7 @@ if (current_toolchain == default_toolchain) {
   }
 
   # This is used pervasively throughout the kernel on arm64.
-  config_group("kernel") {
+  config("kernel") {
     # The kernel does not use FP or vector registers.
     cflags = [ "-mgeneral-regs-only" ]
 
@@ -96,7 +96,7 @@ if (current_toolchain == default_toolchain) {
       "user_copy_c.cpp",
       "uspace_entry.S",
     ]
-    deps += [
+    deps = [
       "$zx/kernel/dev/iommu/dummy",
       "$zx/kernel/lib/console",
       "$zx/kernel/lib/crashlog",

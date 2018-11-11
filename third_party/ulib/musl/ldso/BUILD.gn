@@ -3,10 +3,10 @@
 # found in the LICENSE file.
 
 source_set("ldso") {
-  deps -= [ "$zx/public/gn/config:user" ]
-  deps += [
+  configs -= [ "$zx/public/gn/config:user" ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  deps = [
     "$zx/system/ulib/ldmsg",
-    "$zx/third_party/ulib/musl:musl_config",
   ]
   sources = [
     "$zx/third_party/ulib/musl/arch/${toolchain.cpu}/dl-entry.S",

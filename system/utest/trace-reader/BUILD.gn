@@ -8,7 +8,7 @@ test("trace-reader") {
     "reader_tests.cpp",
     "records_tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/trace-reader",

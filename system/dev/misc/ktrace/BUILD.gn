@@ -6,7 +6,7 @@ driver("ktrace") {
   sources = [
     "ktrace.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",

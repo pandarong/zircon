@@ -6,7 +6,7 @@ driver("aml-canvas") {
   sources = [
     "aml-canvas.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -19,7 +19,7 @@ driver("aml-canvas.proxy") {
   sources = [
     "aml-canvas-proxy-client.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

@@ -6,7 +6,7 @@ test("policy") {
   sources = [
     "job-policy.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/mini-process",

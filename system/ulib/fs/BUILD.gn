@@ -11,7 +11,7 @@ library("fs") {
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/fdio:headers",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon-internal",
   ]
@@ -44,8 +44,8 @@ library("fs") {
       # <fs/vnode.h> has #include <fuchsia/io/c/fidl.h>.
       "$zx/system/fidl/fuchsia-io:c.headers",
     ]
+    configs += [ "$zx/public/gn/config:visibility_hidden" ]
     deps += [
-      "$zx/public/gn/config:visibility_hidden",
       "$zx/system/fidl/fuchsia-io:c",
       "$zx/system/ulib/async",
       "$zx/system/ulib/async:async-cpp",

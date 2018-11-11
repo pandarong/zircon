@@ -6,7 +6,7 @@ test("exception") {
   sources = [
     "exception.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/test-utils",
     "$zx/system/ulib/unittest",

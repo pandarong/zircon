@@ -28,8 +28,8 @@ library("fdio") {
     "watcher.c",
     "zxio.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/fuchsia-ldsvc:c",
     "$zx/system/fidl/fuchsia-net:c",

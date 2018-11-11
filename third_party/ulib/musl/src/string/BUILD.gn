@@ -15,15 +15,15 @@ group("string") {
 }
 
 if (toolchain.environment == "user") {
-  remove_deps = [ "$zx/public/gn/config:user" ]
+  remove_configs = [ "$zx/public/gn/config:user" ]
 } else {
-  remove_deps = []
+  remove_configs = []
 }
 
 # These are the functions the compiler produces implicit calls to.
 source_set("compiler") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   if (current_cpu == "arm64") {
     # These use '#include "third_party/lib/cortex-strings/src/aarch64/..."'.
     include_dirs = [ "$zx/" ]
@@ -45,9 +45,9 @@ source_set("compiler") {
 }
 
 source_set("stdmem") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
-  deps += [ ":compiler" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs += [ ":compiler" ]
   sources = [
     "memrchr.c",
   ]
@@ -74,8 +74,8 @@ source_set("stdmem") {
 }
 
 source_set("extmem") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "memccpy.c",
     "memmem.c",
@@ -89,8 +89,8 @@ source_set("extmem") {
 }
 
 source_set("minimal_str") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   if (current_cpu == "arm64") {
     sources = [
       "$zx/third_party/lib/cortex-strings/src/aarch64/strlen.S",
@@ -105,9 +105,9 @@ source_set("minimal_str") {
 }
 
 source_set("stdstr") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
-  deps += [ ":minimal_str" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
+  deps = [ ":minimal_str" ]
   sources = [
     "strcat.c",
     "strcspn.c",
@@ -138,8 +138,8 @@ source_set("stdstr") {
 }
 
 source_set("extstr") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "stpcpy.c",
     "stpncpy.c",
@@ -169,8 +169,8 @@ source_set("extstr") {
 }
 
 source_set("bsd") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "bcmp.c",
     "bcopy.c",
@@ -182,8 +182,8 @@ source_set("bsd") {
 }
 
 source_set("wcs") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "wcpcpy.c",
     "wcpncpy.c",
@@ -210,8 +210,8 @@ source_set("wcs") {
 }
 
 source_set("wmem") {
-  deps -= remove_deps
-  deps += [ "$zx/third_party/ulib/musl:musl_config" ]
+  configs -= remove_configs
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   sources = [
     "wmemchr.c",
     "wmemcmp.c",

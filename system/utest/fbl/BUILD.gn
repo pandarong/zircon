@@ -35,7 +35,7 @@ test("fbl") {
     "unique_ptr_tests.cpp",
     "vector_tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/unittest",
   ]

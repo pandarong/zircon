@@ -6,7 +6,7 @@ driver("nxp") {
   sources = [
     "pcf8563-rtc.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

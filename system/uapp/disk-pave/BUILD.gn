@@ -13,7 +13,7 @@ executable("install-disk-image") {
     "disk-pave.cpp",
     "pave-lib.cpp",
   ]
-  deps += [
+  deps = [
     ":pave-utils",
     "$zx/system/fidl/zircon-block:c",
     "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
@@ -35,7 +35,7 @@ source_set("pave-utils") {
     "device-partitioner.cpp",
     "pave-utils.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-block:c",
     "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
     "$zx/system/ulib/block-client",
@@ -64,7 +64,7 @@ test("install-disk-image-test") {
     "test/main.cpp",
   ]
   include_dirs = [ "." ]
-  deps += [
+  deps = [
     ":pave-utils",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fs-management",

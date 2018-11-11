@@ -10,5 +10,7 @@ library("unittest") {
     "unittest.cpp",
     "user_memory.cpp",
   ]
-  deps += [ "$zx/kernel/lib/console" ]
+  deps = [
+    "$zx/kernel/lib/console",
+  ]
 }

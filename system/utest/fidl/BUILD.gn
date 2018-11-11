@@ -14,7 +14,7 @@ test("fidl") {
     "message_tests.cpp",
     "validating_tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",

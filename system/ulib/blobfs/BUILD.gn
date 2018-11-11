@@ -25,7 +25,7 @@ library("blobfs") {
     "$zx/system/ulib/bitmap:headers",
     "$zx/system/ulib/fs:headers",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",

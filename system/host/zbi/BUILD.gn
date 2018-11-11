@@ -6,7 +6,7 @@ host_tool("zbi") {
   sources = [
     "zbi.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/third_party/ulib/cksum",
     "$zx/third_party/ulib/lz4",

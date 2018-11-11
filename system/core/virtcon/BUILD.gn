@@ -40,7 +40,7 @@ executable("virtual-console") {
               "main.cpp",
               "vc-display.cpp",
             ]
-  deps += common_deps
+  deps = common_deps
 }
 
 test("virtual-console-test") {
@@ -50,8 +50,8 @@ test("virtual-console-test") {
               "keyboard-test.cpp",
               "textcon-test.cpp",
             ]
-  deps += common_deps + [
-            "$zx/system/ulib/unittest",
-            "$zx/system/utest/core:unittest_main",
-          ]
+  deps = common_deps + [
+           "$zx/system/ulib/unittest",
+           "$zx/system/utest/core:unittest_main",
+         ]
 }

@@ -6,7 +6,7 @@ executable("storage-metrics") {
   sources = [
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-minfs:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

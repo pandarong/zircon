@@ -6,7 +6,7 @@ executable("tpmctl") {
   sources = [
     "tpmctl.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

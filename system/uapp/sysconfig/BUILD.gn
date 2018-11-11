@@ -6,7 +6,7 @@ executable("sysconfig") {
   sources = [
     "sysconfig.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk:headers",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/kvstore",

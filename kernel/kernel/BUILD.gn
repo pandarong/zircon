@@ -19,7 +19,7 @@ source_set("kernel") {
     "timer.cpp",
     "wait.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/interrupt",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/counters",

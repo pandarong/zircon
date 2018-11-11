@@ -7,7 +7,7 @@ host_tool("runtests") {
   sources = [
     "runtests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/runtests-utils",
     "$zx/system/ulib/zircon-internal",

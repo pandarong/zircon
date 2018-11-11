@@ -9,7 +9,9 @@ library("gfxconsole") {
   sources = [
     "gfxconsole.cpp",
   ]
-  deps += [ "$zx/kernel/lib/gfx" ]
+  deps = [
+    "$zx/kernel/lib/gfx",
+  ]
   public_deps = [
     # <lib/gfxconsole.h> has #include <lib/gfx.h>.
     "$zx/kernel/lib/gfx",

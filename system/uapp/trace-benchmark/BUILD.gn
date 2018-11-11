@@ -8,7 +8,7 @@ executable("trace-benchmark") {
     "benchmarks_ntrace.cpp",
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

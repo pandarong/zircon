@@ -12,7 +12,7 @@ test("libfzl") {
     "vmo-probe.cpp",
     "vmo-vmar-tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fzl",

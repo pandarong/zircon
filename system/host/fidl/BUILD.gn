@@ -23,7 +23,9 @@ if (defined(zx)) {
       "lib/tables_generator.cpp",
       "lib/tree_visitor.cpp",
     ]
-    deps += [ ":json_schema" ]
+    deps = [
+      ":json_schema",
+    ]
   }
 
   source_set("json_schema") {
@@ -31,7 +33,7 @@ if (defined(zx)) {
     sources = [
       "$target_gen_dir/json_schema.cpp",
     ]
-    deps += [
+    deps = [
       ":gen-json-schema",
       ":headers",
     ]
@@ -61,14 +63,18 @@ if (defined(zx)) {
     sources = [
       "compiler/main.cpp",
     ]
-    deps += [ ":fidl" ]
+    deps = [
+      ":fidl",
+    ]
   }
 
   host_tool("fidl-format") {
     sources = [
       "formatter/main.cpp",
     ]
-    deps += [ ":fidl" ]
+    deps = [
+      ":fidl",
+    ]
   }
 } else {
   #TODO: what uses this old BUILD.gn???

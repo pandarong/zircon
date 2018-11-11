@@ -11,7 +11,7 @@ source_set("generic-arm") {
     "platform.cpp",
   ]
   defines = [ "SMP_CPU_MAX_CLUSTERS=$smp_max_clusters" ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/hdcp/amlogic_s912",
     "$zx/kernel/dev/hw_rng",
     "$zx/kernel/dev/interrupt/arm_gic/common",

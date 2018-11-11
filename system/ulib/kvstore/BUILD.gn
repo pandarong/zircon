@@ -6,8 +6,8 @@ library("kvstore") {
   sources = [
     "kvstore.c",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/third_party/ulib/cksum",
   ]
 }
@@ -17,7 +17,7 @@ test("kvstore-test") {
   sources = [
     "kvstore-test.c",
   ]
-  deps += [
+  deps = [
     ":kvstore",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",

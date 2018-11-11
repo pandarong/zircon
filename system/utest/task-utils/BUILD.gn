@@ -6,7 +6,7 @@ test("task-utils") {
   sources = [
     "walker.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/task-utils",

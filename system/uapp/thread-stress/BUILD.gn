@@ -12,7 +12,7 @@ executable("thread-stress-test") {
   sources = [
     "thread-stress.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

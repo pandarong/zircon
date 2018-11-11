@@ -7,7 +7,7 @@ driver("realtek-8211f") {
     "binding.c",
     "rtl8211f.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

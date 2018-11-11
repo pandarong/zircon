@@ -20,7 +20,7 @@ library("libc") {
     "strtol.c",
     "strtoll.c",
   ]
-  deps += [
+  deps = [
     ":ctype",
     "$zx/kernel/lib/heap",
     "$zx/kernel/lib/io",
@@ -36,7 +36,7 @@ library("libc") {
 
   if (toolchain.environment == "kernel") {
     # Avoid circularity.
-    deps -= [ get_label_info(":headers", "label_no_toolchain") ]
+    configs -= [ get_label_info(":headers", "label_no_toolchain") ]
   }
 }
 

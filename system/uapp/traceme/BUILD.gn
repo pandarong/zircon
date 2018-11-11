@@ -6,7 +6,7 @@ executable("traceme") {
   sources = [
     "traceme.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

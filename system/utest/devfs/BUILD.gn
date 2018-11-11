@@ -9,7 +9,7 @@ test("devfs") {
     "fidl-tests.cpp",
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

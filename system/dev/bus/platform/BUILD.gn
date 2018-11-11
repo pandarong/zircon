@@ -18,7 +18,7 @@ driver("platform-bus") {
     "platform-i2c.cpp",
     "platform-protocol-device.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
@@ -37,7 +37,7 @@ driver("platform-bus.proxy") {
     "platform-proxy-device.cpp",
     "platform-proxy.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

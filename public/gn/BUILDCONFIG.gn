@@ -25,11 +25,11 @@ declare_args() {
   # It exists only to be set via define_toolchain().
   # See define_environment() for more information.
   toolchain = {
+    configs = []
     environment = "stub"
     label = "$zx/public/gn/toolchain:stub"
     globals = {
     }
-    public_deps = []
   }
 }
 
@@ -96,36 +96,35 @@ template("assert_no_legacy_configs") {
   type = invoker.type
   assert(!defined(target_invoker.all_dependent_configs),
          "all_dependent_configs is not supported in this build")
-  assert(!defined(target_invoker.configs),
-         "use deps instead of configs in $label $type()")
   assert(!defined(target_invoker.public_configs),
          "use public_deps instead of public_configs in $label $type()")
   not_needed([ "target_invoker" ])
 }
 
-# This is used exclusively by config_group(), below.
+# This is used exclusively by the config() template, below.
 template("_raw_config") {
   config(target_name) {
     forward_variables_from(invoker, "*")
   }
 }
 
-# The primitive GN feature should never be used directly in this build.
-# Use config_group() instead.
-template("config") {
-  _config_label = get_label_info(":$target_name", "label_no_toolchain")
-  assert(false, "use config_group() instead of config() for $_config_label")
-}
-
 # Propagate switch settings and dependencies to dependents.
 #
-# config_group() replaces GN's built-in config() with enhanced and
-# simplified semantics.  A config_group() is a target that acts like a
-# group() target in all respects.  But it can also set all the switches and
-# have `inputs` and `libs` like config().  Instead of referring to a
-# config() with `configs` or `public_configs`, refer to a config_group()
-# with `deps` to take on its switches et al or with `public_deps` to
-# propagate its effects to your direct dependents.
+# This template replaces GN's built-in config() with enhanced and
+# simplified semantics.  A config() is a target that acts like a group()
+# target in all respects.  But it can also set all the switches and have
+# `inputs` and `libs` like legacy config().
+
+# By convention, a config() is usually referred to in `configs`, but in
+# fact all the compiling target types are templates that just merge
+# `configs` into `deps` and putting a config() label into `deps` works just
+# the same.  The main reason for the convention is just that `configs` is
+# usually predefined with a default list via set_defaults() so `configs -=
+# ...` can remove default elements, while `deps` is not.
+#
+# A config() itself never sets `configs` or `public_configs` like in legacy
+# config().  Instead use `public_deps` for another config() that should be
+# propagated to users of this config().
 #
 # Parameters
 #
@@ -137,24 +136,26 @@ template("config") {
 #   data_deps
 #   deps
 #     Optional: As for group().  This is *not* the way to refer to another
-#     config_group() so as to propagate its switch settings; instead use
+#     config() so as to propagate its switch settings; instead use
 #     `public_deps` for that.  Note that potentially each individual file
-#     compiled with the switches of this config_group() will also have a
+#     compiled with the switches of this config() will also have a
 #     Ninja dependency arc to each target in `data_deps` or `deps`.  Hence
 #     this should be used sparingly.
 #
 #   public_deps
 #     Optional: As for group().  This is the way to refer to other
-#     config_group() targets.  Every dependent of this target will also use
-#     the switches of the config_group() targets in `public_deps`.
+#     config() targets.  Every dependent of this target will also use
+#     the switches of the config() targets in `public_deps`.
 #
-template("config_group") {
+template("config") {
   _config_name = target_name
   _config_label = get_label_info(":$target_name", "label_no_toolchain")
 
   # The old ways are now taboo.
   assert(!defined(invoker.configs),
-         "use public_deps instead of configs in $_config_label config_group()")
+         "use public_deps instead of configs in $_config_label config()")
+  assert(!defined(invoker.public_configs),
+         "use public_deps instead of public_configs in $_config_label config()")
 
   # The underlying config() holds everything but the deps.
   _raw_config("_config.$_config_name") {
@@ -207,7 +208,8 @@ template("config_group") {
   }
 }
 
-# Just wrap these to inject assert_no_legacy_configs().
+# Just wrap these to inject assert_no_legacy_configs()
+# and translate configs to deps.
 foreach(target_type,
         [
           "source_set",
@@ -218,8 +220,18 @@ foreach(target_type,
       type = target_type
     }
     target(target_type, target_name) {
-      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "configs",
+                               "deps",
+                               "visibility",
+                             ])
       forward_variables_from(invoker, [ "visibility" ])
+      deps = invoker.configs
+      if (defined(invoker.deps)) {
+        deps += invoker.deps
+      }
     }
   }
 }
@@ -241,10 +253,16 @@ foreach(shlib_target_type,
         forward_variables_from(invoker,
                                "*",
                                [
+                                 "configs",
                                  "data_deps",
+                                 "deps",
                                  "visibility",
                                ])
         forward_variables_from(invoker, [ "visibility" ])
+        deps = invoker.configs
+        if (defined(invoker.deps)) {
+          deps += invoker.deps
+        }
         if (defined(visibility) && defined(toolchain.shlib)) {
           # Make sure we're visible to the redirector groups defined below.
           visibility += [ ":$target_name" ]
@@ -388,6 +406,9 @@ template("library") {
                                    "public_deps",
                                    "visibility",
                                  ])
+      if (!defined(deps)) {
+        deps = []
+      }
       deps += [ ":${_library_name}.headers" ]
       if (defined(invoker.data_deps)) {
         # Redirect data_deps to the non-shlib toolchain.
@@ -408,6 +429,7 @@ template("library") {
         output_name = _library_name
         forward_variables_from(invoker,
                                [
+                                 "configs",
                                  "data_deps",
                                  "public_deps",
                                  "testonly",
@@ -433,6 +455,7 @@ template("library") {
         output_name = _library_name
         forward_variables_from(invoker,
                                [
+                                 "configs",
                                  "ldflags",
                                  "libs",
                                  "lib_dirs",
@@ -442,7 +465,7 @@ template("library") {
 
         # Everything that depends on the library gets the headers.
         # It also gets the explicit `public_deps`, which includes
-        # any header dependencies or public config_group()s.
+        # any header dependencies or public config()s.
         public_deps = [
           ":${_library_name}.headers",
         ]
@@ -451,7 +474,7 @@ template("library") {
         }
 
         # The library depends on the source_set().  It also depends on the
-        # `deps` from the source_set() so as to get any config_group()
+        # `deps` from the source_set() so as to get any config()
         # dependencies that affect linking rather than just compilation.
         # Other dependencies are redundant since the source_set() already
         # has them, but they don't hurt.
@@ -519,7 +542,7 @@ template("library") {
     }
   }
 
-  config_group("${_library_name}.headers") {
+  config("${_library_name}.headers") {
     include_dirs = [ "include" ]
 
     # The public_deps here represent header dependencies.
@@ -587,8 +610,18 @@ template("library") {
 template("driver") {
   loadable_module(target_name) {
     data_deps = []
+    deps = []
     forward_variables_from(invoker, "*", [ "visibility" ])
     forward_variables_from(invoker, [ "visibility" ])
+
+    # All drivers implicitly get the driver ABI.
+    deps += [ "$zx/system/ulib/driver" ]
+
+    # Drivers that use C++ library facilities cannot use the libc++
+    # shared library (it's not in the whitelist).  So always use the
+    # hermetic static library.  This has no effect if no C++ library
+    # symbols are used.
+    configs += [ "$zx/public/gn/config:static-libc++" ]
 
     # A driver depends on devhost being on the system.
     #
@@ -604,17 +637,6 @@ template("driver") {
     # caller (toolchain) devhost flavor (i.e. asan or not--then whichever
     # asan-compatible variant normally selected for devhost).
     data_deps += [ "$zx/system/core/devmgr:devhost(${toolchain.label})" ]
-
-    deps += [
-      # All drivers implicitly get the driver ABI.
-      "$zx/system/ulib/driver",
-
-      # Drivers that use C++ library facilities cannot use the libc++
-      # shared library (it's not in the whitelist).  So always use the
-      # hermetic static library.  This has no effect if no C++ library
-      # symbols are used.
-      "$zx/public/gn/config:static-libc++",
-    ]
 
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by
@@ -679,8 +701,19 @@ if (!is_host && !is_kernel &&
       ]
     }
     executable("_bin.$executable_name") {  #TODO: just target_name
-      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "configs",
+                               "deps",
+                               "visibility",
+                             ])
       forward_variables_from(invoker, [ "visibility" ])
+      deps = invoker.configs
+      if (defined(invoker.deps)) {
+        deps += invoker.deps
+      }
+
       if (!defined(output_name)) {
         output_name = executable_name
       }
@@ -713,6 +746,26 @@ if (!is_host && !is_kernel &&
         } else {
           not_needed(metadata, "*")
         }
+      }
+    }
+  }
+} else {
+  template("executable") {
+    assert_no_legacy_configs(target_name) {
+      type = "executable"
+    }
+    executable(target_name) {
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "configs",
+                               "deps",
+                               "visibility",
+                             ])
+      forward_variables_from(invoker, [ "visibility" ])
+      deps = invoker.configs
+      if (defined(invoker.deps)) {
+        deps += invoker.deps
       }
     }
   }
@@ -833,17 +886,18 @@ _compile_target_types = [
   "test_driver",
 ]
 
-# ${toolchain.public_deps} gives the initial `deps` set for every compile
-# target in this toolchain.  This is how `configs` is used traditionally in
-# GN: targets use `+=` rather than `=` unless they are explicitly doing `= []`
-# to remove all the toolchain defaults; they can use `-=` to remove specific
-# members from the default set.  In the Fuchsia build, `deps` is used in lieu
-# of `configs`; see config_group(), which replaces config().
+# ${toolchain.configs} gives the initial `configs` set for every compile
+# target in this toolchain.  Targets use `+=` rather than `=` unless they
+# are explicitly doing `= []` to remove all the toolchain defaults; they
+# can use `-=` to remove specific members from the default set.  In the
+# Fuchsia build, `configs` winds up being used as `deps`, so things listed
+# in ${toolchain.configs} can actually be any target type, not just config().
 foreach(target_type, _compile_target_types) {
   set_defaults(target_type) {
-    deps = toolchain.public_deps
+    configs = toolchain.configs
     if (is_fuchsia && target_type == "host_tool") {
-      deps += [ "$zx/system/ulib/fdio" ]
+      # TODO: harumph
+      configs += [ "$zx/system/ulib/fdio" ]
     }
   }
 }

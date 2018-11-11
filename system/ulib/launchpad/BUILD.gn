@@ -10,7 +10,7 @@ library("launchpad") {
     "launchpad.c",
     "vmo.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/elfload",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/ldmsg",

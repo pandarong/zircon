@@ -6,7 +6,7 @@ test("zbi") {
   sources = [
     "zbi.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/libzbi",
     "$zx/system/ulib/unittest",

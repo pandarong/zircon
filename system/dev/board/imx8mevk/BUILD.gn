@@ -11,7 +11,7 @@ driver("imx8mevk") {
     "imx8mevk-usb.c",
     "imx8mevk.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

@@ -11,15 +11,14 @@ library("unittest") {
     "unittest.cpp",
     "watchdog.cpp",
   ]
-  deps += [ "$zx/system/ulib/pretty" ]
+  deps = [
+    "$zx/system/ulib/pretty",
+  ]
   if (is_fuchsia) {
     sources += [
       "crash-handler.cpp",
       "crash-list.cpp",
     ]
-    deps += [
-      "$zx/system/ulib/c",
-      "$zx/system/ulib/zx",
-    ]
+    deps += [ "$zx/system/ulib/zx" ]
   }
 }

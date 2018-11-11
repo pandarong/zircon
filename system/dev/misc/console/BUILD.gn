@@ -6,7 +6,7 @@ driver("console") {
   sources = [
     "console.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

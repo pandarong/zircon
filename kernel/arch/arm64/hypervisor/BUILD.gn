@@ -15,12 +15,12 @@ source_set("hypervisor") {
     "vcpu.cpp",
     "vmexit.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/dev/interrupt/arm_gic/common",
-    "$zx/kernel/dev/timer/arm_generic",
     "$zx/kernel/dev/interrupt/arm_gic/v2",
     "$zx/kernel/dev/interrupt/arm_gic/v3",
     "$zx/kernel/dev/psci",
+    "$zx/kernel/dev/timer/arm_generic",
     "$zx/kernel/lib/hypervisor:headers",
   ]
 }

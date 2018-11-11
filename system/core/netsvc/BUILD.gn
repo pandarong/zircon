@@ -12,7 +12,7 @@ executable("netsvc") {
     "tftp.c",
     "zbi.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",

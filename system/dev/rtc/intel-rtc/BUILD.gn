@@ -8,7 +8,7 @@ driver("intel-rtc") {
   sources = [
     "intel-rtc.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/rtc",

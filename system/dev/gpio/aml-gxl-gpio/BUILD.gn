@@ -7,7 +7,7 @@ driver("aml-gxl-gpio") {
     "aml-gxl-gpio.cpp",
     "binding.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

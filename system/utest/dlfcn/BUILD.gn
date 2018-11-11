@@ -6,7 +6,7 @@ test("dlfcn") {
   sources = [
     "dlfcn.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-default",
     "$zx/system/ulib/async-loop",

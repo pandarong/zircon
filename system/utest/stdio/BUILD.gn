@@ -7,7 +7,7 @@ test("stdio") {
     "stdio.c",
     "util.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/elfload",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",

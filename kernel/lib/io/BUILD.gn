@@ -9,5 +9,7 @@ library("io") {
   sources = [
     "console.cpp",
   ]
-  deps += [ "$zx/kernel/lib/debuglog" ]
+  deps = [
+    "$zx/kernel/lib/debuglog",
+  ]
 }

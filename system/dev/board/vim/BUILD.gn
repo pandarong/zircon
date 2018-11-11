@@ -21,7 +21,7 @@ driver("vim") {
     "vim-video.c",
     "vim.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/lib/broadcom",
     "$zx/system/ulib/ddk",

@@ -7,7 +7,7 @@ driver("usb-composite") {
     "usb-composite.c",
     "usb-interface.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

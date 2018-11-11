@@ -7,7 +7,7 @@ library("gpt") {
     "cros.c",
     "gpt.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/zircon",
     "$zx/third_party/ulib/cksum",
   ]

@@ -8,7 +8,7 @@ driver("astro-tdm-output") {
     "binding.c",
     "tas27xx.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/audio/lib/simple-audio-stream",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/audio-driver-proto",

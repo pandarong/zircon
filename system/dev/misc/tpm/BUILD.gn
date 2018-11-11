@@ -12,7 +12,7 @@ driver("tpm") {
     "tpm-proto.cpp",
     "tpm.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/explicit-memory",

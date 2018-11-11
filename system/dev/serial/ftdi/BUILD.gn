@@ -6,7 +6,7 @@ driver("ftdi") {
   sources = [
     "ftdi.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",

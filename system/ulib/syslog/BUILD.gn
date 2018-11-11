@@ -9,7 +9,7 @@ library("syslog") {
     "global.cpp",
     "logger.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-logger:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

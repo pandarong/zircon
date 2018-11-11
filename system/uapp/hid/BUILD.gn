@@ -7,7 +7,7 @@ executable("hid") {
     "main.cpp",
     "report.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

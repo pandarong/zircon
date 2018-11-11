@@ -13,7 +13,7 @@ source_set("hypervisor") {
     "vmx.S",
     "vmx_cpu_state.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/platform/pc",
     "$zx/system/ulib/explicit-memory",
   ]

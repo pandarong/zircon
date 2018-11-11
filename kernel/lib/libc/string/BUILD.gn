@@ -29,7 +29,7 @@ source_set("string") {
     "strtok.c",
     "strxfrm.c",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/lib/libc:ctype",
     "arch/$zircon_cpu",
   ]

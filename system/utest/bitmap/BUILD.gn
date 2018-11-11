@@ -8,7 +8,7 @@ test("bitmap") {
     "raw-bitmap-tests.cpp",
     "rle-bitmap-tests.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

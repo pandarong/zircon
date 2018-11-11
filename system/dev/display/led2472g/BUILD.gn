@@ -12,7 +12,7 @@ driver("vim-led2472g") {
   sources = [
     "led2472g.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

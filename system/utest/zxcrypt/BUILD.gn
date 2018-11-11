@@ -10,7 +10,7 @@ test("zxcrypt") {
     "zxcrypt.cpp",
   ]
   include_dirs = [ ".." ]
-  deps += [
+  deps = [
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/ddk",

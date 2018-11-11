@@ -6,7 +6,7 @@ driver("aml-sd-emmc") {
   sources = [
     "aml-sd-emmc.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

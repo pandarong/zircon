@@ -7,7 +7,7 @@ test("driver-tests") {
   sources = [
     "main.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",

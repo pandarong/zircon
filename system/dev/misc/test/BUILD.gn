@@ -6,7 +6,7 @@ driver("test") {
   sources = [
     "test.c",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

@@ -7,7 +7,7 @@ test("debugger") {
     "debugger.cpp",
     "utils.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/runtime",

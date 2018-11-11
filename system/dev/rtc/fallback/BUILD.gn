@@ -7,7 +7,7 @@ driver("fallback") {
     "fallback-rtc.c",
     "rtc-impl.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

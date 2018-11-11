@@ -40,8 +40,8 @@ executable("dash") {
     "src/trap.c",
     "src/var.c",
   ]
-  deps += [
-    ":config",
+  configs += [ ":config" ]
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
@@ -49,7 +49,7 @@ executable("dash") {
   ]
 }
 
-config_group("config") {
+config("config") {
   visibility = [ ":*" ]
   defines = [
     "BSD",

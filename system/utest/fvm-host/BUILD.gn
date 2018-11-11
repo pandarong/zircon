@@ -6,7 +6,7 @@ test("fvm-host") {
   sources = [
     "main.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/host/fvm:common",
     "$zx/system/ulib/unittest",
   ]

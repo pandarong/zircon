@@ -10,7 +10,7 @@ driver("nandpart") {
     "nandpart-utils.cpp",
     "nandpart.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
@@ -34,7 +34,7 @@ test("nandpart-test") {
   ]
   include_dirs = [ "." ]
   defines = [ "TEST" ]
-  deps += [
+  deps = [
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

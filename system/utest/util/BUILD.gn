@@ -6,7 +6,9 @@ test("util") {
   sources = [
     "listnode.cpp",
   ]
-  deps += [ "$zx/system/ulib/unittest" ]
+  deps = [
+    "$zx/system/ulib/unittest",
+  ]
   if (is_fuchsia) {
     deps += [ "$zx/system/ulib/zircon" ]
   }

@@ -6,7 +6,7 @@ library("crashanalyzer") {
   sources = [
     "crashanalyzer.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/fidl/fuchsia-crash:c",
     "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/ulib/async",
@@ -25,6 +25,6 @@ library("crashanalyzer") {
 
   # Compile this with frame pointers so that if we crash
   # the simplistic unwinder will work.
-  deps -= [ "$zx/public/gn/config:default_frame_pointers" ]
-  deps += [ "$zx/public/gn/config:frame_pointers" ]
+  configs -= [ "$zx/public/gn/config:default_frame_pointers" ]
+  configs += [ "$zx/public/gn/config:frame_pointers" ]
 }

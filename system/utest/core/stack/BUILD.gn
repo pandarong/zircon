@@ -8,7 +8,7 @@ source_set("stack") {
     "stack-test.c",
   ]
   cflags = [ "-fstack-protector-all" ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/runtime:headers",
     "$zx/system/ulib/unittest",

@@ -11,8 +11,8 @@ library("block-client") {
     # <block-client/cpp/client.h> has #include <lib/zx/fifo.h>.
     "$zx/system/ulib/zx:headers",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/ddk:headers",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",

@@ -22,7 +22,7 @@ library("pcie") {
     "pcie_root.cpp",
     "pcie_upstream_node.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/pci",

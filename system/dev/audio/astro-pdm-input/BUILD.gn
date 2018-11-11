@@ -6,7 +6,7 @@ driver("astro-pdm-input") {
   sources = [
     "audio-stream-in.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/dev/audio/lib/simple-audio-stream",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/audio-driver-proto",

@@ -1,4 +1,4 @@
-# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Copyright 018 The Fuchsia Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -10,8 +10,8 @@ library("async-loop") {
     # <lib/async-loop/loop.h> has #include <lib/async/dispatcher.h>.
     "$zx/system/ulib/async:headers",
   ]
-  deps += [
-    "$zx/public/gn/config:visibility_hidden",
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-default",
     "$zx/system/ulib/zircon",
@@ -22,9 +22,9 @@ library("async-loop-cpp") {
   sources = [
     "loop_wrapper.cpp",
   ]
-  deps += [
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
     ":async-loop",
-    "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-default",
     "$zx/system/ulib/zircon",

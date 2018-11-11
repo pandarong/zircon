@@ -6,7 +6,7 @@ executable("loadgen") {
   sources = [
     "loadgen.cpp",
   ]
-  deps += [
+  deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
