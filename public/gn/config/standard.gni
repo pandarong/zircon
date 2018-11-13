@@ -2,6 +2,40 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# All the $current_cpu values that `current_os == "fuchsia"` supports.
+standard_fuchsia_cpus = [
+  "arm64",
+  "x64",
+]
+
+# All the {cpu, os} combinations supported as build or SDK hosts.  The
+# build will define toolchains for all of these.  Successful
+# cross-compilation may require a sysroot be installed and configured.
+standard_build_hosts = [
+  {
+    cpu = "arm64"
+    os = "linux"
+  },
+  {
+    cpu = "x64"
+    os = "linux"
+  },
+  {
+    cpu = "x64"
+    os = "win"
+  },
+]
+
+# Cross-compiling to Mac isn't possible because of the Mach-O linker.
+if (host_os == "mac") {
+  standard_build_hosts += [
+    {
+      cpu = "x64"
+      os = "mac"
+    },
+  ]
+}
+
 # Universal configs apply to all code in the build.
 standard_configs = [
   "$zx/public/gn/config:compiler",
@@ -40,36 +74,89 @@ standard_shlib_configs = [
   "$zx/public/gn/config:no_undefined_symbols",
 ]
 
-# All the $current_cpu values that `current_os == "fuchsia"` supports.
-standard_fuchsia_cpus = [
-  "arm64",
-  "x64",
+# See define_environment().  These are the environments that are
+# vanilla bases to make derived environments from.
+standard_environments = [
+  {
+    name = "host"
+    targets = standard_build_hosts
+    globals = {
+      is_host = true
+    }
+    strip = true
+  },
+  {
+    name = "user"
+    targets = []
+    foreach(cpu, standard_fuchsia_cpus) {
+      targets += [
+        {
+          cpu = cpu
+        },
+      ]
+    }
+    configs = standard_fuchsia_configs + standard_fuchsia_user_configs
+    shlib = true
+    strip = "--strip-sections"
+  },
 ]
 
-# All the {cpu, os} combinations supported as build or SDK hosts.  The
-# build will define toolchains for all of these.  Successful
-# cross-compilation may require a sysroot be installed and configured.
-standard_build_hosts = [
+# This list has the same structure as $variants but it just supplies
+# definitions of variants with standard names.  The $variants list can
+# refer to variants defined here by name, but these are not otherwise
+# involved in variant selection.
+standard_variants = [
   {
-    cpu = "arm64"
-    os = "linux"
+    variant = {
+      name = "clang"
+    }
   },
   {
-    cpu = "x64"
-    os = "linux"
-  },
-  {
-    cpu = "x64"
-    os = "win"
+    variant = {
+      name = "gcc"
+      tags = [ "gcc" ]
+      globals = {
+        is_gcc = true
+      }
+    }
   },
 ]
 
-# Cross-compiling to Mac isn't possible because of the Mach-O linker.
-if (host_os == "mac") {
-  standard_build_hosts += [
-    {
-      cpu = "x64"
-      os = "mac"
-    },
-  ]
-}
+# This list is appended to the $variants list for the build.
+# It provides default selectors that match if nothing else does.
+default_variants = [
+  {
+    variant = "clang"
+  },
+  {
+    variant = {
+      name = "asan"
+      tags = [
+        "instrumented",
+        "useronly",
+      ]
+    }
+  },
+]
+
+# TODO: doc
+variant_shorthands = [
+  {
+    name = "host_gcc"
+    selectors = [
+      {
+        variant = "gcc"
+        host = true
+      },
+    ]
+  },
+  {
+    name = "host_asan"
+    selectors = [
+      {
+        variant = "asan"
+        host = true
+      },
+    ]
+  },
+]

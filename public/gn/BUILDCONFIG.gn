@@ -277,6 +277,10 @@ foreach(shlib_target_type,
             data_deps += [ label ]
           }
         }
+        if (!defined(output_name)) {
+          output_name = target_name
+        }
+        output_name += toolchain.output_name_suffix
 
         # Each shared_library() that's not on the whitelist gets a poison
         # pill to flag it if it appears in the dependency graph from a
@@ -717,6 +721,7 @@ if (!is_host && !is_kernel &&
       if (!defined(output_name)) {
         output_name = executable_name
       }
+      output_name += toolchain.output_name_suffix
       if (!defined(install_path)) {
         install_path = "bin/$output_name"
       }
@@ -792,6 +797,7 @@ template("test") {
       if (!defined(output_name)) {
         output_name = "${target_name}-test"
       }
+      output_name += toolchain.output_name_suffix
       if (!defined(output_extension)) {
         output_extension = toolchain.executable_extension
       }
@@ -825,6 +831,7 @@ template("host_tool") {
     if (!defined(output_name)) {
       output_name = target_name
     }
+    output_name += toolchain.output_name_suffix
     if (!defined(output_extension)) {
       output_extension = toolchain.executable_extension
     }

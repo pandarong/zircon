@@ -7,7 +7,11 @@
 import("$zx/kernel/syscalls/abigen.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 
-if (toolchain.environment != "user") {
+# The vDSO can't be built with instrumentation.
+exclude_tags = [ "instrumented" ]
+
+if (toolchain.environment != "user" ||
+    toolchain.tags + exclude_tags - exclude_tags != toolchain.tags) {
   # References from other toolchains just redirect.  This prevents extra
   # abigen runs in other toolchains just to get identical generated headers.
   foreach(target,
@@ -20,6 +24,8 @@ if (toolchain.environment != "user") {
       deps = [
         ":$target",
       ]
+      exclude_variant_tags = exclude_tags
+      not_needed([ "exclude_variant_tags" ])  #TODO
     }
   }
 } else {

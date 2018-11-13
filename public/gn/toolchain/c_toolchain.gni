@@ -213,7 +213,9 @@ template("define_c_toolchain") {
         forward_variables_from(_link_common, "*")
         name = "link"
         description = "LINK $outfile"
-
+        if (invoker.os == "win") {
+          default_output_extension = ".exe"
+        }
         command = "$ld $switches $link_inputs $link_libs$strip_command"
       },
     ]
@@ -304,6 +306,10 @@ template("define_c_toolchain") {
 
         if (defined(invoker.toolchain_vars)) {
           forward_variables_from(invoker.toolchain_vars, "*")
+        }
+
+        if (!defined(output_name_suffix)) {
+          output_name_suffix = ""
         }
       }
     }
