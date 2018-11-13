@@ -86,35 +86,51 @@ static bool pmm_alloc_contiguous_one_test() {
 
 static bool pmm_delayed_alloc_test() {
     BEGIN_TEST;
-    list_node list = LIST_INITIAL_VALUE(list);
 
-    // allocate up to 3 at a time, then clear at once
-    fbl::RefPtr<PageAllocRequest> requests[3];
+    PageAllocRequest requests[3];
+
+    // allocate using the delayed allocator
     uint flags = PMM_ALLOC_FLAG_FORCE_DELAYED_TEST;
     for (auto& request: requests) {
         // do one delayed allocation
-        zx_status_t status = pmm_alloc_pages_delayed(1, flags, &list, request);
+        zx_status_t status = pmm_alloc_pages_delayed(1, flags, &request);
         ASSERT_EQ(ZX_ERR_SHOULD_WAIT, status, "delayed alloc did not return should wait");
-        ASSERT_NE(nullptr, request.get(), "delayed alloc returned bad request");
-        ASSERT_EQ(true, list_is_empty(&list), "delayed alloc list was non empty");
-        ASSERT_EQ((size_t)1, request->count(), "delayed alloc count");
-        ASSERT_EQ(flags, request->alloc_flags(), "delayed alloc flags");
+        ASSERT_EQ((size_t)1, request.count(), "delayed alloc count");
+        ASSERT_EQ(flags, request.alloc_flags(), "delayed alloc flags");
 
-        status = request->Wait();
+        status = request.Wait();
         ASSERT_EQ(ZX_OK, status, "delayed alloc wait did not return OK");
 
-        ASSERT_EQ(ZX_OK, request->error(), "delayed alloc error was not OK");
+        ASSERT_TRUE(request.IsComplete(), "delayed alloc is not complete");
 
-        request->TakePageList(&list);
-        ASSERT_EQ((size_t)1, list_length(&list), "delayed alloc did not return 1 page");
+        ASSERT_EQ(ZX_OK, request.error(), "delayed alloc error was not OK");
+
+        ASSERT_EQ((size_t)1, list_length(request.page_list()), "delayed alloc did not return 1 page");
 
         // free the page we allocated
-        pmm_free(&list);
+        request.Free();
+
+        // assert that the request returned the pages
+        ASSERT_TRUE(list_is_empty(request.page_list()), "page request freed");
     }
 
-    // free all the requests
+    // do a non delayed allocation using the delayed mechanism
+    flags = PMM_ALLOC_FLAG_FORCE_IMMED_TEST;
     for (auto& request: requests) {
-        request.reset(nullptr);
+        // do one delayed allocation
+        zx_status_t status = pmm_alloc_pages_delayed(1, flags, &request);
+        ASSERT_EQ(ZX_OK, status, "immed delayed allocate should immediately return success");
+        ASSERT_EQ((size_t)1, request.count(), "immed delayed alloc count");
+        ASSERT_EQ(flags, request.alloc_flags(), "immed delayed alloc flags");
+
+        ASSERT_EQ((size_t)1, list_length(request.page_list()), "immed delayed alloc did not return 1 page");
+        ASSERT_EQ(ZX_OK, request.error(), "immed delayed alloc error was not OK");
+
+        // free the page we allocated
+        request.Free();
+
+        // assert that the request returned the pages
+        ASSERT_TRUE(list_is_empty(request.page_list()), "immed page request freed");
     }
 
     END_TEST;

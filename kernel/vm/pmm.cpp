@@ -45,7 +45,7 @@ PmmNode pmm_node;
 
 // allocation queue
 fbl::Mutex alloc_queue_lock;
-fbl::DoublyLinkedList<fbl::RefPtr<PageAllocRequest>> alloc_queue TA_GUARDED(alloc_queue_lock);
+fbl::DoublyLinkedList<PageAllocRequest*> alloc_queue TA_GUARDED(alloc_queue_lock);
 
 // worker to consume the queue
 VmWorker alloc_queue_worker;
@@ -84,17 +84,15 @@ zx_status_t pmm_alloc_pages(size_t count, uint alloc_flags, list_node* list) {
     return pmm_node.AllocPages(count, alloc_flags, list);
 }
 
-zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags, list_node* list,
-                                    fbl::RefPtr<PageAllocRequest>& request) {
-    if (alloc_flags & PMM_ALLOC_FLAG_FORCE_DELAYED_TEST) {
-        // temporary stubbed version that puts the request on a queue
-        request = PageAllocRequest::GetRequest();
-        if (!request) {
-            return ZX_ERR_NO_MEMORY;
-        }
+zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags,
+                                    PageAllocRequest* request) {
+    DEBUG_ASSERT(request);
 
+    request->Set(count, alloc_flags);
+
+    if (alloc_flags & PMM_ALLOC_FLAG_FORCE_DELAYED_TEST) {
         // set up and queue the request
-        request->SetQueued(count, alloc_flags);
+        request->Queue();
 
         {
             fbl::AutoLock guard(&alloc_queue_lock);
@@ -104,9 +102,15 @@ zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags, list_node* l
         alloc_queue_worker.Signal();
 
         return ZX_ERR_SHOULD_WAIT;
+    } else if (alloc_flags & PMM_ALLOC_FLAG_FORCE_IMMED_TEST) {
+        // fallthrough for now
     }
 
-    return pmm_alloc_pages(count, alloc_flags, list);
+    zx_status_t err = pmm_alloc_pages(request->count(), request->alloc_flags(), request->page_list());
+
+    request->Complete(err, false);
+
+    return err;
 }
 
 namespace {
@@ -117,23 +121,26 @@ zx_time_t alloc_queue_worker_routine(void *arg) {
 
     // pop off an allocation request(s) until the queue is empty
     for (;;) {
-        fbl::AutoLock guard(&alloc_queue_lock);
+        PageAllocRequest* request;
+        {
+            fbl::AutoLock guard(&alloc_queue_lock);
 
-        fbl::RefPtr<PageAllocRequest> request = alloc_queue.pop_front();
-        if (unlikely(!request))
-            return ZX_TIME_INFINITE;
+            request = alloc_queue.pop_front();
+            if (unlikely(!request))
+                return ZX_TIME_INFINITE;
+        }
 
-        TRACEF("handling request %p\n", request.get());
+        LTRACEF("handling request %p\n", request);
 
         // do the request
         size_t count = request->count();
         uint alloc_flags = request->alloc_flags();
         list_node list = LIST_INITIAL_VALUE(list);
 
-        zx_status_t status = pmm_alloc_pages(count, alloc_flags, &list);
+        zx_status_t status = pmm_alloc_pages(count, alloc_flags, request->page_list());
 
         // complete the transfer
-        request->Complete(status, (status == ZX_OK) ? &list : nullptr);
+        request->Complete(status, true);
     }
 
     return ZX_TIME_INFINITE;
