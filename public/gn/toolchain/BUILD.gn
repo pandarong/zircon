@@ -16,33 +16,15 @@ define_toolchain("stub") {
   tools = []
 }
 
-# Define toolchains for building host tools.  Always define a toolchain for
-# each supported host, not just the current one.  It's always possible to
-# cross-compile the host tools for a different host.
+# This defines user and host toolchains.
+define_standard_environments("") {
+}
+
 standard_host = false
 foreach(host, standard_build_hosts) {
-  define_environment("host") {
-    cpu = host.cpu
-    os = host.os
-    globals = {
-      is_host = true
-    }
-    strip = true
-  }
   if (host.cpu == host_cpu && host.os == host_os) {
     standard_host = true
   }
 }
-
 assert(standard_host,
        "$host_cpu-$host_os is not a standard build host for Fuchsia")
-
-# Define toolchains for building userland.
-foreach(cpu, standard_fuchsia_cpus) {
-  define_environment("user") {
-    cpu = cpu
-    configs += standard_fuchsia_configs + standard_fuchsia_user_configs
-    shlib = true
-    strip = "--strip-sections"
-  }
-}

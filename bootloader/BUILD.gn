@@ -21,6 +21,10 @@ if (current_toolchain == default_toolchain) {
     configs -= [ "$zx/public/gn/config:default_frame_pointers" ]
 
     # TODO: strip = true
+
+    # There isn't a GCC toolchain that supports the Windows target directly
+    # the way we use it.
+    exclude_variant_tags = [ "gcc" ]
   }
 } else if (toolchain.environment == "efi") {
   # This is the top config for all code in the efi_toolchain.

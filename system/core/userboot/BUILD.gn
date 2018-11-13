@@ -28,6 +28,9 @@ if (current_toolchain == default_toolchain) {
           opt_level = 2
         }
       }
+
+      # userboot can't use any instrumentation runtimes.
+      exclude_variant_tags = [ "instrumented" ]
     }
   }
 } else if (toolchain.environment == "userboot") {
