@@ -5,10 +5,14 @@
 group("sample") {
   deps = [
     "fifo",
-    "multi",
-    "null",
-    "number",
-    "ramdisk",
-    "zero",
   ]
+  if (false) {  #TODO
+    deps += [
+      "multi",
+      "null",
+      "number",
+      "ramdisk",
+      "zero",
+    ]
+  }
 }
