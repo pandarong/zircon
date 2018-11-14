@@ -8,10 +8,13 @@ test("launchpad") {
   ]
   deps = [
     "$zx/system/ulib/elfload",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/runtime",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }

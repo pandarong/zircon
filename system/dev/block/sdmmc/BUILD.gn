@@ -12,6 +12,10 @@ driver("sdmmc") {
     "sdmmc.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-block",
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-sdio",
+    "$zx/system/banjo/ddk-protocol-sdmmc",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",

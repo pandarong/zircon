@@ -7,6 +7,7 @@ driver("usb-hid") {
     "usb-hid.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/pretty",

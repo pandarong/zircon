@@ -17,6 +17,8 @@ driver("xhci") {
     "xhci.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-pci",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/fuchsia-usb-debug:c",
     "$zx/system/ulib/ddk",

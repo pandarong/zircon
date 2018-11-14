@@ -16,6 +16,10 @@ driver("astro-display") {
     "vpu.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-amlogic-canvas",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-i2c",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

@@ -11,6 +11,7 @@ driver("display") {
     "image.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-i2c-impl",
     "$zx/system/fidl/fuchsia-display:c",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async-loop:async-loop-cpp",

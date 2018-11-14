@@ -8,6 +8,8 @@ driver("qemu") {
     "qemu-test.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -18,51 +20,29 @@ driver("qemu") {
   }
 }
 
+test_drivers = [
+  "child-1",
+  "child-2",
+  "child-3",
+  "parent",
+]
+
 group("qemu-test") {
-  deps = [
-    ":qemu-test-child-1",
-    ":qemu-test-child-2",
-    ":qemu-test-child-3",
-    ":qemu-test-parent",
-  ]
+  deps = []
+  foreach(test, test_drivers) {
+    deps += [ ":qemu-$test" ]
+  }
 }
 
-driver("qemu-test-parent") {
-  sources = [
-    "test/parent.c",
-  ]
-  deps = [
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
-  ]
-}
-
-driver("qemu-test-child-1") {
-  sources = [
-    "test/child-1.c",
-  ]
-  deps = [
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
-  ]
-}
-
-driver("qemu-test-child-2") {
-  sources = [
-    "test/child-2.c",
-  ]
-  deps = [
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
-  ]
-}
-
-driver("qemu-test-child-3") {
-  sources = [
-    "test/child-3.c",
-  ]
-  deps = [
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
-  ]
+foreach(test, test_drivers) {
+  driver("qemu-$test") {
+    sources = [
+      "test/$test.c",
+    ]
+    deps = [
+      "$zx/system/banjo/ddk-protocol-platform-device",
+      "$zx/system/ulib/ddk",
+      "$zx/system/ulib/zircon",
+    ]
+  }
 }

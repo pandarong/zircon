@@ -14,6 +14,9 @@ driver("aml-scpi-s912.mailbox") {
     "aml-mailbox.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-mailbox",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
@@ -25,6 +28,10 @@ driver("scpi") {
     "aml-scpi.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-mailbox",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-scpi",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

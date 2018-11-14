@@ -10,6 +10,9 @@ driver("amlogic-pcie") {
     "binding.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-clk",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/dev/pci/designware",
     "$zx/system/ulib/ddk",

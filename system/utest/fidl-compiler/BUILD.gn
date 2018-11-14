@@ -42,8 +42,8 @@ if (current_toolchain == default_toolchain) {
 } else {
   test("fidl-compiler") {
     sources = [
+      "attributes_tests.cpp",
       "consts_tests.cpp",
-      "dup_attributes_tests.cpp",
       "flat_ast_tests.cpp",
       "formatter_unittests.cpp",
       "json_generator_tests.cpp",

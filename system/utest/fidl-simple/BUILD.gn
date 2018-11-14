@@ -8,6 +8,7 @@ if (is_fuchsia) {
   test("fidl-simple") {
     sources = [
       "client_tests.c",
+      "fakesocket_tests.cpp",
       "ldsvc_tests.c",
       "main.c",
       "server_tests.c",
@@ -16,6 +17,7 @@ if (is_fuchsia) {
     ]
     deps = [
       ":fidl.test.spaceship.c",
+      ":fidl.test.fakesocket.c",
       "$zx/system/fidl/fuchsia-crash:c",
       "$zx/system/fidl/fuchsia-ldsvc:c",
       "$zx/system/fidl/fuchsia-mem:c",
@@ -38,5 +40,12 @@ fidl_library("fidl.test.spaceship") {
   visibility = [ ":*" ]
   sources = [
     "spaceship.fidl",
+  ]
+}
+
+fidl_library("fidl.test.fakesocket") {
+  visibility = [ ":*" ]
+  sources = [
+    "fakesocket.fidl",
   ]
 }

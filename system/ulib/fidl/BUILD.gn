@@ -13,6 +13,7 @@ library("fidl") {
     "message.cpp",
     "message_buffer.cpp",
     "message_builder.cpp",
+    "transport.cpp",
     "validating.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]

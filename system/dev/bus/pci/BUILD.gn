@@ -24,6 +24,9 @@ driver("bus-pci") {
     ]
   }
   deps = [
+    "$zx/system/banjo/ddk-protocol-pci",
+    "$zx/system/banjo/ddk-protocol-pciroot",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
@@ -34,6 +37,9 @@ driver("bus-pci.proxy") {
     "proxy.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-pci",
+    "$zx/system/banjo/ddk-protocol-pciroot",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

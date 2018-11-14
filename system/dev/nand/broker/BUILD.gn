@@ -32,6 +32,7 @@ test("nand") {
     "test/main.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-nand",
     "$zx/system/fidl/fuchsia-nand:c",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/fbl",
