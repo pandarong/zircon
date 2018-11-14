@@ -37,7 +37,7 @@ static zx_status_t allocate_vmar(bool unsafe,
     // Create a VMO for our stack
     fbl::RefPtr<VmObject> stack_vmo;
     zx_status_t status = VmObjectPaged::Create(
-        PMM_ALLOC_FLAG_ANY, 0u, DEFAULT_STACK_SIZE, &stack_vmo);
+        PMM_ALLOC_FLAG_ANY | PMM_ALLOC_FLAG_FORCE_IMMED_TEST, 0u, DEFAULT_STACK_SIZE, &stack_vmo);
     if (status != ZX_OK) {
         TRACEF("error allocating %s stack for thread\n",
                unsafe ? "unsafe" : "safe");

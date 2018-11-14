@@ -90,7 +90,11 @@ zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags,
 
     request->Set(count, alloc_flags);
 
-    if (alloc_flags & PMM_ALLOC_FLAG_FORCE_DELAYED_TEST) {
+    if (alloc_flags & PMM_ALLOC_FLAG_FORCE_IMMED_TEST) {
+        // fallthrough for now
+    } else if (alloc_flags & PMM_ALLOC_FLAG_FORCE_DELAYED_TEST) {
+        LTRACEF("delayed count %zu flags %#x\n", count, alloc_flags);
+
         // set up and queue the request
         request->Queue();
 
@@ -102,10 +106,9 @@ zx_status_t pmm_alloc_pages_delayed(size_t count, uint alloc_flags,
         alloc_queue_worker.Signal();
 
         return ZX_ERR_SHOULD_WAIT;
-    } else if (alloc_flags & PMM_ALLOC_FLAG_FORCE_IMMED_TEST) {
-        // fallthrough for now
     }
 
+    LTRACEF("immed count %zu flags %#x\n", count, alloc_flags);
     zx_status_t err = pmm_alloc_pages(request->count(), request->alloc_flags(), request->page_list());
 
     request->Complete(err, false);
@@ -117,8 +120,6 @@ namespace {
 
 // called once per Signal() on alloc_queue_worker
 zx_time_t alloc_queue_worker_routine(void *arg) {
-    TRACE_ENTRY;
-
     // pop off an allocation request(s) until the queue is empty
     for (;;) {
         PageAllocRequest* request;

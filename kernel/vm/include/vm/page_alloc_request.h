@@ -13,7 +13,6 @@
 
 // delayed memory allocation
 class PageAllocRequest :
-    public fbl::Canary<fbl::magic("PGAR")>,
     public fbl::DoublyLinkedListable<PageAllocRequest*> {
 public:
     PageAllocRequest();
@@ -42,8 +41,14 @@ public:
 
     bool IsComplete() const { return state_ == COMPLETED; }
 
+    int state() const { return state_; }
+    const char* stateString() const { return StateToString(state_); }
+
 private:
     DISALLOW_COPY_AND_ASSIGN_ALLOW_MOVE(PageAllocRequest);
+
+    // magic
+    fbl::Canary<fbl::magic("PGAR")> canary_;
 
     // request state
     enum State {
@@ -53,7 +58,7 @@ private:
         COMPLETED
     } state_ = FREE;
 
-    const char* StateToString(State s);
+    static const char* StateToString(State s);
 
     Event event_;
 

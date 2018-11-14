@@ -497,7 +497,22 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
         }
     }
     if (!p) {
+#if 1
+        PageAllocRequest request;
+
+        zx_status_t status = pmm_alloc_pages_delayed(1, pmm_alloc_flags_ PMM_ALLOC_FLAG_FORCE_DELAYED_TEST, &request);
+        if (status == ZX_ERR_SHOULD_WAIT) {
+            status = request.Wait();
+            DEBUG_ASSERT(status == ZX_OK);
+        }
+        DEBUG_ASSERT_MSG(request.IsComplete(), "state %s\n", request.stateString());
+
+        p = list_remove_head_type(request.page_list(), vm_page_t, queue_node);
+        DEBUG_ASSERT(p);
+        pa = p->paddr();
+#else
         pmm_alloc_page(pmm_alloc_flags_, &p, &pa);
+#endif
     }
     if (!p) {
         return ZX_ERR_NO_MEMORY;
