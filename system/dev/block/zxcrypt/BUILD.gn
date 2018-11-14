@@ -11,6 +11,7 @@ driver("zxcrypt") {
   ]
   configs += [ "$zx/public/gn/config:integer-paranoia" ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-block",
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/ddk",

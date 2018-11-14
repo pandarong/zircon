@@ -16,6 +16,9 @@ driver("controller") {
     "utils.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-intel-hda-codec",
+    "$zx/system/banjo/ddk-protocol-intel-hda-dsp",
+    "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",

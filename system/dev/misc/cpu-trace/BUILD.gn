@@ -11,6 +11,7 @@ driver("cpu-trace") {
     "intel-pt.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",

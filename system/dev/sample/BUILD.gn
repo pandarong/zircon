@@ -5,5 +5,10 @@
 group("sample") {
   deps = [
     "fifo",
+    "multi",
+    "null",
+    "number",
+    "ramdisk",
+    "zero",
   ]
 }

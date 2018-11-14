@@ -15,6 +15,7 @@ driver("imx8.m") {
   ]
   deps = [
     ":common",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
@@ -28,6 +29,7 @@ driver("imx8.m-mini") {
   ]
   deps = [
     ":common",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
@@ -40,6 +42,10 @@ source_set("common") {
     "imx8-gpio.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
   ]

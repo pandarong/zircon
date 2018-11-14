@@ -19,6 +19,15 @@ driver("platform-bus") {
     "platform-protocol-device.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-clk",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-i2c",
+    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-iommu",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-platform-proxy",
     "$zx/system/fidl/fuchsia-sysinfo:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
@@ -38,6 +47,14 @@ driver("platform-bus.proxy") {
     "platform-proxy.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-clk",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-i2c",
+    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-platform-proxy",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

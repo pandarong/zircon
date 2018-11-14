@@ -11,6 +11,7 @@ library("intel-hda") {
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-intel-hda-codec",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",

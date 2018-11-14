@@ -12,6 +12,7 @@ driver("dwc3") {
     "dwc3.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

@@ -7,6 +7,7 @@ driver("test") {
     "test.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-test",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]

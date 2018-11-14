@@ -87,6 +87,7 @@ if (current_toolchain == default_toolchain) {
       "mmu.cpp",
       "mp.cpp",
       "periphmap.cpp",
+      "registers.cpp",
       "smccc.S",
       "spinlock.cpp",
       "start.S",

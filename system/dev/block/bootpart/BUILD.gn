@@ -7,6 +7,7 @@ driver("bootpart") {
     "bootpart.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-block",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

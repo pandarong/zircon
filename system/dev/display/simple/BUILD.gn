@@ -8,6 +8,7 @@ source_set("shared") {
     "simple-display.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
   ]
@@ -34,6 +35,7 @@ foreach(driver, simple_drivers) {
     ]
     deps = [
       ":shared",
+      "$zx/system/banjo/ddk-protocol-pci",
       "$zx/system/ulib/ddk",
     ]
   }

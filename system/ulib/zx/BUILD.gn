@@ -17,6 +17,7 @@ library("zx") {
     "log.cpp",
     "port.cpp",
     "process.cpp",
+    "profile.cpp",
     "resource.cpp",
     "socket.cpp",
     "thread.cpp",

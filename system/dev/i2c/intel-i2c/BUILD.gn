@@ -8,6 +8,9 @@ driver("intel-i2c") {
     "intel-i2c-slave.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-i2c",
+    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

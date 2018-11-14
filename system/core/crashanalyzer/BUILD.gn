@@ -11,6 +11,7 @@ library("crashanalyzer") {
     "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/backtrace-request",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
@@ -19,7 +20,6 @@ library("crashanalyzer") {
     "$zx/system/ulib/runtime",
     "$zx/system/ulib/svc:headers",
     "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zircon-internal",
     "$zx/system/ulib/zxcpp",
   ]
 

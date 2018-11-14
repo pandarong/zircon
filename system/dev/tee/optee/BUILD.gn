@@ -12,6 +12,7 @@ driver("optee") {
     "util.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/fidl/zircon-tee:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

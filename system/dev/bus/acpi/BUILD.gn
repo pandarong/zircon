@@ -61,6 +61,11 @@ driver("bus-acpi") {
   configs += [ ":config" ]
   deps = [
     "$zx/system/banjo/ddk-protocol-acpi",
+    "$zx/system/banjo/ddk-protocol-hidbus",
+    "$zx/system/banjo/ddk-protocol-intel-hda-dsp",
+    "$zx/system/banjo/ddk-protocol-pciroot",
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-scpi",
     "$zx/system/fidl/fuchsia-power:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

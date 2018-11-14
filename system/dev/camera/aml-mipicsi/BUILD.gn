@@ -10,6 +10,9 @@ driver("aml-mipicsi") {
     "binding.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-mipicsi",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
+    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

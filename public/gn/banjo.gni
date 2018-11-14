@@ -8,6 +8,10 @@ template("banjo_library") {
   assert(defined(invoker.sources),
          "banjo_library(\"$target_name\") must set `sources`")
 
+  if (defined(invoker.deps)) {
+    not_needed(invoker, [ "deps" ])  #TODO
+  }
+
   banjo_target = target_name
 
   # The generated headers are the same in every toolchain, so generate only

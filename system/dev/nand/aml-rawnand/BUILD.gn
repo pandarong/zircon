@@ -8,6 +8,8 @@ driver("aml-rawnand") {
     "onfi.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-rawnand",
     "$zx/system/dev/lib/amlogic",
     "$zx/system/fidl/zircon-nand",
     "$zx/system/ulib/ddk",
