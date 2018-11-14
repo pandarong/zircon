@@ -27,6 +27,11 @@ template("banjo_library") {
                              "testonly",
                              "visibility",
                            ])
+    if (defined(invoker.deps)) {
+      # The generated headers of a dependent banjo_library() will #include
+      # the generated headers for its dependencies.
+      public_deps = invoker.deps
+    }
     deps = [
       ":$gen_target($default_toolchain)",
     ]
@@ -69,36 +74,76 @@ template("banjo_library") {
       },
     ]
 
+    gen_args = [
+      "--name",
+      banjo_library_name,
+    ]
+    gen_outputs = []
+    foreach(gen, gen_files) {
+      gen_outputs += [ gen.file ]
+      if (defined(gen.switch)) {
+        gen_args += [
+          gen.switch,
+          rebase_path(gen.file, root_build_dir),
+        ]
+      }
+    }
+
     host_tool_action(gen_target) {
-      forward_variables_from(invoker, [ "testonly" ])
+      forward_variables_from(invoker,
+                             [
+                               "deps",
+                               "testonly",
+                             ])
       visibility = [ ":*" ]
 
       tool = "$zx/system/host/banjo:banjoc"
 
-      outputs = []
-      args = [
-        "--name",
-        banjo_library_name,
-      ]
-      foreach(gen, gen_files) {
-        outputs += [ gen.file ]
-        if (defined(gen.switch)) {
-          args += [
-            gen.switch,
-            rebase_path(gen.file, root_build_dir),
-          ]
-        }
-      }
+      outputs = gen_outputs
 
       if (false) {  #TODO
         sources = [
           get_metadata([ ":$banjo_target" ], [ "banjo_inputs" ]),
         ]
-        args += [ get_metadata([ ":$banjo_target" ], [ "banjo_input_args" ]) ]
+        args = gen_args +
+               [ get_metadata([ ":$banjo_target" ], [ "banjo_input_args" ]) ]
       } else {
-        sources = invoker.sources
-        args += [ "--files" ] + rebase_path(sources, root_build_dir)
+        # TODO: horrible hack, uses action below
+        sources = [
+          "$_banjo_gen_dir/${gen_target}.rsp",
+        ]
+        if (!defined(deps)) {
+          deps = []
+        }
+        deps += [ ":${gen_target}.rsp" ]
+        args = [ "@" + rebase_path(sources[0], root_build_dir) ]
       }
+    }
+
+    # TODO: horrible hack, used above
+    _banjo_rsp = []
+    if (defined(invoker.deps)) {
+      foreach(dep, invoker.deps) {
+        dep_name = get_label_info(dep, "name")
+        dep_gen_dir = get_label_info(dep, "target_gen_dir") + "/$dep_name"
+        _banjo_rsp += [ "@" + rebase_path("${dep_gen_dir}/${dep_name}.rsp",
+                                          root_build_dir) ]
+      }
+    }
+    _banjo_rsp += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+    write_file("$_banjo_gen_dir/${banjo_target}.rsp", _banjo_rsp)
+    action("${gen_target}.rsp") {
+      visibility = [ ":$gen_target" ]
+      sources = [
+        "$_banjo_gen_dir/${banjo_target}.rsp",
+      ]
+      outputs = [
+        "$_banjo_gen_dir/${gen_target}.rsp",
+      ]
+      depfile = "${outputs[0]}.d"
+      script = "$zx/public/gn/fidl-expand-rsp.sh"
+      args = rebase_path(outputs + [ depfile ], root_build_dir) + gen_args +
+             [ "@" + rebase_path(sources[0], root_build_dir) ]
     }
   }
 }

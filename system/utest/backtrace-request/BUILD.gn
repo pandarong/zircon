@@ -1,0 +1,15 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+test("backtrace-request") {
+  sources = [
+    "main.cpp",
+  ]
+  deps = [
+    "$zx/system/ulib/backtrace-request",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/runtime",
+    "$zx/system/ulib/zircon",
+  ]
+}
