@@ -16,68 +16,6 @@
 
 #define LOCAL_TRACE 1
 
-#include <acpica/acpi.h>
-
-#if 0
-#define ACPI_MAX_INIT_TABLES 32
-static ACPI_TABLE_DESC acpi_tables[ACPI_MAX_INIT_TABLES];
-static bool acpi_initialized = false;
-
-/**
- * @brief  Initialize early-access ACPI tables
- *
- * This function enables *only* the ACPICA Table Manager subsystem.
- * The rest of the ACPI subsystem will remain uninitialized.
- */
-void platform_init_acpi_tables(uint level) {
-    DEBUG_ASSERT(!acpi_initialized);
-
-    ACPI_STATUS status;
-    status = AcpiInitializeTables(acpi_tables, ACPI_MAX_INIT_TABLES, FALSE);
-
-    if (status == AE_NOT_FOUND) {
-        TRACEF("WARNING: could not find ACPI tables\n");
-        return;
-    } else if (status == AE_NO_MEMORY) {
-        TRACEF("WARNING: could not initialize ACPI tables\n");
-        return;
-    } else if (status != AE_OK) {
-        TRACEF("WARNING: could not initialize ACPI tables for unknown reason\n");
-        return;
-    }
-
-    acpi_initialized = true;
-    LTRACEF("ACPI tables initialized\n");
-}
-
-/* initialize ACPI tables as soon as we have a working VM */
-LK_INIT_HOOK(acpi_tables, &platform_init_acpi_tables, LK_INIT_LEVEL_VM + 1);
-
-static zx_status_t acpi_get_madt_record_limits(uintptr_t* start, uintptr_t* end) {
-    ACPI_TABLE_HEADER* table = NULL;
-    ACPI_STATUS status = AcpiGetTable((char*)ACPI_SIG_MADT, 1, &table);
-    if (status != AE_OK) {
-        TRACEF("could not find MADT\n");
-        return ZX_ERR_NOT_FOUND;
-    }
-    ACPI_TABLE_MADT* madt = (ACPI_TABLE_MADT*)table;
-    uintptr_t records_start = ((uintptr_t)madt) + sizeof(*madt);
-    uintptr_t records_end = ((uintptr_t)madt) + madt->Header.Length;
-    if (records_start >= records_end) {
-        TRACEF("MADT wraps around address space\n");
-        return ZX_ERR_INTERNAL;
-    }
-    // Shouldn't be too many records
-    if (madt->Header.Length > 4096) {
-        TRACEF("MADT suspiciously long: %u\n", madt->Header.Length);
-        return ZX_ERR_INTERNAL;
-    }
-    *start = records_start;
-    *end = records_end;
-    return ZX_OK;
-}
-#endif
-
 /* @brief Enumerate all functioning CPUs and their APIC IDs
  *
  * If apic_ids is NULL, just returns the number of logical processors
@@ -182,7 +120,7 @@ zx_status_t platform_enumerate_interrupt_source_overrides(
     }
 
     uint32_t count = 0;
-    acpi_process_madt_entries_etc(ACPI_MADT_TYPE_INTERRUPT_OVERRIDE,
+    acpi_process_madt_entries_etc(ACPI_MADT_TYPE_INT_SOURCE_OVERRIDE,
             [isos, &count, len](const void *_entry, size_t entry_len) {
         auto entry = static_cast<const acpi_madt_int_source_override_entry*>(_entry);
 
@@ -241,34 +179,34 @@ zx_status_t platform_enumerate_interrupt_source_overrides(
  * @return ZX_OK on success.
  */
 zx_status_t platform_find_hpet(struct acpi_hpet_descriptor* hpet) {
-#if 0
-    ACPI_TABLE_HEADER* table = NULL;
-    ACPI_STATUS status = AcpiGetTable((char*)ACPI_SIG_HPET, 1, &table);
-    if (status != AE_OK) {
-        TRACEF("could not find HPET\n");
-        return ZX_ERR_NOT_FOUND;
-    }
-    ACPI_TABLE_HPET* hpet_tbl = (ACPI_TABLE_HPET*)table;
-    if (hpet_tbl->Header.Length != sizeof(ACPI_TABLE_HPET)) {
-        TRACEF("Unexpected HPET table length\n");
+    const acpi_sdt_header* header = acpi_get_table_by_sig(ACPI_HPET_SIG);
+    if (!header) {
         return ZX_ERR_NOT_FOUND;
     }
 
-    hpet->minimum_tick = hpet_tbl->MinimumTick;
-    hpet->sequence = hpet_tbl->Sequence;
-    hpet->address = hpet_tbl->Address.Address;
-    switch (hpet_tbl->Address.SpaceId) {
-    case ACPI_ADR_SPACE_SYSTEM_IO:
+    if (header->revision != 1) {
+        return ZX_ERR_NOT_FOUND;
+    }
+
+    if (header->length != sizeof(acpi_hpet_table)) {
+        return ZX_ERR_NOT_FOUND;
+    }
+
+    const acpi_hpet_table* table = reinterpret_cast<const acpi_hpet_table*>(header);
+
+    hpet->minimum_tick = table->minimum_tick;
+    hpet->sequence = table->sequence;
+    hpet->address = table->address.address;
+    switch (table->address.address_space_id) {
+    case ACPI_ADDR_SPACE_IO:
         hpet->port_io = true;
         break;
-    case ACPI_ADR_SPACE_SYSTEM_MEMORY:
+    case ACPI_ADDR_SPACE_MEMORY:
         hpet->port_io = false;
         break;
     default:
         return ZX_ERR_NOT_SUPPORTED;
     }
+    TRACE;
     return ZX_OK;
-#endif
-
-    return ZX_ERR_NOT_SUPPORTED;
 }

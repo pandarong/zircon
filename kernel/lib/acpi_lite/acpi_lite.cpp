@@ -145,7 +145,11 @@ const acpi_sdt_header *acpi_get_table_by_sig(const char *sig) {
         }
 
         if (!memcmp(sig, header->sig, 4)) {
-            return header;
+            // validate the checksum
+            uint8_t c = acpi_checksum(header, header->length);
+            if (c == 0) {
+                return header;
+            }
         }
     }
 

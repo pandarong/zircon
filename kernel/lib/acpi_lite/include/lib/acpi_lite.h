@@ -51,6 +51,17 @@ struct acpi_rsdt_xsdt {
     };
 } __PACKED;
 
+struct acpi_generic_address_ {
+    uint8_t address_space_id;
+    uint8_t register_bit_width;
+    uint8_t register_bit_offset;
+    uint8_t access_size;
+    uint64_t address;
+} __PACKED;
+
+#define ACPI_ADDR_SPACE_MEMORY  0
+#define ACPI_ADDR_SPACE_IO      1
+
 #define ACPI_RSDT_SIG "RSDT"
 #define ACPI_XSDT_SIG "XSDT"
 
@@ -68,14 +79,7 @@ struct acpi_sub_table_header {
     uint8_t length;
 } __PACKED;
 
-struct acpi_generic_address_ {
-    uint8_t address_space_id;
-    uint8_t register_bit_width;
-    uint8_t register_bit_offset;
-    uint8_t access_size;
-    uint64_t address;
-} __PACKED;
-
+#define ACPI_HPET_SIG "HPET"
 struct acpi_hpet_table {
     acpi_sdt_header header;
     uint32_t id;
@@ -95,7 +99,7 @@ const acpi_sdt_header *acpi_get_table_at_index(size_t index);
 // MADT table describes processors and interrupt controllers
 
 // type 0: local apic
-// #define ACPI_MADT_TYPE_LOCAL_APIC 0
+#define ACPI_MADT_TYPE_LOCAL_APIC 0
 struct acpi_madt_local_apic_entry {
     acpi_sub_table_header header;
     uint8_t processor_id;
@@ -106,7 +110,7 @@ struct acpi_madt_local_apic_entry {
 #define ACPI_MADT_FLAG_ENABLED 0x1
 
 // type 1: io apic
-// #define ACPI_MADT_TYPE_IO_APIC 1
+#define ACPI_MADT_TYPE_IO_APIC 1
 struct acpi_madt_io_apic_entry {
     acpi_sub_table_header header;
     uint8_t io_apic_id;
@@ -116,7 +120,7 @@ struct acpi_madt_io_apic_entry {
 } __PACKED;
 
 // type 2: interrupt source override
-// #define ACPI_MADT_TYPE_INT_SOURCE_OVERRIDE 2
+#define ACPI_MADT_TYPE_INT_SOURCE_OVERRIDE 2
 struct acpi_madt_int_source_override_entry {
     acpi_sub_table_header header;
     uint8_t bus;
