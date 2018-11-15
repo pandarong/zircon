@@ -13,7 +13,6 @@
 
 #define LOCAL_TRACE 1
 
-
 // global state of the acpi lite library
 struct acpi_lite_state {
     const acpi_rsdp *rsdp;
@@ -217,8 +216,8 @@ void acpi_lite_dump_tables() {
         return;
     }
 
-    printf("root table:\n");
-    hexdump(acpi.sdt, acpi.sdt->header.length);
+    //printf("root table:\n");
+    //hexdump(acpi.sdt, acpi.sdt->header.length);
 
     // walk the table list
     for (size_t i = 0; i < acpi.num_tables; i++) {
@@ -227,8 +226,9 @@ void acpi_lite_dump_tables() {
             continue;
         }
 
-        printf("table %zu:\n", i);
-        hexdump(header, header->length);
+        printf("table %zu: '%c%c%c%c' len %u\n", i, header->sig[0], header->sig[1],
+               header->sig[2], header->sig[3], header->length);
+        //hexdump(header, header->length);
     }
 }
 

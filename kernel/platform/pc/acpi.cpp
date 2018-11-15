@@ -18,6 +18,7 @@
 
 #include <acpica/acpi.h>
 
+#if 0
 #define ACPI_MAX_INIT_TABLES 32
 static ACPI_TABLE_DESC acpi_tables[ACPI_MAX_INIT_TABLES];
 static bool acpi_initialized = false;
@@ -75,6 +76,7 @@ static zx_status_t acpi_get_madt_record_limits(uintptr_t* start, uintptr_t* end)
     *end = records_end;
     return ZX_OK;
 }
+#endif
 
 /* @brief Enumerate all functioning CPUs and their APIC IDs
  *
@@ -102,12 +104,12 @@ zx_status_t platform_enumerate_cpus(
             [apic_ids, &count, len](const void* _entry, size_t entry_len) {
         auto entry = static_cast<const acpi_madt_local_apic_entry*>(_entry);
 
-        LTRACEF("MADT entry %p: processor id %d apic id %d flags %#x\n",
-                entry, entry->processor_id, entry->apic_id, entry->flags);
-
         if ((entry->flags & ACPI_MADT_FLAG_ENABLED) == 0) {
             return;
         }
+
+        LTRACEF("MADT entry %p: processor id %d apic id %d flags %#x\n",
+                entry, entry->processor_id, entry->apic_id, entry->flags);
 
         if (apic_ids != NULL && count < len) {
             apic_ids[count] = entry->apic_id;
@@ -239,9 +241,6 @@ zx_status_t platform_enumerate_interrupt_source_overrides(
  * @return ZX_OK on success.
  */
 zx_status_t platform_find_hpet(struct acpi_hpet_descriptor* hpet) {
-
-
-
 #if 0
     ACPI_TABLE_HEADER* table = NULL;
     ACPI_STATUS status = AcpiGetTable((char*)ACPI_SIG_HPET, 1, &table);
@@ -268,7 +267,8 @@ zx_status_t platform_find_hpet(struct acpi_hpet_descriptor* hpet) {
     default:
         return ZX_ERR_NOT_SUPPORTED;
     }
+    return ZX_OK;
 #endif
 
-    return ZX_OK;
+    return ZX_ERR_NOT_SUPPORTED;
 }
