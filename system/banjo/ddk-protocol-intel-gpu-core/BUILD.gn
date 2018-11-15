@@ -4,7 +4,14 @@
 
 import("$zx/public/gn/banjo.gni")
 
-banjo_library("ddk-protocol-intel-gpu-core") {
+group("ddk-protocol-intel-gpu-core") {
+  # TODO: rename this dir
+  public_deps = [
+    ":ddk-protocol-intelgpucore",
+  ]
+}
+
+banjo_library("ddk-protocol-intelgpucore") {
   sources = [
     "intel-gpu-core.banjo",
   ]

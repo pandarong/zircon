@@ -14,8 +14,19 @@ while [ $# -gt 0 ]; do
   case "$arg" in
     @*)
       file="${arg#@}"
+      # Weed out the duplicates.
+      new=true
+      for dep in "${deps[@]}"; do
+        if [ "$dep" = "$file" ]; then
+          new=false
+        fi
+      done
+      $new || continue
       deps+=("$file")
       set -- $(cat "$file") ${1+"$@"}
+      ;;
+    --files)
+      args+=("$arg")
       ;;
     --*)
       args+=("$arg" "$1")

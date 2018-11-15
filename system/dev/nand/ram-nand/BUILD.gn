@@ -28,6 +28,7 @@ source_set("common") {
     "ram-nand.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-nand",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/sync",

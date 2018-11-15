@@ -10,8 +10,11 @@ library("intel-hda") {
     "utils/utils.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
-  deps = [
+  public_deps = [
+    # <intel-hda/codec-utils/stream-base.h> has #include <ddk/protocol/intelhda/codec.h>.
     "$zx/system/banjo/ddk-protocol-intel-hda-codec",
+  ]
+  deps = [
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",

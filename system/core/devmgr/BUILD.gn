@@ -16,12 +16,12 @@ config("enable_driver_tracing") {
 executable("devmgr") {
   sources = [
     "bootfs.cpp",
-    "devhost-shared.cpp",
     "devmgr-binding.cpp",
     "devmgr-coordinator.cpp",
     "devmgr-devfs.cpp",
     "devmgr-drivers.cpp",
     "devmgr-fdio.cpp",
+    "devmgr-fidl.cpp",
     "devmgr.cpp",
   ]
 
@@ -29,6 +29,7 @@ executable("devmgr") {
     # We can avoid the fuchsia.crash dependency if crashsvc connects directly
     # to the analyzer.
     "$zx/system/fidl/fuchsia-crash:c",
+    "$zx/system/fidl/fuchsia-device-manager:c",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/ulib/async-loop:async-loop-cpp",
@@ -117,13 +118,13 @@ library("driver") {
     "devhost-api.cpp",
     "devhost-core.cpp",
     "devhost-rpc-server.cpp",
-    "devhost-shared.cpp",
     "devhost.cpp",
     "zx-device.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
     ":enable_driver_tracing",
+    "$zx/system/fidl/fuchsia-device-manager:c",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/async:async-cpp.static",
     "$zx/system/ulib/async-loop:async-loop-cpp.static",
@@ -169,10 +170,10 @@ library("driver") {
 
 driver("dmctl") {
   sources = [
-    "devhost-shared.cpp",
     "dmctl.cpp",
   ]
   deps = [
+    "$zx/system/fidl/fuchsia-device-manager:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
