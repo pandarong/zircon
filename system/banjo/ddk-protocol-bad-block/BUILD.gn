@@ -4,7 +4,14 @@
 
 import("$zx/public/gn/banjo.gni")
 
-banjo_library("ddk-protocol-bad-block") {
+group("ddk-protocol-bad-block") {
+  # TODO: rename the dir
+  public_deps = [
+    ":ddk-protocol-badblock",
+  ]
+}
+
+banjo_library("ddk-protocol-badblock") {
   sources = [
     "bad-block.banjo",
   ]

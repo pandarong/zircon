@@ -58,7 +58,7 @@ template("banjo_library") {
     banjo_library_name = string_replace(banjo_target, "-", ".")
 
     banjo_path = string_replace(banjo_library_name, ".", "/")
-    banjo_name = get_path_info(banjo_path, "file")
+    banjo_name = string_replace(banjo_path, "ddk/protocol/", "")
 
     gen_files = [
       {

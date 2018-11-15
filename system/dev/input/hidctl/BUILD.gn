@@ -8,6 +8,7 @@ driver("hidctl") {
     "hidctl.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

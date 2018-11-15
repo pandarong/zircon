@@ -4,7 +4,14 @@
 
 import("$zx/public/gn/banjo.gni")
 
-banjo_library("ddk-protocol-intel-hda-dsp") {
+group("ddk-protocol-intel-hda-dsp") {
+  # TODO: rename this dir
+  public_deps = [
+    ":ddk-protocol-intelhda-dsp",
+  ]
+}
+
+banjo_library("ddk-protocol-intelhda-dsp") {
   sources = [
     "intel-hda-dsp.banjo",
   ]

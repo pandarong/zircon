@@ -4,15 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-amlogic-canvas") {
-  # TODO: rename the dir
-  public_deps = [
-    ":ddk-protocol-amlogiccanvas",
-  ]
-}
-
-banjo_library("ddk-protocol-amlogiccanvas") {
+banjo_library("ddk-protocol-ethernet-board") {
   sources = [
-    "amlogic-canvas.banjo",
+    "ethernet-board.banjo",
   ]
 }
