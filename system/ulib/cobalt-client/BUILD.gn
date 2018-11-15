@@ -7,11 +7,14 @@ library("cobalt-client") {
     "cobalt_logger.cpp",
     "collector.cpp",
     "counter.cpp",
-    "event_buffer.cpp",
     "histogram.cpp",
     "metric_info.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  public_deps = [
+    # <cobalt-client/cpp/timer.h> has #include <lib/fzl/time.h>.
+    "$zx/system/ulib/fzl",
+  ]
   deps = [
     "$zx/system/fidl/fuchsia-cobalt:c",
     "$zx/system/fidl/fuchsia-mem:c",

@@ -10,6 +10,7 @@ test("cobalt-client") {
     "histogram_test.cpp",
     "metric_options_test.cpp",
     "test_main.cpp",
+    "timer_test.cpp",
     "types_internal_test.cpp",
   ]
   deps = [
