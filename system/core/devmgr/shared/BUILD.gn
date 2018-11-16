@@ -2,15 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-cdc-function") {
+source_set("shared") {
+  visibility = [ "$zx/system/core/devmgr/*" ]
   sources = [
-    "cdc-eth-function.cpp",
+    "bootfs.cpp",
+    "fdio.cpp",
   ]
   deps = [
-    "$zx/system/dev/lib/usb",
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/inet6",
-    "$zx/system/ulib/sync",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/launchpad",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
   ]
 }

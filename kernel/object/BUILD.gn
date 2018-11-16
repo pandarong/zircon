@@ -74,6 +74,9 @@ library("object") {
 
     # <object/resource_dispatcher.h> has #include <region-alloc/region-alloc.h>.
     "$zx/system/ulib/region-alloc:headers",
+
+    # <object/vcpu_dispatcher.h> has #include <hypervisor/interrupt_tracker.h>.
+    #"$zx/kernel/lib/hypervisor:headers",
   ]
 }
 

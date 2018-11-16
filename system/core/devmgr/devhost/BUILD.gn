@@ -1,0 +1,83 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+declare_args() {
+  # Allow driver tracing to be completely disabled (as if it didn't exist).
+  enable_driver_tracing = false
+}
+
+config("enable_driver_tracing") {
+  if (enable_driver_tracing) {
+    defines = [ "ENABLE_DRIVER_TRACING" ]
+  }
+}
+
+executable("devhost") {
+  #TODO: asan variant installs as devhost.asan
+
+  sources = [
+    "main.cpp",
+  ]
+  deps = [
+    ":driver",
+  ]
+}
+
+# "$zx/system/ulib/driver" is an alias for this.
+library("driver") {
+  shared = true
+  static = false
+  sources = [
+    "api.cpp",
+    "core.cpp",
+    "devhost.cpp",
+    "rpc-server.cpp",
+    "zx-device.cpp",
+  ]
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  deps = [
+    ":enable_driver_tracing",
+    "$zx/system/fidl/fuchsia-device-manager:c",
+    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/system/ulib/async:async-cpp.static",
+    "$zx/system/ulib/async-loop:async-loop-cpp.static",
+    "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/sync",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+
+  if (enable_driver_tracing) {
+    sources += [ "tracing.cpp" ]
+    deps += [
+      "$zx/system/ulib/async:async-default.static",
+      "$zx/system/ulib/async:static",
+      "$zx/system/ulib/trace:static",
+      "$zx/system/ulib/trace-engine:static",
+      "$zx/system/ulib/trace-provider:static",
+    ]
+
+    # Since the tracing support is brought in via an archive, we need explicit
+    # references to ensure everything is present.
+    libs = [ "$zx/system/ulib/trace-engine/ddk-exports.ld" ]
+  } else {
+    # Some symbols still need to be present even if tracing is disabled.
+    # See the linker script for details.
+    libs = [ "$zx/system/ulib/trace-engine/ddk-disabled-exports.ld" ]
+  }
+
+  # This library is on the whitelist for driver() shared library deps.
+  # It doesn't trigger the assert_no_metadata() check, and it prunes the
+  # metadata walk here so our own deps are not subject to the check.
+  if (false) {  #TODO
+    metadata = {
+      driver_blacklist = []
+      driver_blacklist_barrier = []
+    }
+  }
+}

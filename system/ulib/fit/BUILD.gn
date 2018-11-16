@@ -5,5 +5,16 @@
 library("fit") {
   host = true
   static = true
-  sources = []
+  configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  sources = [
+    "promise.cpp",
+    "scheduler.cpp",
+    "sequential_executor.cpp",
+  ]
+
+  if (is_fuchsia) {
+    # Disabled for now because libstdc++ isn't available for Zircon targets yet.
+    # We need the target to exist for the SDK to pick it up though.
+    defines = [ "FIT_NO_STD_FOR_ZIRCON_USERSPACE" ]
+  }
 }

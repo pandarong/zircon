@@ -640,7 +640,7 @@ template("driver") {
     # constrained by considering only variants that are compatible with the
     # caller (toolchain) devhost flavor (i.e. asan or not--then whichever
     # asan-compatible variant normally selected for devhost).
-    data_deps += [ "$zx/system/core/devmgr:devhost(${toolchain.label})" ]
+    data_deps += [ "$zx/system/core/devmgr/devhost(${toolchain.label})" ]
 
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by

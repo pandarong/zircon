@@ -24,6 +24,6 @@ library("ddk") {
     "$zx/system/ulib/zircon",
   ]
   if (!is_kernel) {
-    public_deps += [ "$zx/system/core/devmgr:enable_driver_tracing" ]
+    public_deps += [ "$zx/system/core/devmgr/devhost:enable_driver_tracing" ]
   }
 }

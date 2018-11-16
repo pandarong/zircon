@@ -19,6 +19,7 @@ library("hid") {
   ]
   deps = [
     "$zx/system/fidl/zircon-input:c",
+    "$zx/system/ulib/ddk",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
   ]

@@ -2,15 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-cdc-function") {
+driver("dmctl") {
   sources = [
-    "cdc-eth-function.cpp",
+    "dmctl.cpp",
   ]
   deps = [
-    "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/fuchsia-device-manager:c",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/inet6",
-    "$zx/system/ulib/sync",
+    "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }

@@ -5,6 +5,7 @@
 driver("mt8167s_ref") {
   sources = [
     "bind.c",
+    "mt8167-buttons.cpp",
     "mt8167-display.cpp",
     "mt8167-emmc.cpp",
     "mt8167-gpio.cpp",

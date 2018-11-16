@@ -2,15 +2,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-cdc-function") {
+test_driver("usb-peripheral-test") {
   sources = [
-    "cdc-eth-function.cpp",
+    "driver.cpp",
   ]
   deps = [
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/inet6",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
   ]
+}
+
+if (current_os == "linux") {
+  test("usb-peripheral") {
+    sources = [
+      "test.cpp",
+    ]
+    deps = [
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/unittest",
+      "$zx/third_party/ulib/usbhost",
+    ]
+  }
 }
