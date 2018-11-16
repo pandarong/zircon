@@ -6,8 +6,8 @@
 
 source_set("mtrace") {
   sources = [
-    "mtrace-ipm.cpp",
     "mtrace-ipt.cpp",
+    "mtrace-pmu.cpp",
     "mtrace.cpp",
   ]
 }

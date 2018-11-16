@@ -11,6 +11,7 @@ group("usb") {
     "usb-composite",
     "usb-hub",
     "usb-peripheral",
+    "usb-peripheral-test",
     "usb-test",
     "xhci",
   ]

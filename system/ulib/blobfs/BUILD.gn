@@ -25,6 +25,9 @@ library("blobfs") {
     "$zx/system/ulib/bitmap:headers",
     "$zx/system/ulib/fs:headers",
   ]
+  if (is_fuchsia) {
+    public_deps += [ "$zx/system/ulib/block-client:headers" ]
+  }
   deps = [
     "$zx/system/ulib/bitmap",
     "$zx/system/ulib/digest",

@@ -2,15 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-cdc-function") {
+library("mock_mmio_reg") {
+  #TODO: testonly = true
   sources = [
-    "cdc-eth-function.cpp",
+    "mock_mmio_reg.cpp",
   ]
   deps = [
-    "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/inet6",
-    "$zx/system/ulib/sync",
-    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/unittest",
   ]
 }
