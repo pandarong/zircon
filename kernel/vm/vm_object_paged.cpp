@@ -437,7 +437,22 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
                 }
             }
             if (!p_clone) {
+#if 1
+                PageAllocRequest request;
+
+                zx_status_t status = pmm_alloc_pages_delayed(1, pmm_alloc_flags_ | PMM_ALLOC_FLAG_FORCE_DELAYED_TEST, &request);
+                if (status == ZX_ERR_SHOULD_WAIT) {
+                    status = request.Wait();
+                    DEBUG_ASSERT(status == ZX_OK);
+                }
+                DEBUG_ASSERT_MSG(request.IsComplete(), "state %s\n", request.stateString());
+
+                p_clone = list_remove_head_type(request.page_list(), vm_page_t, queue_node);
+                DEBUG_ASSERT(p_clone);
+                pa_clone = p->paddr();
+#else
                 status = pmm_alloc_page(pmm_alloc_flags_, &p_clone, &pa_clone);
+#endif
             }
             if (!p_clone) {
                 return ZX_ERR_NO_MEMORY;
@@ -590,6 +605,7 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
         return ZX_OK;
     }
 
+#if 0
     // allocate count number of pages
     list_node page_list;
     list_initialize(&page_list);
@@ -598,6 +614,7 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
     if (status != ZX_OK) {
         return status;
     }
+#endif
 
     // unmap all of the pages in this range on all the mapping regions
     RangeChangeUpdateLocked(offset, end - offset);
@@ -615,11 +632,11 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
         const uint flags = VMM_PF_FLAG_SW_FAULT | VMM_PF_FLAG_WRITE;
         // Should not be able to fail, since we're providing it memory and the
         // range should be valid.
-        zx_status_t status = GetPageLocked(o, flags, &page_list, &p, &pa);
+        zx_status_t status = GetPageLocked(o, flags, nullptr, &p, &pa);
         ASSERT(status == ZX_OK);
     }
 
-    DEBUG_ASSERT(list_is_empty(&page_list));
+    //DEBUG_ASSERT(list_is_empty(&page_list));
 
     return ZX_OK;
 }

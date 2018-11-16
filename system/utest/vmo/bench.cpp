@@ -48,136 +48,171 @@ inline zx_time_t time_it(T func) {
 
 int vmo_run_benchmark() {
     zx_time_t t;
-    //zx_handle_t vmo;
+    uintptr_t ptr;
+    const size_t size = 32*1024*1024;
 
     printf("starting VMO benchmark\n");
 
     // allocate a bunch of large vmos, delete them
-    const size_t size = 32*1024*1024;
-    zx_handle_t vmos[32];
-    uintptr_t ptr;
+    {
+        zx_handle_t vmos[32];
 
-    t = time_it([&](){
-        for (auto& vmo : vmos) {
-            zx_vmo_create(size, 0, &vmo);
-        }
-    });
+        t = time_it([&](){
+            for (auto& vmo : vmos) {
+                zx_vmo_create(size, 0, &vmo);
+            }
+        });
 
-    printf("\ttook %" PRIu64 " nsecs to create %zu vmos of size %zu\n", t, fbl::count_of(vmos), size);
+        printf("\ttook %" PRIu64 " nsecs to create %zu vmos of size %zu\n", t, fbl::count_of(vmos), size);
 
-    t = time_it([&](){
-        for (auto& vmo : vmos) {
-            zx_handle_close(vmo);
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to delete %zu vmos of size %zu\n", t, fbl::count_of(vmos), size);
+        t = time_it([&](){
+            for (auto& vmo : vmos) {
+                zx_handle_close(vmo);
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to delete %zu vmos of size %zu\n", t, fbl::count_of(vmos), size);
+    }
 
     // create a vmo and demand fault it in
-    zx_handle_t vmo;
-    zx_vmo_create(size, 0, &vmo);
+    {
+        zx_handle_t vmo;
+        zx_vmo_create(size, 0, &vmo);
 
-    zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
+        zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            __UNUSED char a = ((volatile char *)ptr)[i];
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to read fault in vmo of size %zu (should be read faulting a zero page)\n", t, size);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                __UNUSED char a = ((volatile char *)ptr)[i];
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to read fault in vmo of size %zu (should be read faulting a zero page)\n", t, size);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            __UNUSED char a = ((volatile char *)ptr)[i];
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to read in vmo of size %zu a second time (should be mapped already)\n", t, size);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                __UNUSED char a = ((volatile char *)ptr)[i];
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to read in vmo of size %zu a second time (should be mapped already)\n", t, size);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            ((volatile char *)ptr)[i] = 99;
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu after read faulting it\n", t, size);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                ((volatile char *)ptr)[i] = 99;
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu after read faulting it\n", t, size);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            ((volatile char *)ptr)[i] = 99;
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu a second time\n", t, size);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                ((volatile char *)ptr)[i] = 99;
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu a second time\n", t, size);
 
-    // unmap the original mapping
-    t = time_it([&](){
+        // unmap the original mapping
+        t = time_it([&](){
+            zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
+        });
+        printf("\ttook %" PRIu64 " nsecs to unmap the vmo %zu (%zu pages)\n", t, size, size / PAGE_SIZE);
+
+        // map it a again and time read faulting it
+        zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
+
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                __UNUSED char a = ((volatile char *)ptr)[i];
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to read fault in vmo of size %zu in another mapping\n", t, size);
+
         zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
-    });
-    printf("\ttook %" PRIu64 " nsecs to unmap the vmo %zu (%zu pages)\n", t, size, size / PAGE_SIZE);
 
-    // map it a again and time read faulting it
-    zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
+        // map it a again and time write faulting it
+        zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            __UNUSED char a = ((volatile char *)ptr)[i];
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to read fault in vmo of size %zu in another mapping\n", t, size);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                ((volatile char *)ptr)[i] = 99;
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu in another mapping\n", t, size);
 
-    zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
+        zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
 
-    // map it a again and time write faulting it
-    zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
-
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            ((volatile char *)ptr)[i] = 99;
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu in another mapping\n", t, size);
-
-    zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
-
-    // delete the vmo
-    t = time_it([&](){
-        zx_handle_close(vmo);
-    });
-    printf("\ttook %" PRIu64 " nsecs to delete populated vmo of size %zu\n", t, size);
+        // delete the vmo
+        t = time_it([&](){
+            zx_handle_close(vmo);
+        });
+        printf("\ttook %" PRIu64 " nsecs to delete populated vmo of size %zu\n", t, size);
+    }
 
     // create a second vmo and write fault it in directly
-    zx_vmo_create(size, 0, &vmo);
+    {
+        zx_handle_t vmo;
 
-    zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
+        zx_vmo_create(size, 0, &vmo);
 
-    t = time_it([&](){
-        for (size_t i = 0; i < size; i += PAGE_SIZE) {
-            ((volatile char *)ptr)[i] = 99;
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu\n", t, size);
+        zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
 
-    zx_handle_close(vmo);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                ((volatile char *)ptr)[i] = 99;
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to write fault in vmo of size %zu\n", t, size);
+
+        zx_handle_close(vmo);
+    }
 
     // create a vmo and commit and decommit it directly
-    zx_vmo_create(size, 0, &vmo);
+    {
+        zx_handle_t vmo;
 
-    t = time_it([&](){
+        zx_vmo_create(size, 0, &vmo);
+
+        t = time_it([&](){
+            zx_vmo_op_range(vmo, ZX_VMO_OP_COMMIT, 0, size, nullptr, 0);
+        });
+        printf("\ttook %" PRIu64 " nsecs to commit vmo of size %zu\n", t, size);
+
+        t = time_it([&](){
+            zx_status_t status = zx_vmo_op_range(vmo, ZX_VMO_OP_COMMIT, 0, size, nullptr, 0);
+            if (status != ZX_OK) {
+                __builtin_trap();
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to commit already committed vmo of size %zu\n", t, size);
+
+        t = time_it([&](){
+            zx_vmo_op_range(vmo, ZX_VMO_OP_DECOMMIT, 0, size, nullptr, 0);
+        });
+        printf("\ttook %" PRIu64 " nsecs to decommit vmo of size %zu\n", t, size);
+
+        zx_handle_close(vmo);
+    }
+
+    // create a vmo, commit it, and then fault in a clone
+    {
+        zx_handle_t vmo, clone;
+
+        zx_vmo_create(size, 0, &vmo);
         zx_vmo_op_range(vmo, ZX_VMO_OP_COMMIT, 0, size, nullptr, 0);
-    });
-    printf("\ttook %" PRIu64 " nsecs to commit vmo of size %zu\n", t, size);
 
-    t = time_it([&](){
-        zx_status_t status = zx_vmo_op_range(vmo, ZX_VMO_OP_COMMIT, 0, size, nullptr, 0);
-        if (status != ZX_OK) {
-            __builtin_trap();
-        }
-    });
-    printf("\ttook %" PRIu64 " nsecs to commit already committed vmo of size %zu\n", t, size);
+        zx_vmo_clone(vmo, ZX_VMO_CLONE_COPY_ON_WRITE, 0, size, &clone);
 
-    t = time_it([&](){
-        zx_vmo_op_range(vmo, ZX_VMO_OP_DECOMMIT, 0, size, nullptr, 0);
-    });
-    printf("\ttook %" PRIu64 " nsecs to decommit vmo of size %zu\n", t, size);
+        zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0, size, &ptr);
 
-    zx_handle_close(vmo);
+        t = time_it([&](){
+            for (size_t i = 0; i < size; i += PAGE_SIZE) {
+                ((volatile char *)ptr)[i] = 99;
+            }
+        });
+        printf("\ttook %" PRIu64 " nsecs to write fault in a clone of a vmo of size %zu\n", t, size);
+
+        zx_vmar_unmap(zx_vmar_root_self(), ptr, size);
+
+        zx_handle_close(clone);
+        zx_handle_close(vmo);
+    }
 
     printf("done with benchmark\n");
 
