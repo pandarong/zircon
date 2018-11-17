@@ -77,6 +77,10 @@ if (toolchain.environment != "user" ||
     if (toolchain.environment == "user") {
       # This doesn't get normal default deps on libc.
       configs -= [ "$zx/public/gn/config:user" ]
+      if (is_gcc) {
+        # However, GCC's <x86inrin.h> needs <stdlib.h> indirectly.
+        configs += [ "$zx/system/ulib/c:headers" ]
+      }
     }
 
     # This library is on the whitelist for driver() shared library deps.

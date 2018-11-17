@@ -48,14 +48,21 @@ declare_args() {
 #
 #   configs
 #     Preset: $standard_configs
-#     Required: List of labels, usually config() targets.
-#     These are the default `configs` in all compiling targets.
-#
-#   shlib_configs
-#     Preset: $standard_shlib_configs
-#     Required: List of labels, usually config() targets.
-#     Added to $configs in the `.shlib` companion toolchain.
-#     Ignored if $shlib is false.
+#     Required: List of labels or scopes, usually config() targets.
+#     These are the default $configs preset in all compiling targets.
+#     Each element is usually a label (string), which means it's
+#     in the preset $configs for all target scopes.  It can instead
+#     be a scope that defines:
+#       shlib
+#         Optional: Boolean.  If true, this element only takes effect
+#         in the ${toolchain.shlib} toolchain.
+#         Default: false
+#       types
+#         Optional: List of strings,  e.g. ["driver", "source_set"].
+#         This element only takes effect for targets of these types.
+#       add, remove
+#         Optional: List of labels, usually config() targets.
+#         The preset $configs gets `+=` and then `-=` these, respectively.
 #
 #   globals
 #     Optional: A scope imported into the global scope in these toolchains.
@@ -79,7 +86,13 @@ declare_args() {
 #   exclude_variant_tags
 #     Optional: A list of strings that might appear in the .tags list of a
 #     .variant scope.  If any of these strings appears in a .variant scope,
-#     then $variant_selectors elements
+#     then $variant_selectors elements using that variant will be silently
+#     ignored in this environment's toolchains.  e.g. an environment that is
+#     incompatbile with instrumentation could list the "instrumentation" tag
+#     and variants that enable instrumentation will be defined with that tag.
+#     Then simple `variants=["asan"]` user configurations that would apply
+#     ordinarily to all targets don't break the special-case execution
+#     environments (vdso, bootloader, etc).
 #
 template("define_environment") {
   assert(current_toolchain == default_toolchain,
@@ -103,10 +116,6 @@ template("define_environment") {
 
   # These will be seen by define_c_toolchain() below.
   shlib = defined(invoker.shlib) && invoker.shlib
-  if (!shlib) {
-    # $shlib_configs is preset via set_defaults() even if it's not used.
-    not_needed(invoker, [ "shlib_configs" ])
-  }
 
   # The canonicalized list of selectors.  Each element is in the schema of
   # $variant elements, but canonicalized to simplify the matching code: all
@@ -174,13 +183,20 @@ template("define_environment") {
       # those with whatever the selector actually included.  The boolean
       # fields are not defaulted this way because for them neither false
       # nor true means the same thing as the field being omitted.
+      cpu = []
       dir = []
       environment = []
       label = []
       name = []
+      os = []
       output_name = []
       target_type = []
-      forward_variables_from(selector, "*")
+      forward_variables_from(selector,
+                             "*",
+                             [
+                               "toolchain",
+                               "variant",
+                             ])
     }
 
     # If the selector filters on environment, then don't bother including
@@ -189,22 +205,21 @@ template("define_environment") {
                                   [ environment ] == sel.environment ||
                                   sel.environment + [ base_environment ] -
                                   [ base_environment ] == sel.environment)) {
-      sel = false
-    }
-
-    # Same for standard shorthands.
-    if (defined(sel.host) && defined(g.is_host) && g.is_host) {
       sel = {
       }
     }
-    if (defined(sel.kernel) && defined(g.is_kernel) && g.is_kernel) {
+
+    # Same for standard shorthands.
+    if ((defined(sel.host) && sel.host != (defined(g.is_host) && g.is_host)) ||
+        (defined(sel.kernel) &&
+         sel.kernel != (defined(g.is_kernel) && g.is_kernel))) {
       sel = {
       }
     }
 
     if (sel != {
         }) {
-      foreach(variant, [ sel.variant ]) {
+      foreach(variant, [ selector.variant ]) {
         if (variant != false && variant != "$variant") {
           # This selector is defining a variant.  Record the variant spec and
           # name and then update the selector to use just the name.
@@ -218,12 +233,22 @@ template("define_environment") {
           variant_specs += [ variant ]
           sel.variant = variant.name
         } else {
+          sel.variant = variant
+
           # Add this to the list of needed variants if it's not there already.
           variant_names += [ variant ]
           variant_names -= [ variant ]
           variant_names += [ variant ]
         }
       }
+
+      # When the selector matches, redirect to this toolchain.
+      sel.toolchain = get_label_info(":${toolchain_base_name}-${sel.variant}",
+                                     "label_no_toolchain")
+      if (shlib) {
+        sel.shlib_toolchain = "${sel.toolchain}.shlib"
+      }
+
       variant_selectors += [ sel ]
     }
   }
@@ -247,9 +272,6 @@ template("define_environment") {
     spec = {
       bases = []
       configs = []
-      shlib_configs = []
-      remove_configs = []
-      remove_shlib_configs = []
       tags = []
       globals = {
       }
@@ -284,9 +306,6 @@ template("define_environment") {
           spec = {
             bases = []
             configs = []
-            shlib_configs = []
-            remove_configs = []
-            remove_shlib_configs = []
             tags = []
             globals = {
             }
@@ -332,15 +351,9 @@ template("define_environment") {
       {
         # Append each list from all the bases.
         configs = []
-        shlib_configs = []
-        remove_configs = []
-        remove_shlib_configs = []
         tags = []
         foreach(base, bases) {
           configs += base.configs
-          shlib_configs += base.shlib_configs
-          remove_configs += base.remove_configs
-          remove_shlib_configs += base.remove_shlib_configs
           tags += base.tags
         }
 
@@ -388,7 +401,7 @@ template("define_environment") {
     if (excluded_variants != []) {
       # Weed out the selectors that would choose an excluded variant.
       foreach(selector, variant_selectors) {
-        if (excluded_variants + [ selector.variant ] - [ selector.variant ] ==
+        if (excluded_variants + [ selector.variant ] - [ selector.variant ] !=
             excluded_variants) {
           variant_selectors -= [ selector ]
         }
@@ -403,10 +416,10 @@ template("define_environment") {
 
   # Define a primary toolchain, and possibly also a shlib toolchain, for each
   # variant.  If there are two, both toolchains get a ${toolchain.shlib} value
-  # pointing to the shlib toolchain.  The shlib toolchain has additional
-  # ${toolchain.configs} appended from $shlib_configs and then both
-  # shared_library() and loadable_module() in the primary toolchain redirect
-  # to the shlib toolchain.
+  # pointing to the shlib toolchain.  Any ${toolchain.configs} elements that
+  # use `.shlib = true` will affect the preset configs in ${toolchain.shlib}
+  # differently and then both shared_library() and loadable_module() in the
+  # primary toolchain redirect to the shlib toolchain.
   foreach(variant, toolchain_variants) {
     toolchains = []  # Clear from previous iteration.
 
@@ -414,8 +427,6 @@ template("define_environment") {
     toolchains = [
       {
         name = tc_name
-        configs = invoker.configs + variant.configs
-        configs -= variant.remove_configs
         if (shlib) {
           shlib_name = "${name}.shlib"
         }
@@ -426,14 +437,55 @@ template("define_environment") {
         {
           name = "${tc_name}.shlib"
           shlib_name = name
-          configs = invoker.configs + variant.configs
-          configs += invoker.shlib_configs + variant.shlib_configs
-          configs -= variant.remove_configs + variant.remove_shlib_configs
         },
       ]
     }
 
     foreach(tc, toolchains) {
+      # Canonicalize the ${toolchain.configs} list.
+      #
+      # This is used by $zx/public/gn/BUILDCONFIG.gn for set_defaults().
+      # The labels must be absolute since they will be used all over in
+      # the new toolchain, not just where the define_environment() is.
+      tc_configs = []
+      foreach(config, invoker.configs + variant.configs) {
+        if (config == "$config") {
+          tc_configs += [ get_label_info(config, "label_no_toolchain") ]
+        } else if (!defined(config.shlib) || !config.shlib ||
+                   (defined(tc.shlib_name) && tc.name == tc.shlib_name)) {
+          # It's actually a scope.
+          # Expand its add and remove lists.
+          tc_configs += [
+            {
+              forward_variables_from(config, [ "types" ])
+              add = []
+              if (defined(config.add)) {
+                foreach(label, config.add) {
+                  add += [ get_label_info(label, "label_no_toolchain") ]
+                }
+              }
+              remove = []
+              if (defined(config.remove)) {
+                foreach(label, config.remove) {
+                  remove += [ get_label_info(label, "label_no_toolchain") ]
+                }
+              }
+              assert(add != [] || remove != [], "useless $config")
+            },
+          ]
+        }
+      }
+
+      # Merge the $globals scopes from the invoker and the variant.
+      tc_globals = {
+      }
+      tc_globals = {
+        forward_variables_from(g, "*")
+        if (defined(variant.globals)) {
+          forward_variables_from(variant.globals, "*")
+        }
+      }
+
       define_c_toolchain(tc.name) {
         cpu = invoker.cpu
         if (defined(invoker.os)) {
@@ -442,7 +494,6 @@ template("define_environment") {
           os = "fuchsia"
         }
         shlib = shlib || (defined(invoker.solink) && invoker.solink)
-        forward_variables_from(invoker, [ "strip" ])
         toolchain_args = {
           if (defined(invoker.toolchain_args)) {
             forward_variables_from(invoker.toolchain_args,
@@ -466,6 +517,7 @@ template("define_environment") {
         toolchain_vars = {
           # ${toolchain.environment} and ${toolchain.environment_label}
           # will identify the environment within its own toolchains.
+          base_environment = base_environment
           environment = environment
           environment_label = environment_label
 
@@ -477,21 +529,8 @@ template("define_environment") {
             label = get_label_info(":$tc_name", "label_no_toolchain")
           }
 
-          # This is used by $zx/public/gn/BUILDCONFIG.gn for set_defaults().
-          # The labels must be absolute since they will be used all over in
-          # the new toolchain, not just where the define_environment() is.
-          configs = []
-          foreach(label, tc.configs) {
-            configs += [ get_label_info(label, "label_no_toolchain") ]
-          }
-
-          # Merge the $globals scopes from the invoker and the variant.
-          globals = {
-            forward_variables_from(g, "*")
-            if (defined(variant.globals)) {
-              forward_variables_from(variant.globals, "*")
-            }
-          }
+          configs = tc_configs
+          globals = tc_globals
 
           # Both the invoker and the variant can supply a $toolchain_vars
           # scope for whatever they want to see in $toolchain, but they
@@ -501,6 +540,7 @@ template("define_environment") {
                                    "*",
                                    [
                                      "configs",
+                                     "base_environment",
                                      "environment",
                                      "environment_label",
                                      "globals",
@@ -516,6 +556,7 @@ template("define_environment") {
                                    "*",
                                    [
                                      "configs",
+                                     "base_environment",
                                      "environment",
                                      "environment_label",
                                      "globals",
@@ -527,7 +568,8 @@ template("define_environment") {
                                    ])
           }
 
-          # Plumb through the canonicalized $variants list for select_variant().
+          # Plumb through the canonicalized $variants list for
+          # _variant_target() to match against.
           variant_selectors = selectors
 
           # Plumb through the list of tags from this variant.
@@ -538,6 +580,18 @@ template("define_environment") {
           # `variant`, so it can't be used any more in this block.)
           variant = variant.name
         }
+
+        # Translate in-toolchain settings to toolchain-defining settings.
+        gcc = defined(tc_globals.is_gcc) && tc_globals.is_gcc
+        if (defined(toolchain_args.use_goma)) {
+          use_goma = toolchain_args.use_goma
+        }
+
+        forward_variables_from(invoker, [ "strip" ])
+        if (defined(strip) && strip == "--strip-sections") {
+          # GNU strip/objcopy doesn't support --strip-sections.
+          strip = true
+        }
       }
     }
   }
@@ -545,7 +599,6 @@ template("define_environment") {
 
 set_defaults("define_environment") {
   configs = standard_configs
-  shlib_configs = standard_shlib_configs
 }
 
 # Define environments based on $standard_environments.

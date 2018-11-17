@@ -15,7 +15,7 @@ executable("kilo") {
 config("config") {
   visibility = [ ":*" ]
   if (is_gcc) {
-    cflags = [ "-Wno-discarded-qualifiers" ]
+    cflags_c = [ "-Wno-discarded-qualifiers" ]
   } else {
     cflags = [ "-Wno-incompatible-pointer-types-discards-qualifiers" ]
   }

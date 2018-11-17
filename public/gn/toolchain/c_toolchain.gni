@@ -61,10 +61,41 @@ template("define_c_toolchain") {
         tool_prefix = ""
       }
     } else {
+      if (clang_tool_dir == "") {
+        clangxx_exec_inputs = []
+        clangxx_exec_command = "clang++"
+      } else {
+        clangxx_exec_inputs = [ "${clang_tool_dir}/clang++" ]
+        clangxx_exec_command =
+            rebase_path(clangxx_exec_inputs[0], root_build_dir)
+      }
       tc = {
         tool_dir = gcc_tool_dir
-        tool_prefix = "${invoker.cpu}-elf-"
+        tool_prefix = "${tc_cpu}-elf-"
         version_string = gcc_version_string
+        include_dirs =
+            [ rebase_path(exec_script("/usr/bin/env",
+                                      [
+                                        clangxx_exec_command,
+                                        "--target=$tc_target",
+                                        "-print-file-name=include/c++/v1",
+                                      ],
+                                      "trim string",
+                                      clangxx_exec_inputs),
+                          "",
+                          root_build_dir) ]
+        lib_dirs = [ rebase_path(
+                get_path_info(exec_script("/usr/bin/env",
+                                          [
+                                            clangxx_exec_command,
+                                            "--target=$tc_target",
+                                            "-print-file-name=libc++.a",
+                                          ],
+                                          "trim string",
+                                          clangxx_exec_inputs),
+                              "dir"),
+                "",
+                root_build_dir) ]
       }
     }
   } else {
@@ -133,15 +164,15 @@ template("define_c_toolchain") {
     switches = "-o $unstripped_outfile {{ldflags}}"
     if (invoker.os == "mac") {
       rspfile_content = "{{inputs_newline}}"
-      link_inputs = "-Wl,-filelist,$rspfile"
-      link_libs = "{{libs}} {{solibs}}"
+      link_inputs = "-Wl,-filelist,$rspfile {{libs}} {{solibs}}"
     } else {
       rspfile_content = "{{inputs}}"
       link_inputs = "@'$rspfile'"
       if (invoker.os == "win") {
-        link_libs = "{{libs}} {{solibs}}"
+        link_inputs += " {{libs}} {{solibs}}"
       } else {
-        link_libs = "-Wl,--start-group {{libs}} -Wl,--end-group {{solibs}}"
+        link_inputs = "-Wl,--start-group " + link_inputs +
+                      " {{libs}} -Wl,--end-group {{solibs}}"
         mapfile = "${outfile}.map"
         outputs += [ mapfile ]
         switches += " -Wl,-Map,$mapfile"
@@ -216,7 +247,7 @@ template("define_c_toolchain") {
         if (invoker.os == "win") {
           default_output_extension = ".exe"
         }
-        command = "$ld $switches $link_inputs $link_libs$strip_command"
+        command = "$ld $switches $link_inputs$strip_command"
       },
     ]
 
@@ -244,8 +275,13 @@ template("define_c_toolchain") {
           # Put the automatic -soname first so that ldflags can override it.
           soname = "{{target_output_name}}{{output_extension}}"
           switches = "-shared -Wl,-soname,$soname $switches"
+          if (use_gcc && tc.tool_prefix == "${tc_cpu}-elf-") {
+            # The *-elf-gcc driver doesn't handle -shared properly.
+            # Just force it through to the linker.
+            switches = "-Wl,$switches"
+          }
 
-          command = "$ld $switches $link_inputs $link_libs$strip_command"
+          command = "$ld $switches $link_inputs$strip_command"
 
           # TODO: abi stubs
         },
@@ -259,7 +295,7 @@ template("define_c_toolchain") {
           default_output_extension = ".so"
 
           switches = "-shared $switches"
-          command = "$ld $switches $link_inputs $link_libs$strip_command"
+          command = "$ld $switches $link_inputs$strip_command"
         },
       ]
     }
@@ -308,6 +344,12 @@ template("define_c_toolchain") {
           forward_variables_from(invoker.toolchain_vars, "*")
         }
 
+        if (!defined(include_dirs)) {
+          include_dirs = []
+        }
+        if (!defined(lib_dirs)) {
+          lib_dirs = []
+        }
         if (!defined(output_name_suffix)) {
           output_name_suffix = ""
         }

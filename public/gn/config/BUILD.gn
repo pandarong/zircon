@@ -42,22 +42,31 @@ config("sysroot") {
 }
 
 config("compiler") {
+  compiler_flags = []
+  defines = []
   ldflags = []
 
   # For GCC, the compiler command implies the target.
   # For Clang, there's a single compiler command that takes `--target`.
-  if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
-    compiler_flags = [ "--target=${toolchain.target_tuple}" ]
+  if (current_cpu != host_cpu || current_os != host_os) {
+    if (is_gcc) {
+      # Use Gold for userland, and BFD ld for kernel.
+      if (!is_kernel) {
+        ldflags += [ "-fuse-ld=gold" ]
+      }
+    } else {
+      compiler_flags += [ "--target=${toolchain.target_tuple}" ]
 
-    # Always use lld with Clang.
-    ldflags += [ "-fuse-ld=lld" ]
+      # Always use lld with Clang.
+      ldflags += [ "-fuse-ld=lld" ]
+    }
   }
 
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
     # Nothing uses this define, but its presence on compilation command
     # lines ensures that Ninja will rebuild things when a new compiler
     # version arrives.
-    defines = [ "TOOLCHAIN_VERSION=${toolchain.version_string}" ]
+    defines += [ "TOOLCHAIN_VERSION=${toolchain.version_string}" ]
   }
 
   # This is the default already on Fuchsia and maybe others, but never hurts.
@@ -74,11 +83,28 @@ config("compiler") {
     if (current_os != "win" && current_os != "mac") {
       ldflags += [ "-Wl,--build-id" ]
     }
+  } else if (is_gcc) {
+    # This is predefined by Clang --target=*-fuchsia.
+    # But the GCC toolchain is the generic --target=*-elf one.
+    defines += [ "__Fuchsia__" ]
   }
 
   if (current_os == "linux") {
     public_deps += [ ":static-libc++" ]
   }
+
+  if (current_cpu == "arm64") {
+    # Generate code for the fairly generic cortex-a53.
+    compiler_flags += [ "-mcpu=cortex-a53" ]
+
+    # x18 is reserved in the Fuchsia userland ABI so it can be used
+    # for things like -fsanitize=shadow-call-stack.  In the kernel,
+    # it's reserved so we can use it to point at the per-CPU structure.
+    compiler_flags += [ "-ffixed-x18" ]
+  }
+
+  include_dirs = toolchain.include_dirs
+  lib_dirs = toolchain.lib_dirs
 }
 
 config("language") {
@@ -90,11 +116,11 @@ config("color_diagnostics") {
   # GCC correctly defaults this from the terminal, so leave it alone.
   if (!is_gcc) {
     compiler_flags = [ "-fcolor-diagnostics" ]
-  }
 
-  # The macOS linker does not support `--color-diagnostics`.
-  if (current_os != "mac") {
-    ldflags = [ "-Wl,--color-diagnostics" ]
+    # The macOS linker does not support `--color-diagnostics`.
+    if (current_os != "mac") {
+      ldflags = [ "-Wl,--color-diagnostics" ]
+    }
   }
 }
 
@@ -137,6 +163,10 @@ config("nostdlib") {
   # that will find exactly nothing but a dummy libc.so.
   ldflags = [ "-nostartfiles" ]
   lib_dirs = [ "libc-dummy" ]
+  if (is_gcc) {
+    # Include this in every link.
+    libs = [ "$zx/scripts/dso_handle.ld" ]
+  }
 }
 
 config("data_sections") {
@@ -195,10 +225,6 @@ config("opt_level") {
 
   if (opt_level > 1) {
     public_deps += [ ":icf" ]
-  }
-
-  if (opt_level > 0) {
-    compiler_flags += [ "-finline-functions" ]
   }
 
   if (opt_level > 2) {

@@ -4,10 +4,7 @@
 
 source_set("jemalloc") {
   configs -= [ "$zx/public/gn/config:user" ]
-  deps = [
-    "$zx/system/ulib/c:headers",
-    "$zx/system/ulib/zircon",
-  ]
+  configs += [ "$zx/third_party/ulib/musl:musl_config" ]
   include_dirs = [ "include" ]
   sources = [
     "src/arena.c",
