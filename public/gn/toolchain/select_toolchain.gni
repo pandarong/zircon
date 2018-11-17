@@ -50,9 +50,8 @@ template("select_toolchain") {
                            "os",
                          ])
   if (!defined(environment_label)) {
-    assert(
-      defined(toolchain.environment_label),
-      "select_toolchain() needs `environment_label` in $current_toolchain")
+    assert(defined(toolchain.environment_label),
+           "select_toolchain() needs `environment_label` in $current_toolchain")
     environment_label = toolchain.environment_label
   }
 
