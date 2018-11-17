@@ -55,6 +55,17 @@ standard_configs = [
   "$zx/public/gn/config:thread_safety_annotations",
 
   # TODO: "$zx/public/gn/config:symbol_visibility_hidden",
+
+  {
+    # Additional configs apply only to code built into shared libraries.
+    # This means everything in a ${toolchain.shlib} toolchain, not just code
+    # directly in the `sources of a shared_library() or library() target.
+    shlib = true
+    add = [
+      "$zx/public/gn/config:shared_library_config",
+      "$zx/public/gn/config:no_undefined_symbols",
+    ]
+  },
 ]
 
 # Additional configs apply to code built for Fuchsia but not to host code.
@@ -64,14 +75,12 @@ standard_fuchsia_configs = [
 ]
 
 # Additional configs apply to normal userland Fuchsia code.
-standard_fuchsia_user_configs = [ "$zx/public/gn/config:user" ]
-
-# Additional configs apply only to code built into shared libraries.
-# This means everything in a ${toolchain.shlib} toolchain, not just code
-# directly in the `sources of a shared_library() or library() target.
-standard_shlib_configs = [
-  "$zx/public/gn/config:shared_library_config",
-  "$zx/public/gn/config:no_undefined_symbols",
+standard_fuchsia_user_configs = [
+  "$zx/public/gn/config:user",
+  {
+    types = [ "host_tool" ]
+    add = [ "$zx/system/ulib/fdio" ]
+  },
 ]
 
 # See define_environment().  These are the environments that are

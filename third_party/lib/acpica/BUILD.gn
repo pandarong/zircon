@@ -21,10 +21,8 @@ config("disable_warnings") {
 
   cflags = [ "-Wno-implicit-fallthrough" ]
   if (is_gcc) {
-    cflags += [
-      "-Wno-discarded-qualifiers",
-      "-Wno-format-signedness",
-    ]
+    cflags += [ "-Wno-format-signedness" ]
+    cflags_c = [ "-Wno-discarded-qualifiers" ]
   } else {
     cflags += [
       "-Wno-incompatible-pointer-types-discards-qualifiers",

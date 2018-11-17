@@ -78,6 +78,10 @@ if (!defined(is_kernel)) {
   is_kernel = false
 }
 
+###
+### config() revamp
+###
+
 # Assert in a template that its invoker doesn't use legacy configs.
 #
 # Always invoked: `assert_no_legacy_configs(target_name) { type = "..." }`
@@ -210,6 +214,11 @@ template("config") {
   }
 }
 
+###
+### "Non-terminal" (library and source_set) target types.
+### These are compiling targets that never do variant selection.
+###
+
 # Just wrap these to inject assert_no_legacy_configs()
 # and translate configs to deps.
 foreach(target_type,
@@ -238,119 +247,103 @@ foreach(target_type,
   }
 }
 
-# TODO: for loadable_module, roll into template handling variants
-foreach(shlib_target_type,
-        [
-          "shared_library",
-          "loadable_module",
-        ]) {
-  template(shlib_target_type) {
-    assert(!is_kernel)
-    assert_no_legacy_configs(target_name) {
-      type = shlib_target_type
-    }
-    if (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib) {
-      # This is the toolchain that actually builds the libraries.
-      target(shlib_target_type, target_name) {
-        forward_variables_from(invoker,
-                               "*",
-                               [
-                                 "configs",
-                                 "data_deps",
-                                 "deps",
-                                 "metadata",
-                                 "visibility",
-                               ])
-        forward_variables_from(invoker, [ "visibility" ])
-        deps = invoker.configs
-        if (defined(invoker.deps)) {
-          deps += invoker.deps
-        }
+# This is for doing the actual shared_library() or loadable_module()
+# target in a toolchain that supports them directly.  That is, either
+# ${toolchain.label} == ${toolchain.shlib} or this is a toolchain that
+# was defined with `solink = true` so there is no ${toolchain.shlib}.
+template("_shlib_toolchain_target") {
+  assert_no_legacy_configs(target_name) {
+    type = invoker.target_type
+  }
+  assert(!is_kernel,
+         "${invoker.target_type}() targets don't work in kernel toolchains")
 
-        if (defined(toolchain.shlib)) {
-          if (defined(visibility)) {
-            # Make sure we're visible to the redirector groups defined below.
-            visibility += [ ":$target_name" ]
+  target(invoker.target_type, target_name) {
+    # visibility and data_deps get special treatment in ${toolchain.shlib}.
+    if (defined(toolchain.shlib)) {
+      if (defined(invoker.visibility)) {
+        # Make sure we're visible to the redirector groups defined below.
+        visibility = invoker.visibility + [ ":$target_name" ]
+      }
+      if (defined(invoker.data_deps)) {
+        # Redirect data_deps to the non-shlib toolchain.
+        data_deps = []
+        foreach(label, invoker.data_deps) {
+          if (get_label_info(label, "toolchain") == current_toolchain) {
+            label += "(${toolchain.label})"
           }
-          if (defined(invoker.data_deps)) {
-            # Redirect data_deps to the non-shlib toolchain.
-            data_deps = []
-            foreach(label, invoker.data_deps) {
-              if (get_label_info(label, "toolchain") == current_toolchain) {
-                label += "(${toolchain.label})"
-              }
-              data_deps += [ label ]
-            }
-          }
-        } else {
-          forward_variables_from(invoker, [ "data_deps" ])
-        }
-
-        if (!defined(output_name)) {
-          output_name = target_name
-        }
-        output_name += toolchain.output_name_suffix
-
-        # Each shared_library() that's not on the whitelist gets a poison
-        # pill to flag it if it appears in the dependency graph from a
-        # driver() target.
-        if (shlib_target_type == "shared_library") {
-          extra_metadata = {
-            if (defined(invoker.metadata)) {
-              forward_variables_from(invoker.metadata, [ "driver_blacklist" ])
-            }
-            if (!defined(driver_blacklist) && false) {  # TODO(juliehockett): should be allowed
-              driver_blacklist = [ true ]
-            }
-          }
-        } else if (shlib_target_type == "loadable_module" &&
-                   defined(invoker.install_path)) {
-          extra_metadata = {
-            manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
-            manifest_lines = [ "${install_path}=" +
-                               rebase_path(manifest_inputs[0], root_build_dir) ]
-          }
-
-          # TODO: dismal kludge in the absence of get_metadata()
-          data =
-              rebase_path(rebase_path([
-                                        "$target_gen_dir/$target_name.manifest",
-                                        "$target_gen_dir/$target_name.d",
-                                      ],
-                                      root_gen_dir,
-                                      root_build_dir),
-                          "",
-                          "$root_build_dir/bootfs-$current_cpu")
-          write_file(data[0], extra_metadata.manifest_lines)
-          write_file(
-              data[1],
-              rebase_path(extra_metadata.manifest_inputs, root_build_dir))
-        } else {
-          extra_metadata = {
-          }
-        }
-
-        # Combine the caller's metadata with the template's additions.
-        metadata = {
-          if (defined(invoker.metadata)) {
-            forward_variables_from(invoker.metadata, "*")
-          }
-          forward_variables_from(extra_metadata, "*")
+          data_deps += [ label ]
         }
       }
     } else {
-      # In the main toolchain, just redirect to the shlib toolchain.
-      group(target_name) {
-        forward_variables_from(invoker,
-                               [
-                                 "testonly",
-                                 "visibility",
-                               ])
-        not_needed(invoker, "*")
-        public_deps = [
-          ":$target_name(${toolchain.shlib})",
-        ]
+      forward_variables_from(invoker,
+                             [
+                               "data_deps",
+                               "visibility",
+                             ])
+    }
+
+    # Everything else is passed through (everything in solink toolchains).
+    # But also apply configs->deps and output_name_suffix transformations.
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "deps",
+                             "data_deps",
+                             "target_type",
+                             "visibility",
+                           ])
+    deps = invoker.configs
+    if (defined(invoker.deps)) {
+      deps += invoker.deps
+    }
+
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
+    output_name += toolchain.output_name_suffix
+  }
+}
+
+template("shared_library") {
+  if (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib) {
+    # This is the toolchain that actually builds the libraries.
+    _shlib_toolchain_target(target_name) {
+      target_type = "shared_library"
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "metadata",
+                               "target_type",
+                               "visibility",
+                             ])
+      forward_variables_from(invoker, [ "visibility" ])
+
+      # Each shared_library() that's not on the whitelist gets a poison
+      # pill to flag it if it appears in the dependency graph from a
+      # driver() target.
+      metadata = {
+        if (defined(invoker.metadata)) {
+          forward_variables_from(invoker.metadata, "*")
+        }
+        if (!defined(driver_blacklist) && false) {  # TODO(juliehockett): should be allowed
+          driver_blacklist = [ true ]
+        }
       }
+    }
+  } else {
+    # In the main toolchain, just redirect to the shlib toolchain.
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      not_needed(invoker, "*")
+      public_deps = [
+        ":$target_name(${toolchain.shlib})",
+      ]
     }
   }
 }
@@ -632,6 +625,233 @@ template("library") {
   }
 }
 
+###
+### "Terminal" (executable and loadable_module) target types.
+### These are the targets that do variant selection.
+###
+
+template("_variant_target") {
+  target = {
+    forward_variables_from(invoker.target, "*")
+    if (!defined(match)) {
+      match = type
+    }
+  }
+  assert_no_legacy_configs(target_name) {
+    type = target.match
+  }
+
+  # The first matching variant selector determines which toolchain actually
+  # builds this target.
+  builder_toolchain = false
+  foreach(selector, toolchain.variant_selectors) {
+    match = true
+    if (selector.cpu != []) {
+      if (selector.cpu + [ current_cpu ] - [ current_cpu ] == selector.cpu) {
+        match = false
+      }
+    }
+    if (selector.dir != []) {
+      dir = get_label_info(":$target_name", "dir")
+      if (selector.dir + [ dir ] - [ dir ] == selector.dir) {
+        match = false
+      }
+    }
+    if (selector.environment != []) {
+      if (selector.environment + [ toolchain.environment ] -
+          [ toolchain.environment ] == selector.environment &&
+          selector.environment + [ toolchain.base_environment ] -
+          [ toolchain.base_environment ] == selector.environment) {
+        match = false
+      }
+    }
+    if (selector.label != []) {
+      label = get_label_info(":$target_name", "label_no_toolchain")
+      if (selector.label + [ label ] - [ label ] == selector.label) {
+        match = false
+      }
+    }
+    if (selector.name != []) {
+      name = get_name_info(":$target_name", "name_no_toolchain")
+      if (selector.name + [ name ] - [ name ] == selector.name) {
+        match = false
+      }
+    }
+    if (selector.os != []) {
+      if (selector.os + [ current_os ] - [ current_os ] == selector.os) {
+        match = false
+      }
+    }
+    if (selector.output_name != []) {
+      if (defined(invoker.output_name)) {
+        output_name = invoker.output_name
+      } else {
+        output_name = target_name
+      }
+      if (selector.output_name + [ output_name ] - [ output_name ] ==
+          selector.output_name) {
+        match = false
+      }
+    }
+    if (selector.target_type != []) {
+      if (selector.target_type + [ target.match ] - [ target.match ] ==
+          selector.target_type) {
+        match = false
+      }
+    }
+    if (defined(selector.host) && selector.host != is_host) {
+      match = false
+    }
+    if (defined(selector.kernel) && selector.kernel != is_kernel) {
+      match = false
+    }
+    if (match && builder_toolchain == false) {
+      if (defined(target.shlib) && target.shlib &&
+          defined(selector.shlib_toolchain)) {
+        builder_toolchain = selector.shlib_toolchain
+      } else {
+        builder_toolchain = selector.toolchain
+      }
+    }
+  }
+  assert(builder_toolchain != false)
+
+  if (builder_toolchain == current_toolchain) {
+    target(target.type, target_name) {
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "target",
+                               "visibility",
+                             ])
+      if (defined(invoker.visibility)) {
+        # Make sure we're visible to the redirector groups defined below.
+        visibility = invoker.visibility + [ ":$target_name" ]
+      }
+    }
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      not_needed(invoker, "*")
+      public_deps = [
+        ":$target_name($builder_toolchain)",
+      ]
+    }
+  }
+}
+
+template("_basic_executable") {
+  assert_no_legacy_configs(target_name) {
+    type = invoker.target_type
+  }
+  _variant_target(target_name) {
+    target = {
+      match = invoker.target_type
+      type = "executable"
+    }
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "deps",
+                             "target",
+                             "visibility",
+                           ])
+    forward_variables_from(invoker, [ "visibility" ])
+    deps = invoker.configs
+    if (defined(invoker.deps)) {
+      deps += invoker.deps
+    }
+    if (!defined(output_name)) {
+      output_name = target_name
+    }
+    output_name += toolchain.output_name_suffix
+    if (!is_host && !is_kernel) {
+      # An explicit `install_path = false` means this binary is not installed.
+      if (!defined(install_path)) {
+        install_path = "bin/$output_name"
+      }
+      if (install_path != false) {
+        metadata = {
+          manifest_inputs = [ "$target_out_dir/$output_name" ]
+          manifest_lines = [ "${install_path}=" +
+                             rebase_path(manifest_inputs[0], root_build_dir) ]
+        }
+
+        # TODO: dismal kludge in the absence of get_metadata()
+        if (current_toolchain == toolchain.label) {
+          data =
+              rebase_path(rebase_path([
+                                        "$target_gen_dir/$target_name.manifest",
+                                        "$target_gen_dir/$target_name.d",
+                                      ],
+                                      root_gen_dir,
+                                      root_build_dir),
+                          "",
+                          "$root_build_dir/bootfs-$current_cpu")
+          write_file(data[0], metadata.manifest_lines)
+          write_file(data[1],
+                     rebase_path(metadata.manifest_inputs, root_build_dir))
+        }
+      }
+    }
+  }
+}
+
+template("loadable_module") {
+  _variant_target(target_name) {
+    # This is for _variant_target().
+    target = {
+      shlib = true
+      match = "loadable_module"
+      type = "_shlib_toolchain_target"
+    }
+
+    # This is for _shlib_toolchain_target().
+    target_type = "loadable_module"
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "metadata",
+                             "target_type",
+                             "visibility",
+                           ])
+    forward_variables_from(invoker, [ "visibility" ])
+
+    metadata = {
+      if (defined(invoker.install_path)) {
+        manifest_inputs = []
+        manifest_lines = []
+        if (defined(invoker.metadata)) {
+          forward_variables_from(invoker.metadata, "*")
+        }
+        manifest_inputs += [ "$target_out_dir/${output_name}.so" ]
+        manifest_lines += [ "${install_path}=" +
+                            rebase_path(manifest_inputs[0], root_build_dir) ]
+      }
+    }
+
+    # TODO: dismal kludge in the absence of get_metadata()
+    if (defined(invoker.install_path) && invoker.install_path != false &&
+        (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib)) {
+      data = rebase_path(rebase_path([
+                                       "$target_gen_dir/$target_name.manifest",
+                                       "$target_gen_dir/$target_name.d",
+                                     ],
+                                     root_gen_dir,
+                                     root_build_dir),
+                         "",
+                         "$root_build_dir/bootfs-$current_cpu")
+      write_file(data[0], metadata.manifest_lines)
+      write_file(data[1], rebase_path(metadata.manifest_inputs, root_build_dir))
+    }
+  }
+}
+
 template("driver") {
   loadable_module(target_name) {
     data_deps = []
@@ -704,11 +924,7 @@ template("test_driver") {
 if (!is_host && !is_kernel &&
     # TODO: shlib exclusion only needed due to dismal kludge
     defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
-  # TODO: variants
   template("executable") {
-    assert_no_legacy_configs(target_name) {
-      type = "executable"
-    }
     executable_name = target_name
     action(executable_name) {  #TODO: oy upon oy
       forward_variables_from(invoker,
@@ -725,129 +941,75 @@ if (!is_host && !is_kernel &&
         ":_bin.$executable_name",
       ]
     }
-    executable("_bin.$executable_name") {  #TODO: just target_name
-      forward_variables_from(invoker,
-                             "*",
-                             [
-                               "configs",
-                               "deps",
-                               "visibility",
-                             ])
+    _basic_executable("_bin.$executable_name") {  #TODO: just target_name
+      target_type = "executable"
+      forward_variables_from(invoker, "*", [ "visibility" ])
       forward_variables_from(invoker, [ "visibility" ])
-      deps = invoker.configs
-      if (defined(invoker.deps)) {
-        deps += invoker.deps
-      }
-
       if (!defined(output_name)) {
         output_name = executable_name
-      }
-      output_name += toolchain.output_name_suffix
-      if (!defined(install_path)) {
-        install_path = "bin/$output_name"
-      }
-
-      # An explicit `install_path = false` means this binary is not installed.
-      if (install_path != false) {
-        metadata = {
-          manifest_inputs = [ "$target_out_dir/$output_name" ]
-          manifest_lines = [ "${install_path}=" +
-                             rebase_path(manifest_inputs[0], root_build_dir) ]
-        }
-
-        # TODO: dismal kludge in the absence of get_metadata()
-        if (current_toolchain == toolchain.label) {
-          data =
-              rebase_path(rebase_path([
-                                        "$target_gen_dir/$target_name.manifest",
-                                        "$target_gen_dir/$target_name.d",
-                                      ],
-                                      root_gen_dir,
-                                      root_build_dir),
-                          "",
-                          "$root_build_dir/bootfs-$current_cpu")
-          write_file(data[0], metadata.manifest_lines)
-          write_file(data[1],
-                     rebase_path(metadata.manifest_inputs, root_build_dir))
-        } else {
-          not_needed(metadata, "*")
-        }
       }
     }
   }
 } else {
   template("executable") {
-    assert_no_legacy_configs(target_name) {
-      type = "executable"
-    }
-    executable(target_name) {
-      forward_variables_from(invoker,
-                             "*",
-                             [
-                               "configs",
-                               "deps",
-                               "visibility",
-                             ])
+    _basic_executable(target_name) {
+      target_type = "executable"
+      forward_variables_from(invoker, "*", [ "visibility" ])
       forward_variables_from(invoker, [ "visibility" ])
-      deps = invoker.configs
-      if (defined(invoker.deps)) {
-        deps += invoker.deps
-      }
     }
   }
 }
 
 template("test") {
-  assert(!is_kernel)
-  assert_no_legacy_configs(target_name) {
-    type = "test"
-  }
-  executable(target_name) {
+  assert(!is_kernel, "test() targets don't work in kernel toolchains")
+  _basic_executable(target_name) {
+    target_type = "test"
     testonly = true
     forward_variables_from(invoker,
                            "*",
                            [
+                             "target_type",
                              "test_group",
                              "testonly",
                              "visibility",
                            ])
     forward_variables_from(invoker, [ "visibility" ])
 
+    if (!defined(output_name)) {
+      output_name = "${target_name}-test"
+    }
+    output_name += toolchain.output_name_suffix
+    if (!defined(output_extension)) {
+      output_extension = toolchain.executable_extension
+    }
+
     # TODO: shlib exclusion required only due to dismal kludge
     if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
-      if (!defined(output_name)) {
-        output_name = "${target_name}-test"
-      }
-      output_name += toolchain.output_name_suffix
-      if (!defined(output_extension)) {
-        output_extension = toolchain.executable_extension
-      }
-      if (is_fuchsia) {
-        if (!defined(install_path)) {
-          if (defined(invoker.test_group)) {
-            test_group = invoker.test_group
-          } else {
-            test_group = "sys"
-          }
-          install_path = "test/$test_group/$output_name"
-          if (output_extension != "") {
-            install_path += ".$output_extension"
-          }
+      if (!is_host && !defined(install_path)) {
+        if (defined(invoker.test_group)) {
+          test_group = invoker.test_group
+        } else {
+          test_group = "sys"
         }
-      } else {
-        #        not_needed([ "install_path" ])
+        install_path = "test/$test_group/$output_name"
+        if (output_extension != "") {
+          install_path += ".$output_extension"
+        }
       }
     }
   }
 }
 
 template("host_tool") {
-  assert(!is_kernel)
-  assert_no_legacy_configs(target_name) {
-    type = "host_tool"
-  }
-  executable(target_name) {
-    forward_variables_from(invoker, "*", [ "visibility" ])
+  assert(!is_kernel, "host_tool() targets don't work in kernel toolchains")
+  _basic_executable(target_name) {
+    target_type = "host_tool"
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "target_type",
+                             "visibility",
+                           ])
     forward_variables_from(invoker, [ "visibility" ])
     if (!defined(output_name)) {
       output_name = target_name
@@ -876,9 +1038,6 @@ template("host_tool") {
         }
       }
     }
-  }
-  if (is_host && defined(invoker.install_path)) {
-    not_needed(invoker, [ "install_path" ])
   }
 }
 
@@ -922,10 +1081,17 @@ _compile_target_types = [
 # in ${toolchain.configs} can actually be any target type, not just config().
 foreach(target_type, _compile_target_types) {
   set_defaults(target_type) {
-    configs = toolchain.configs
-    if (is_fuchsia && target_type == "host_tool") {
-      # TODO: harumph
-      configs += [ "$zx/system/ulib/fdio" ]
+    configs = []
+    foreach(config, toolchain.configs) {
+      # Either it's an absolute label string or it's a scope with filters
+      # and mutators.  See define_environment().
+      if (config == "$config") {
+        configs += [ config ]
+      } else if (!defined(config.types) || config.types + [ target_type ] -
+                                           [ target_type ] != config.types) {
+        configs += config.add
+        configs -= config.remove
+      }
     }
   }
 }
