@@ -399,5 +399,8 @@ boot_shim_return_t boot_shim(void* device_tree) {
     uart_puts(" with ZBI ");
     uart_print_hex((uintptr_t)result.zbi);
     uart_puts("\n");
+
+arch_invalidate_cache_all();
+
     return result;
 }

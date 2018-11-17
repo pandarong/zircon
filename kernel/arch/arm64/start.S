@@ -29,12 +29,17 @@ cpuid                   .req x19
 page_table0             .req x20
 page_table1             .req x21
 kernel_vaddr            .req x22
+uart_tx                 .req x23
+uart                    .req x24
 
 // This code is purely position-independent and generates no relocations
 // that need boot-time fixup; gen-kaslr-fixup.sh ensures this (and would
 // ignore it if this code were in .text.boot, so don't put it there).
 .text
 FUNCTION(_start)
+    movlit   uart_tx, 0x078af040
+    movlit   uart, 0x078af100
+
     /* Save the Boot info for the primary CPU only */
     mrs     cpuid, mpidr_el1
     ubfx    cpuid, cpuid, #0, #15 /* mask Aff0 and Aff1 fields */
@@ -98,6 +103,14 @@ FUNCTION(_start)
     /* make sure the boot allocator is given a chance to figure out where
      * we are loaded in physical memory. */
     bl      boot_alloc_init
+/*
+    mov     tmp, 0x30
+    str     tmp, [uart_tx]
+    mov     tmp, 0x1
+    str     tmp, [uart_tx]
+    mov     tmp, 'B'
+    str     tmp, [uart]
+*/
 
     /* save the physical address the kernel is loaded at */
     adr_global x0, __code_start
@@ -116,6 +129,13 @@ FUNCTION(_start)
 
     /* void arm64_boot_map(pte_t* kernel_table0, vaddr_t vaddr, paddr_t paddr, size_t len, pte_t flags); */
 
+    mov x0, KERNEL_ASPACE_BASE
+    bl debug_print_int
+
+    mov x0, ARCH_PHYSMAP_SIZE
+    bl debug_print_int
+
+
     /* map a large run of physical memory at the base of the kernel's address space */
     mov     x0, page_table1
     mov     x1, KERNEL_ASPACE_BASE
@@ -123,6 +143,17 @@ FUNCTION(_start)
     mov     x3, ARCH_PHYSMAP_SIZE
     movlit  x4, MMU_PTE_KERNEL_DATA_FLAGS
     bl      arm64_boot_map
+
+    mov x0, kernel_vaddr
+    bl debug_print_int
+
+    adr_global x0, __code_start
+    bl debug_print_int
+
+    adr_global x2, __code_start
+    adr_global x3, _end
+    sub     x0, x3, x2
+    bl debug_print_int
 
     /* map the kernel to a fixed address */
     /* note: mapping the kernel here with full rwx, this will get locked down later in vm initialization; */
@@ -205,6 +236,8 @@ FUNCTION(_start)
     /* Read SCTLR */
     mrs     tmp, sctlr_el1
 
+//hit this    b   .
+
     /* Turn on the MMU */
     orr     tmp, tmp, #0x1
 
@@ -213,26 +246,37 @@ FUNCTION(_start)
 .Lmmu_on_pc:
     isb
 
+
+//did get here    b   .
+
     // Map our current physical PC to the virtual PC and jump there.
     // PC = next_PC - __code_start + kernel_vaddr
     adr     tmp, .Lmmu_on_vaddr
     adr     tmp2, __code_start
     sub     tmp, tmp, tmp2
     add     tmp, tmp, kernel_vaddr
+
+// got here    b   .
+
     br      tmp
 
 .Lmmu_on_vaddr:
+// didn't    b   .
 
     /* Disable trampoline page-table in ttbr0 */
     movlit  tmp, MMU_TCR_FLAGS_KERNEL
     msr     tcr_el1, tmp
     isb
 
+// didn't    b   .
+
     /* Invalidate TLB */
     tlbi    vmalle1
     isb
 
     cbnz    cpuid, .Lsecondary_boot
+
+// didn't get here    b   .
 
     // set up the boot stack for real
     adr_global tmp, boot_cpu_kstack_end
@@ -251,12 +295,16 @@ FUNCTION(_start)
     // set the per cpu pointer for cpu 0
     adr_global x18, arm64_percpu_array
 
+// didn't hit this    b   .
+
     // Choose a good (ideally random) stack-guard value as early as possible.
     bl      choose_stack_guard
     mrs     tmp, tpidr_el1
     str     x0, [tmp, #ZX_TLS_STACK_GUARD_OFFSET]
     // Don't leak the value to other code.
     mov     x0, xzr
+
+// didn't hit this    b   .
 
     bl  lk_main
     b   .

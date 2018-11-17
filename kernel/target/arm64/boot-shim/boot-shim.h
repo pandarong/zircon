@@ -16,3 +16,5 @@ typedef struct {
 } boot_shim_return_t;
 
 boot_shim_return_t boot_shim(void* device_tree);
+
+void arch_invalidate_cache_all(void);

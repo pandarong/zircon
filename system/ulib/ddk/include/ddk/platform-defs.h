@@ -153,4 +153,8 @@ __BEGIN_CDECLS;
 #define PDEV_VID_HISILICON          15
 #define PDEV_PID_CORNEL             1
 
+// Qualcomm
+#define PDEV_VID_QUALCOMM           16
+#define PDEV_PID_QUALCOMM_MSM8X53    1
+
 __END_CDECLS;

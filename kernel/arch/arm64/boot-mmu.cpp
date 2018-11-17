@@ -194,7 +194,13 @@ extern "C" zx_status_t arm64_boot_map(pte_t* kernel_table0,
         return reinterpret_cast<pte_t*>(pa);
     };
 
-    return _arm64_boot_map(kernel_table0, vaddr, paddr, len, flags, alloc, phys_to_virt);
+    zx_status_t status =  _arm64_boot_map(kernel_table0, vaddr, paddr, len, flags, alloc, phys_to_virt);
+
+if (status != ZX_OK) {
+    while (1) {}
+}
+
+    return status;
 }
 
 // called a bit later in the boot process once the kernel is in virtual memory to map early kernel data
@@ -221,4 +227,81 @@ extern "C" zx_status_t arm64_boot_map_v(const vaddr_t vaddr,
     };
 
     return _arm64_boot_map(arm64_get_kernel_ptable(), vaddr, paddr, len, flags, alloc, phys_to_virt);
+}
+
+#define UART_DM_N0_CHARS_FOR_TX             0x0040
+#define UART_DM_CR_CMD_RESET_TX_READY       (3 << 8)
+
+#define UART_DM_SR                          0x00A4
+#define UART_DM_SR_TXRDY                    (1 << 2)
+#define UART_DM_SR_TXEMT                    (1 << 3)
+
+#define UART_DM_TF                          0x0100
+
+#define UARTREG(reg) (*(volatile uint32_t*)(0x078af000 + (reg)))
+
+static void uart_pputc(uint8_t c) {
+    while (!(UARTREG(UART_DM_SR) & UART_DM_SR_TXEMT)) {
+        ;
+    }
+    UARTREG(UART_DM_N0_CHARS_FOR_TX) = UART_DM_CR_CMD_RESET_TX_READY;
+    UARTREG(UART_DM_N0_CHARS_FOR_TX) = 1;
+    __UNUSED uint32_t foo = UARTREG(UART_DM_N0_CHARS_FOR_TX);
+
+    // wait for TX ready
+    while (!(UARTREG(UART_DM_SR) & UART_DM_SR_TXRDY))
+        ;
+
+    *((volatile uint32_t*)(0x078af100)) = c;
+
+//    UARTREG(UART_DM_TF) = c;
+
+    // wait for TX ready
+    while (!(UARTREG(UART_DM_SR) & UART_DM_SR_TXRDY))
+        ;
+}
+
+/* qemu
+static volatile uint32_t* uart_fifo_dr = (uint32_t *)0x09000000;
+static volatile uint32_t* uart_fifo_fr = (uint32_t *)0x09000018;
+
+void uart_pputc(char c)
+{
+    while (*uart_fifo_fr & (1<<5))
+        ;
+    *uart_fifo_dr = c;
+}
+*/
+
+/* mediatek
+#define UART_THR                    (0x0)   // TX Buffer Register (write-only)
+#define UART_LSR                    (0x14)  // Line Status Register
+#define UART_LSR_THRE               (1 << 5)
+
+#define UARTREG(reg) (*(volatile uint32_t*)(0x11005000 + (reg)))
+
+static void uart_pputc(char c) {
+    while (!(UARTREG(UART_LSR) & UART_LSR_THRE))
+        ;
+    UARTREG(UART_THR) = c;
+}
+*/
+
+static void debug_print_digit(uint64_t x) {
+    x &= 0xf;
+
+    if (x < 10) {
+        uart_pputc((char)(x + '0'));
+    } else {
+        uart_pputc((char)(x - 10 + 'A'));
+    }
+}
+
+extern "C" void debug_print_int(uint64_t x) {
+    uart_pputc('\n');
+
+    for (int shift = 60; shift >= 0; shift -= 4) {
+        debug_print_digit(x >> shift);
+    }
+    uart_pputc('\n');
 }

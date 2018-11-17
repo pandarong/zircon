@@ -26,6 +26,8 @@
 #include <vm/vm.h>
 #include <zircon/compiler.h>
 
+#include <arch/arm64/periphmap.h>
+
 extern void (*const __init_array_start[])();
 extern void (*const __init_array_end[])();
 
@@ -40,6 +42,16 @@ static void call_constructors() {
 
 // called from arch code
 void lk_main() {
+
+/*
+add_periph_range(0, 0x10000000);
+uint32_t* uart_tx = (uint32_t*)periph_paddr_to_vaddr(0x078af040);
+uint32_t* uart = (uint32_t*)periph_paddr_to_vaddr(0x078af100);
+*uart_tx = 0x30;
+*uart_tx = 1;
+*uart = 'V';
+*/
+
     // serial prints to console based on compile time switch
     dlog_bypass_init_early();
 
