@@ -266,20 +266,26 @@ foreach(shlib_target_type,
         if (defined(invoker.deps)) {
           deps += invoker.deps
         }
-        if (defined(visibility) && defined(toolchain.shlib)) {
-          # Make sure we're visible to the redirector groups defined below.
-          visibility += [ ":$target_name" ]
-        }
-        if (defined(invoker.data_deps)) {
-          # Redirect data_deps to the non-shlib toolchain.
-          data_deps = []
-          foreach(label, invoker.data_deps) {
-            if (get_label_info(label, "toolchain") == current_toolchain) {
-              label += "(${toolchain.label})"
-            }
-            data_deps += [ label ]
+
+        if (defined(toolchain.shlib)) {
+          if (defined(visibility)) {
+            # Make sure we're visible to the redirector groups defined below.
+            visibility += [ ":$target_name" ]
           }
+          if (defined(invoker.data_deps)) {
+            # Redirect data_deps to the non-shlib toolchain.
+            data_deps = []
+            foreach(label, invoker.data_deps) {
+              if (get_label_info(label, "toolchain") == current_toolchain) {
+                label += "(${toolchain.label})"
+              }
+              data_deps += [ label ]
+            }
+          }
+        } else {
+          forward_variables_from(invoker, [ "data_deps" ])
         }
+
         if (!defined(output_name)) {
           output_name = target_name
         }
@@ -894,7 +900,7 @@ _terminal_target_types = [
 
 # These are all the target types (both stock GN and Fuchsia templates) that
 # compile `sources` with the $current_toolchain tools.  All these get a
-# default `deps` below, so their targets use `deps += ...` normally.
+# default `configs` below, so targets use `configs +=` and `configs -=`.
 _compile_target_types = [
   "driver",
   "executable",
