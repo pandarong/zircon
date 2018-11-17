@@ -77,10 +77,21 @@ declare_args() {
 #     This can store useful toolchain-specific variables that should be
 #     available within the toolchain.  $toolchain automatically contains
 #     `tool_dir`, `tool_prefix`, `cc, and `cxx`, from define_c_toolchain().
+#     If `variant_suffix` is defined here, terminal targets in the environment
+#     will have "$target_name$variant_suffix" aliases that get the same thing
+#     but in that particular variant installed under the suffixed name.
+#     The default `variant_suffix` is ".$variant" in each variant.
 #
 #   variant_selectors
-#     Optional: A list in the schema of the $variants build argument.
-#     This controls which variant is used to build each individual target.
+#     Optional: A list in the schema of the $variants build argument.  This
+#     controls which variant is used to build each individual target.  Just
+#     having a selector with `.variant = "..."` makes the "..." variant
+#     toolchain exist in this environment, even if the selector doesn't
+#     match anything.  Each `variant` scope can have its own $configs,
+#     $globals, $toolchain_args, and $toolchain_vars that are merged with
+#     the environment's (potentially overriding their individual elements).
+#     Note: select_toolchain() with `environment_label` set to this
+#     environment may not work if this does not include $default_variants.
 #     Default: $variants + $default_variants
 #
 #   exclude_variant_tags
@@ -579,6 +590,10 @@ template("define_environment") {
           # variant.  (This now shadows the template-scope variable
           # `variant`, so it can't be used any more in this block.)
           variant = variant.name
+
+          if (!defined(variant_suffix)) {
+            variant_suffix = ".$variant"
+          }
         }
 
         # Translate in-toolchain settings to toolchain-defining settings.

@@ -641,83 +641,90 @@ template("_variant_target") {
     type = target.match
   }
 
-  # The first matching variant selector determines which toolchain actually
-  # builds this target.
-  builder_toolchain = false
-  foreach(selector, toolchain.variant_selectors) {
-    match = true
-    if (selector.cpu != []) {
-      if (selector.cpu + [ current_cpu ] - [ current_cpu ] == selector.cpu) {
+  if (toolchain.variant_selectors == []) {
+    # This toolchain does not participate in variant selection.
+    builder_toolchain = current_toolchain
+  } else {
+    # The first matching variant selector determines which toolchain actually
+    # builds this target.
+    builder_toolchain = false
+    foreach(selector, toolchain.variant_selectors) {
+      match = true
+      if (selector.cpu != []) {
+        if (selector.cpu + [ current_cpu ] - [ current_cpu ] == selector.cpu) {
+          match = false
+        }
+      }
+      if (selector.dir != []) {
+        dir = get_label_info(":$target_name", "dir")
+        if (selector.dir + [ dir ] - [ dir ] == selector.dir) {
+          match = false
+        }
+      }
+      if (selector.environment != []) {
+        if (selector.environment + [ toolchain.environment ] -
+            [ toolchain.environment ] == selector.environment &&
+            selector.environment + [ toolchain.base_environment ] -
+            [ toolchain.base_environment ] == selector.environment) {
+          match = false
+        }
+      }
+      if (selector.label != []) {
+        label = get_label_info(":$target_name", "label_no_toolchain")
+        if (selector.label + [ label ] - [ label ] == selector.label) {
+          match = false
+        }
+      }
+      if (selector.name != []) {
+        name = get_name_info(":$target_name", "name_no_toolchain")
+        if (selector.name + [ name ] - [ name ] == selector.name) {
+          match = false
+        }
+      }
+      if (selector.os != []) {
+        if (selector.os + [ current_os ] - [ current_os ] == selector.os) {
+          match = false
+        }
+      }
+      if (selector.output_name != []) {
+        if (defined(invoker.output_name)) {
+          output_name = invoker.output_name
+        } else {
+          output_name = target_name
+        }
+        if (selector.output_name + [ output_name ] - [ output_name ] ==
+            selector.output_name) {
+          match = false
+        }
+      }
+      if (selector.target_type != []) {
+        if (selector.target_type + [ target.match ] - [ target.match ] ==
+            selector.target_type) {
+          match = false
+        }
+      }
+      if (defined(selector.host) && selector.host != is_host) {
         match = false
       }
-    }
-    if (selector.dir != []) {
-      dir = get_label_info(":$target_name", "dir")
-      if (selector.dir + [ dir ] - [ dir ] == selector.dir) {
+      if (defined(selector.kernel) && selector.kernel != is_kernel) {
         match = false
       }
-    }
-    if (selector.environment != []) {
-      if (selector.environment + [ toolchain.environment ] -
-          [ toolchain.environment ] == selector.environment &&
-          selector.environment + [ toolchain.base_environment ] -
-          [ toolchain.base_environment ] == selector.environment) {
-        match = false
+      if (match && builder_toolchain == false) {
+        if (defined(target.shlib) && target.shlib &&
+            defined(selector.shlib_toolchain)) {
+          builder_toolchain = selector.shlib_toolchain
+        } else {
+          builder_toolchain = selector.toolchain
+        }
       }
     }
-    if (selector.label != []) {
-      label = get_label_info(":$target_name", "label_no_toolchain")
-      if (selector.label + [ label ] - [ label ] == selector.label) {
-        match = false
-      }
-    }
-    if (selector.name != []) {
-      name = get_name_info(":$target_name", "name_no_toolchain")
-      if (selector.name + [ name ] - [ name ] == selector.name) {
-        match = false
-      }
-    }
-    if (selector.os != []) {
-      if (selector.os + [ current_os ] - [ current_os ] == selector.os) {
-        match = false
-      }
-    }
-    if (selector.output_name != []) {
-      if (defined(invoker.output_name)) {
-        output_name = invoker.output_name
-      } else {
-        output_name = target_name
-      }
-      if (selector.output_name + [ output_name ] - [ output_name ] ==
-          selector.output_name) {
-        match = false
-      }
-    }
-    if (selector.target_type != []) {
-      if (selector.target_type + [ target.match ] - [ target.match ] ==
-          selector.target_type) {
-        match = false
-      }
-    }
-    if (defined(selector.host) && selector.host != is_host) {
-      match = false
-    }
-    if (defined(selector.kernel) && selector.kernel != is_kernel) {
-      match = false
-    }
-    if (match && builder_toolchain == false) {
-      if (defined(target.shlib) && target.shlib &&
-          defined(selector.shlib_toolchain)) {
-        builder_toolchain = selector.shlib_toolchain
-      } else {
-        builder_toolchain = selector.toolchain
-      }
-    }
+    assert(builder_toolchain != false)
   }
-  assert(builder_toolchain != false)
+
+  main_target_name = target_name
 
   if (builder_toolchain == current_toolchain) {
-    target(target.type, target_name) {
+    target(target.type, main_target_name) {
       forward_variables_from(invoker,
                              "*",
                              [
@@ -726,11 +733,15 @@ template("_variant_target") {
                              ])
       if (defined(invoker.visibility)) {
         # Make sure we're visible to the redirector groups defined below.
-        visibility = invoker.visibility + [ ":$target_name" ]
+        visibility = invoker.visibility + [ ":$main_target_name" ]
+        if (defined(target.metadata_alias)) {
+          alias = target.metadata_alias
+          visibility += [ ":${alias.target_name}" ]
+        }
       }
     }
   } else {
-    group(target_name) {
+    group(main_target_name) {
       forward_variables_from(invoker,
                              [
                                "testonly",
@@ -738,8 +749,43 @@ template("_variant_target") {
                              ])
       not_needed(invoker, "*")
       public_deps = [
-        ":$target_name($builder_toolchain)",
+        ":$main_target_name($builder_toolchain)",
       ]
+    }
+  }
+
+  if (defined(target.metadata_alias)) {
+    alias = target.metadata_alias
+    if (builder_toolchain == current_toolchain && defined(alias.outputs)) {
+      alias_type = "copy"
+    } else {
+      alias_type = "group"
+    }
+    target(alias_type, alias.target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      if (builder_toolchain == current_toolchain) {
+        deps = [
+          ":${main_target_name}($builder_toolchain)",
+        ]
+        forward_variables_from(alias,
+                               [
+                                 "outputs",
+                                 "sources",
+                               ])
+        metadata = alias.metadata
+        if (defined(visibility)) {
+          # Make sure we're visible to the redirector group defined below.
+          visibility += [ ":$target_name" ]
+        }
+      } else {
+        public_deps = [
+          ":${alias.target_name}($builder_toolchain)",
+        ]
+      }
     }
   }
 }
@@ -752,6 +798,7 @@ template("_basic_executable") {
     target = {
       match = invoker.target_type
       type = "executable"
+      forward_variables_from(invoker, [ "metadata_alias" ])
     }
     forward_variables_from(invoker,
                            "*",
@@ -767,9 +814,8 @@ template("_basic_executable") {
       deps += invoker.deps
     }
     if (!defined(output_name)) {
-      output_name = target_name
+      output_name = target_name + toolchain.output_name_suffix
     }
-    output_name += toolchain.output_name_suffix
     if (!is_host && !is_kernel) {
       # An explicit `install_path = false` means this binary is not installed.
       if (!defined(install_path)) {
@@ -781,28 +827,45 @@ template("_basic_executable") {
           manifest_lines = [ "${install_path}=" +
                              rebase_path(manifest_inputs[0], root_build_dir) ]
         }
+      }
 
-        # TODO: dismal kludge in the absence of get_metadata()
-        if (current_toolchain == toolchain.label) {
-          data =
-              rebase_path(rebase_path([
-                                        "$target_gen_dir/$target_name.manifest",
-                                        "$target_gen_dir/$target_name.d",
-                                      ],
-                                      root_gen_dir,
-                                      root_build_dir),
-                          "",
-                          "$root_build_dir/bootfs-$current_cpu")
-          write_file(data[0], metadata.manifest_lines)
-          write_file(data[1],
-                     rebase_path(metadata.manifest_inputs, root_build_dir))
+      # Also define an alias with the variant suffix.  _variant_target will
+      # make this redirect to the specific variant toolchain chosen for
+      # this target.  In only that toolchain, the metadata will give the
+      # binary a second install path with the variant suffix.
+      target.metadata_alias = {
+        target_name += toolchain.variant_suffix
+        metadata = {  # GN counts this as shadowing.
         }
+        metadata = {
+          manifest_inputs = [ "$target_out_dir/$output_name" ]
+          manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
+                             rebase_path(manifest_inputs[0], root_build_dir) ]
+        }
+      }
+
+      # TODO: dismal kludge in the absence of get_metadata()
+      if (defined(metadata) && current_toolchain == toolchain.label) {
+        data =
+            rebase_path(rebase_path([
+                                      "$target_gen_dir/$target_name.manifest",
+                                      "$target_gen_dir/$target_name.d",
+                                    ],
+                                    root_gen_dir,
+                                    root_build_dir),
+                        "",
+                        "$root_build_dir/bootfs-$current_cpu")
+        write_file(data[0], metadata.manifest_lines)
+        write_file(data[1],
+                   rebase_path(metadata.manifest_inputs, root_build_dir))
       }
     }
   }
 }
 
 template("loadable_module") {
+  assert(!is_kernel)
+  assert(!is_host)
   _variant_target(target_name) {
     # This is for _variant_target().
     target = {
@@ -832,6 +895,27 @@ template("loadable_module") {
         manifest_inputs += [ "$target_out_dir/${output_name}.so" ]
         manifest_lines += [ "${install_path}=" +
                             rebase_path(manifest_inputs[0], root_build_dir) ]
+      }
+    }
+
+    if (defined(invoker.install_path)) {
+      # Also define an alias with the variant suffix.  _variant_target will
+      # make this redirect to the specific variant toolchain chosen for
+      # this target.  In only that toolchain, the metadata will give the
+      # binary a second install path with the variant suffix.
+      target.metdata_alias = {
+        target_name += toolchain.variant_suffix
+        metadata = {  # GN counts this as shadowing.
+        }
+        metadata = {
+          manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
+          manifest_lines =
+              [ get_path_info(invoker.install_path, "dir") + "/" +
+                get_path_info(invoker.install_path, "name") +
+                toolchain.variant_suffix +
+                get_path_info(invoker.install_path, "extension") + "=" +
+                rebase_path(manifest_inputs[0], root_build_dir) ]
+        }
       }
     }
 
@@ -961,39 +1045,52 @@ if (!is_host && !is_kernel &&
 }
 
 template("test") {
-  assert(!is_kernel, "test() targets don't work in kernel toolchains")
-  _basic_executable(target_name) {
-    target_type = "test"
-    testonly = true
-    forward_variables_from(invoker,
-                           "*",
-                           [
-                             "target_type",
-                             "test_group",
-                             "testonly",
-                             "visibility",
-                           ])
-    forward_variables_from(invoker, [ "visibility" ])
+  if (is_kernel) {
+    not_needed(invoker, "*")
+    not_needed([ "target_name" ])
+  } else {
+    _basic_executable(target_name) {
+      target_type = "test"
+      testonly = true
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "target_type",
+                               "test_group",
+                               "testonly",
+                               "visibility",
+                             ])
+      forward_variables_from(invoker, [ "visibility" ])
 
-    if (!defined(output_name)) {
-      output_name = "${target_name}-test"
-    }
-    output_name += toolchain.output_name_suffix
-    if (!defined(output_extension)) {
-      output_extension = toolchain.executable_extension
-    }
+      if (!defined(output_name)) {
+        output_name = "${target_name}-test"
+      }
+      output_name += toolchain.output_name_suffix
+      if (!defined(output_extension)) {
+        output_extension = toolchain.executable_extension
+      }
 
-    # TODO: shlib exclusion required only due to dismal kludge
-    if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
-      if (!is_host && !defined(install_path)) {
-        if (defined(invoker.test_group)) {
-          test_group = invoker.test_group
-        } else {
-          test_group = "sys"
+      # TODO: shlib exclusion required only due to dismal kludge
+      if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
+        if (!is_host && !defined(install_path)) {
+          if (defined(invoker.test_group)) {
+            test_group = invoker.test_group
+          } else {
+            test_group = "sys"
+          }
+          install_path = "test/$test_group/$output_name"
+          if (output_extension != "") {
+            install_path += ".$output_extension"
+          }
         }
-        install_path = "test/$test_group/$output_name"
-        if (output_extension != "") {
-          install_path += ".$output_extension"
+      }
+      if (is_host) {
+        metadata = {  #TODO: host test metadata
+        }
+        metadata_alias = {
+          target_name += toolchain.variant_suffix
+          metadata = {  #TODO: host test metadata
+          }
         }
       }
     }
@@ -1019,12 +1116,13 @@ template("host_tool") {
       output_extension = toolchain.executable_extension
     }
     if (is_host) {
+      tool_executable = "$target_out_dir/$output_name"
+      if (output_extension != "") {
+        tool_executable += ".$output_extension"
+      }
       metadata = {
         # List of tool binaries that could be presented to users' command line.
-        tool_executables = [ "$target_out_dir/$output_name" ]
-        if (output_extension != "") {
-          tool_executables[0] += ".$output_extension"
-        }
+        tool_executables = [ tool_executable ]
 
         # See host_tool_action().
         host_tool_barrier = []
@@ -1037,25 +1135,25 @@ template("host_tool") {
           host_tool_action_script = tool_executables
         }
       }
+      metadata_alias = {
+        target_name += toolchain.variant_suffix
+        sources = []  # GN counts this as shadowing.
+        sources = [
+          tool_executable,
+        ]
+        outputs = []  # GN counts this as shadowing.
+        outputs = [
+          tool_executable + toolchain.variant_suffix,
+        ]
+        metadata = {  # GN counts this as shadowing.
+        }
+        metadata = {
+          tool_executables = outputs
+        }
+      }
     }
   }
 }
-
-# These are what we call the "terminal" target types: they are linked
-# artifacts that get explicitly installed on a device (or run on a host).
-# static_library() and source_set() aren't terminal because they don't link.
-# shared_library() isn't terminal because it gets installed only implicitly as
-# a dependency of another target (either another library or a terminal
-# target).  So these are the base target types that participate directly in
-# variant selection.
-_terminal_target_types = [
-  "driver",
-  "executable",
-  "host_tool",
-  "loadable_module",
-  "test",
-  "test_driver",
-]
 
 # These are all the target types (both stock GN and Fuchsia templates) that
 # compile `sources` with the $current_toolchain tools.  All these get a
