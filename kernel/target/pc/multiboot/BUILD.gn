@@ -47,13 +47,15 @@ if (current_toolchain == default_toolchain) {
   # stripped ELF/Multiboot image.
   executable("multiboot") {
     output_extension = "bin"
-    if (false) {  # TODO: later
-      metadata = {
-        image_files = [ "$root_out_dir/$target_name.$output_extension" ]
-        images = {
-          name = "multiboot"
-          path = rebase_path(image_files[0], root_build_dir)
-        }
+    metadata = {
+      image_files = [ "$root_out_dir/$target_name.$output_extension" ]
+      if (false) { #TODO(juliehockett): Should allow lists of anything here.
+        images = [
+          {
+            name = "multiboot"
+            path = rebase_path(image_files[0], root_build_dir)
+          },
+        ]
       }
     }
     sources = [

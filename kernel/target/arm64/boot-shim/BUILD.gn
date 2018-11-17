@@ -71,18 +71,10 @@ template("boot_shim") {
       sources = [
         "$target_out_dir/${board}-boot-shim.elf",
       ]
-      if (false) {  #TODO
-        metadata = {
-          bootimage_inputs = outputs
-          bootimage_script = [ invoker.script ]
-          bootimage_args = invoker.args + rebase_path(outputs, root_build_dir)
-        }
-      } else {
-        not_needed(invoker,
-                   [
-                     "args",
-                     "script",
-                   ])
+      metadata = {
+        bootimage_inputs = outputs
+        bootimage_script = [ invoker.script ]
+        bootimage_args = invoker.args + rebase_path(outputs, root_build_dir)
       }
     }
   } else {
