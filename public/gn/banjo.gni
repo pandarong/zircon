@@ -35,14 +35,13 @@ template("banjo_library") {
     deps = [
       ":$gen_target($default_toolchain)",
     ]
+    metadata = {
+      banjo_inputs = invoker.sources
+      banjo_input_args =
+          [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
+      banjo_include_dirs = [ "$_banjo_gen_dir/include" ]
+    }
     if (false) {  #TODO
-      metadata = {
-        banjo_inputs = invoker.sources
-        banjo_input_args =
-            [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
-        banjo_include_dirs = [ "$_banjo_gen_dir/include" ]
-      }
-
       # The generated headers of a dependent banjo_library() will #include the
       # generated headers for its dependencies' bindings libraries.
       include_dirs =

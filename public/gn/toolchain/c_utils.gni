@@ -103,6 +103,7 @@ template("image_binary") {
     forward_variables_from(invoker,
                            [
                              "deps",
+                             "metadata",
                              "outputs",
                              "sources",
                              "testonly",

@@ -169,6 +169,7 @@ template("config") {
                              "compiler_flags",
                              "data_deps",
                              "deps",
+                             "metadata",
                              "public_deps",
                              "testonly",
                              "visibility",
@@ -185,24 +186,25 @@ template("config") {
                            [
                              "data_deps",
                              "deps",
+                             "metadata",
                              "public_deps",
                              "testonly",
                              "visibility",
                            ])
     public_configs = [ ":_config.$_config_name" ]
 
-    if (false) {  #TODO
-      metadata = {
-        ldflags = []
-        forward_variables_from(invoker,
-                               [
-                                 "ldflags",
-                                 "lib_dirs",
-                                 "libs",
-                               ])
-        if (defined(invoker.compiler_flags)) {
-          ldflags += invoker.compiler_flags
+    metadata = {
+      forward_variables_from(invoker,
+                             [
+                               "ldflags",
+                               "lib_dirs",
+                               "libs",
+                             ])
+      if (defined(invoker.compiler_flags)) {
+        if (!defined(ldflags)) {
+          ldflags = []
         }
+        ldflags += invoker.compiler_flags
       }
     }
   }
@@ -256,6 +258,7 @@ foreach(shlib_target_type,
                                  "configs",
                                  "data_deps",
                                  "deps",
+                                 "metadata",
                                  "visibility",
                                ])
         forward_variables_from(invoker, [ "visibility" ])
@@ -285,18 +288,18 @@ foreach(shlib_target_type,
         # Each shared_library() that's not on the whitelist gets a poison
         # pill to flag it if it appears in the dependency graph from a
         # driver() target.
-        if (shlib_target_type == "shared_library" && false &&  #TODO
-            (!defined(metadata) || !defined(metadata.driver_blacklist))) {
-          if (defined(metadata)) {
-            metadata.driver_blacklist = [ true ]
-          } else {
-            metadata = {
+        if (shlib_target_type == "shared_library") {
+          extra_metadata = {
+            if (defined(invoker.metadata)) {
+              forward_variables_from(invoker.metadata, [ "driver_blacklist" ])
+            }
+            if (!defined(driver_blacklist) && false) {  # TODO(juliehockett): should be allowed
               driver_blacklist = [ true ]
             }
           }
         } else if (shlib_target_type == "loadable_module" &&
                    defined(invoker.install_path)) {
-          metadata = {
+          extra_metadata = {
             manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
             manifest_lines = [ "${install_path}=" +
                                rebase_path(manifest_inputs[0], root_build_dir) ]
@@ -312,9 +315,21 @@ foreach(shlib_target_type,
                                       root_build_dir),
                           "",
                           "$root_build_dir/bootfs-$current_cpu")
-          write_file(data[0], metadata.manifest_lines)
-          write_file(data[1],
-                     rebase_path(metadata.manifest_inputs, root_build_dir))
+          write_file(data[0], extra_metadata.manifest_lines)
+          write_file(
+              data[1],
+              rebase_path(extra_metadata.manifest_inputs, root_build_dir))
+        } else {
+          extra_metadata = {
+          }
+        }
+
+        # Combine the caller's metadata with the template's additions.
+        metadata = {
+          if (defined(invoker.metadata)) {
+            forward_variables_from(invoker.metadata, "*")
+          }
+          forward_variables_from(extra_metadata, "*")
         }
       }
     } else {
@@ -835,7 +850,7 @@ template("host_tool") {
     if (!defined(output_extension)) {
       output_extension = toolchain.executable_extension
     }
-    if (is_host && false) {  #TODO
+    if (is_host) {
       metadata = {
         # List of tool binaries that could be presented to users' command line.
         tool_executables = [ "$target_out_dir/$output_name" ]
