@@ -53,12 +53,13 @@ template("define_c_toolchain") {
     }
   } else if (use_gcc) {
     if (defined(invoker.host) && invoker.host) {
-      # Using host vanilla GCC, so this can't be cross-compiling.
-      assert(invoker.cpu == host_cpu)
-      assert(invoker.os == host_os)
       tc = {
         tool_dir = ""
-        tool_prefix = ""
+        if (invoker.cpu == host_cpu && invoker.os == host_os) {
+          tool_prefix = ""
+        } else {
+          tool_prefix = "${tc_target}-"
+        }
       }
     } else {
       if (clang_tool_dir == "") {
@@ -104,6 +105,10 @@ template("define_c_toolchain") {
       tool_prefix = "llvm-"
       version_string = clang_version_string
     }
+  }
+
+  if (defined(invoker.host)) {
+    not_needed(invoker, [ "host" ])
   }
 
   if (use_gcc) {

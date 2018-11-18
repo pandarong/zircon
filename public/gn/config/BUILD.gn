@@ -41,6 +41,22 @@ config("sysroot") {
   }
 }
 
+if (is_gcc) {
+  # Assume ld.gold is available for any native Linux host, and for any ELF
+  # cross-compile target.  Use Gold for userland, and BFD ld for kernel.
+  if (current_os == "linux" ||
+      ((current_cpu != host_cpu || current_os != host_os) &&
+       !is_kernel && current_os != "mac" && current_os != "win"))  {
+    linker = "gold"
+  } else {
+    # For GCC on non-ELF hosts, use the system default linker.
+    linker = ""
+  }
+} else  {
+  # Always use lld with Clang.
+  linker = "lld"
+}
+
 config("compiler") {
   compiler_flags = []
   defines = []
@@ -48,18 +64,12 @@ config("compiler") {
 
   # For GCC, the compiler command implies the target.
   # For Clang, there's a single compiler command that takes `--target`.
-  if (current_cpu != host_cpu || current_os != host_os) {
-    if (is_gcc) {
-      # Use Gold for userland, and BFD ld for kernel.
-      if (!is_kernel) {
-        ldflags += [ "-fuse-ld=gold" ]
-      }
-    } else {
-      compiler_flags += [ "--target=${toolchain.target_tuple}" ]
+  if (!is_gcc && (current_cpu != host_cpu || current_os != host_os)) {
+    compiler_flags += [ "--target=${toolchain.target_tuple}" ]
+  }
 
-      # Always use lld with Clang.
-      ldflags += [ "-fuse-ld=lld" ]
-    }
+  if (linker != "") {
+    ldflags += [ "-fuse-ld=$linker" ]
   }
 
   if (defined(toolchain.version_string) && toolchain.version_string != "") {
@@ -311,9 +321,9 @@ config("default_warnings") {
 config("icf") {
   # This changes C/C++ semantics and might be incompatible with third-party
   # code that relies on function pointers comparison.
-  if (current_os == "win") {
+  if (current_os == "win" && (linker == "lld" || !is_gcc)) {
     ldflags = [ "-Wl,/opt:icf=all" ]
-  } else {
+  } else if (linker == "gold" || linker == "lld") {
     ldflags = [ "-Wl,--icf=all" ]
   }
 }

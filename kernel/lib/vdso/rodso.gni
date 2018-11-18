@@ -10,6 +10,7 @@ template("rodso_code_header") {
   toolchain_utils_action(target_name) {
     forward_variables_from(invoker,
                            [
+                             "deps",
                              "testonly",
                              "visibility",
                            ])
@@ -18,7 +19,6 @@ template("rodso_code_header") {
     assert(outputs == [ outputs[0] ],
            "rodso_code_header() outputs must have exactly one element")
 
-    deps = invoker.deps
     if (false) {  #TODO
       sources = [
         get_metadata(deps, [ "link_output" ], [ "link_barrier" ]),

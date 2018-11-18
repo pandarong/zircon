@@ -186,6 +186,30 @@ template("define_environment") {
   foreach(selector, selectors) {
     assert(defined(selector.variant),
            "`variants` selector missing `.variant`: $selector")
+
+    foreach(variant, [ selector.variant ]) {
+      if (variant != false && variant != "$variant") {
+        # This selector is defining a variant.  Record the variant spec and
+        # name and then update the selector to use just the name.
+        assert(defined(variant.name),
+               "`variants` element .variant scope missing .name: $selector")
+        assert(
+            variant_names + [ variant.name ] - [ variant.name ] ==
+                variant_names,
+            "`variants` element overrides variant ${variant.name}: $selector")
+        variant_names += [ variant.name ]
+        variant_specs += [ variant ]
+        sel_variant = variant.name
+      } else {
+        sel_variant = variant
+
+        # Add this to the list of needed variants if it's not there already.
+        variant_names += [ variant ]
+        variant_names -= [ variant ]
+        variant_names += [ variant ]
+      }
+    }
+
     sel = {
       # Clear from previous iteration.
     }
@@ -230,31 +254,10 @@ template("define_environment") {
 
     if (sel != {
         }) {
-      foreach(variant, [ selector.variant ]) {
-        if (variant != false && variant != "$variant") {
-          # This selector is defining a variant.  Record the variant spec and
-          # name and then update the selector to use just the name.
-          assert(defined(variant.name),
-                 "`variants` element .variant scope missing .name: $selector")
-          assert(
-              variant_names + [ variant.name ] - [ variant.name ] ==
-                  variant_names,
-              "`variants` element overrides variant ${variant.name}: $selector")
-          variant_names += [ variant.name ]
-          variant_specs += [ variant ]
-          sel.variant = variant.name
-        } else {
-          sel.variant = variant
-
-          # Add this to the list of needed variants if it's not there already.
-          variant_names += [ variant ]
-          variant_names -= [ variant ]
-          variant_names += [ variant ]
-        }
-      }
+      sel.variant = sel_variant
 
       # When the selector matches, redirect to this toolchain.
-      sel.toolchain = get_label_info(":${toolchain_base_name}-${sel.variant}",
+      sel.toolchain = get_label_info(":${toolchain_base_name}-${sel_variant}",
                                      "label_no_toolchain")
       if (shlib) {
         sel.shlib_toolchain = "${sel.toolchain}.shlib"
@@ -304,7 +307,7 @@ template("define_environment") {
 
   # If some variants referenced by selectors or by .bases lists are not
   # defined, then do a pass over the $standard_variants list adding those
-  # as if they'd been since in the first pass.
+  # as if they'd been seen in the first pass.
   dangling = variant_names - complete_variant_names - incomplete_variant_names
   if (dangling != []) {
     foreach(standard, standard_variants) {
@@ -591,8 +594,27 @@ template("define_environment") {
           # `variant`, so it can't be used any more in this block.)
           variant = variant.name
 
+          # Plumb through the suffix of this variant and the list of others.
           if (!defined(variant_suffix)) {
             variant_suffix = ".$variant"
+          }
+
+          other_variants = []
+          foreach(other_variant, toolchain_variants) {
+            if (other_variant.name != variant) {
+              other_variants += [
+                {
+                  label = get_label_info(
+                          ":${toolchain_base_name}-${other_variant.name}",
+                          "label_no_toolchain")
+                  if (defined(other_variant.variant_suffix)) {
+                    suffix = other_variant.variant_suffix
+                  } else {
+                    suffix = ".${other_variant.name}"
+                  }
+                },
+              ]
+            }
           }
         }
 
@@ -607,6 +629,8 @@ template("define_environment") {
           # GNU strip/objcopy doesn't support --strip-sections.
           strip = true
         }
+
+        host = defined(g.is_host) && g.is_host
       }
     }
   }

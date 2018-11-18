@@ -722,25 +722,9 @@ template("_variant_target") {
   }
 
   main_target_name = target_name
-
-  if (builder_toolchain == current_toolchain) {
-    target(target.type, main_target_name) {
-      forward_variables_from(invoker,
-                             "*",
-                             [
-                               "target",
-                               "visibility",
-                             ])
-      if (defined(invoker.visibility)) {
-        # Make sure we're visible to the redirector groups defined below.
-        visibility = invoker.visibility + [ ":$main_target_name" ]
-        if (defined(target.metadata_alias)) {
-          alias = target.metadata_alias
-          visibility += [ ":${alias.target_name}" ]
-        }
-      }
-    }
-  } else {
+  done_main_target = builder_toolchain != current_toolchain
+  if (done_main_target) {
+    # In other toolchains, the main target just redirects to builder_toolchain.
     group(main_target_name) {
       forward_variables_from(invoker,
                              [
@@ -752,40 +736,89 @@ template("_variant_target") {
         ":$main_target_name($builder_toolchain)",
       ]
     }
+
+    if (defined(target.variant_suffix_metadata)) {
+      # We'll define a real variant suffixed target in every variant.
+      builder_toolchain = current_toolchain
+    }
   }
 
-  if (defined(target.metadata_alias)) {
-    alias = target.metadata_alias
-    if (builder_toolchain == current_toolchain && defined(alias.outputs)) {
-      alias_type = "copy"
-    } else {
-      alias_type = "group"
+  if (builder_toolchain == current_toolchain) {
+    builder_target_name = main_target_name
+    builder_output_name = invoker.output_name
+    if (defined(target.variant_suffix_metadata)) {
+      # Define the real target with its variant suffixed target_name and
+      # output_name.
+      builder_target_name += toolchain.variant_suffix
+      builder_output_name += toolchain.variant_suffix
     }
-    target(alias_type, alias.target_name) {
+
+    target(target.type, builder_target_name) {
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "output_name",
+                               "target",
+                               "visibility",
+                             ])
+      output_name = builder_output_name
+      if (defined(invoker.visibility)) {
+        # Make sure we're visible to the redirector groups defined below.
+        visibility = invoker.visibility + [
+                       ":$builder_target_name",
+                       ":$main_target_name",
+                     ]
+      }
+    }
+
+    if (!done_main_target) {
+      if (defined(target.variant_suffix_metadata)) {
+        if (defined(target.variant_suffix_outputs)) {
+          alias_type = "copy"
+        } else {
+          alias_type = "group"
+        }
+        target(alias_type, main_target_name) {
+          forward_variables_from(invoker,
+                                 [
+                                   "testonly",
+                                   "visibility",
+                                 ])
+          deps = [
+            ":${builder_target_name}($builder_toolchain)",
+          ]
+          if (alias_type == "copy") {
+            outputs = target.variant_suffix_outputs
+            sources = [
+              "$target_out_dir/${invoker.output_name}${toolchain.variant_suffix}",
+            ]
+            if (defined(invoker.output_extension) &&
+                invoker.output_extension != "") {
+              sources[0] += ".${invoker.output_extension}"
+            }
+          }
+          metadata = target.variant_suffix_metadata
+          if (defined(visibility)) {
+            # Make sure we're visible to the redirector groups defined below.
+            visibility += [ ":$target_name" ]
+          }
+        }
+      }
+    }
+  }
+
+  # Now define a suffixed redirector for each other variant's suffix.
+  foreach(other, toolchain.other_variants) {
+    other_target_name = main_target_name + other.suffix
+    group(other_target_name) {
       forward_variables_from(invoker,
                              [
                                "testonly",
                                "visibility",
                              ])
-      if (builder_toolchain == current_toolchain) {
-        deps = [
-          ":${main_target_name}($builder_toolchain)",
-        ]
-        forward_variables_from(alias,
-                               [
-                                 "outputs",
-                                 "sources",
-                               ])
-        metadata = alias.metadata
-        if (defined(visibility)) {
-          # Make sure we're visible to the redirector group defined below.
-          visibility += [ ":$target_name" ]
-        }
-      } else {
-        public_deps = [
-          ":${alias.target_name}($builder_toolchain)",
-        ]
-      }
+      public_deps = [
+        ":$other_target_name(${other.label})",
+      ]
     }
   }
 }
@@ -798,7 +831,11 @@ template("_basic_executable") {
     target = {
       match = invoker.target_type
       type = "executable"
-      forward_variables_from(invoker, [ "metadata_alias" ])
+      forward_variables_from(invoker,
+                             [
+                               "variant_suffix_metadata",
+                               "variant_suffix_outputs",
+                             ])
     }
     forward_variables_from(invoker,
                            "*",
@@ -824,7 +861,7 @@ template("_basic_executable") {
       if (install_path != false) {
         metadata = {
           manifest_inputs = [ "$target_out_dir/$output_name" ]
-          manifest_lines = [ "${install_path}=" +
+          manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
                              rebase_path(manifest_inputs[0], root_build_dir) ]
         }
       }
@@ -833,15 +870,10 @@ template("_basic_executable") {
       # make this redirect to the specific variant toolchain chosen for
       # this target.  In only that toolchain, the metadata will give the
       # binary a second install path with the variant suffix.
-      target.metadata_alias = {
-        target_name += toolchain.variant_suffix
-        metadata = {  # GN counts this as shadowing.
-        }
-        metadata = {
-          manifest_inputs = [ "$target_out_dir/$output_name" ]
-          manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
-                             rebase_path(manifest_inputs[0], root_build_dir) ]
-        }
+      target.variant_suffix_metadata = {
+        manifest_inputs = [ "$target_out_dir/$output_name" ]
+        manifest_lines = [ "${install_path}=" +
+                           rebase_path(manifest_inputs[0], root_build_dir) ]
       }
 
       # TODO: dismal kludge in the absence of get_metadata()
@@ -885,6 +917,17 @@ template("loadable_module") {
                            ])
     forward_variables_from(invoker, [ "visibility" ])
 
+    if (!defined(output_name)) {
+      output_name = target_name + toolchain.output_name_suffix
+    }
+    if (!defined(output_extension)) {
+      output_extension = "so"
+    }
+    output_file = "$target_out_dir/$output_name"
+    if (output_extension != "") {
+      output_file += ".$output_extension"
+    }
+
     metadata = {
       if (defined(invoker.install_path)) {
         manifest_inputs = []
@@ -892,9 +935,9 @@ template("loadable_module") {
         if (defined(invoker.metadata)) {
           forward_variables_from(invoker.metadata, "*")
         }
-        manifest_inputs += [ "$target_out_dir/${output_name}.so" ]
-        manifest_lines += [ "${install_path}=" +
-                            rebase_path(manifest_inputs[0], root_build_dir) ]
+        manifest_inputs += [ output_file ]
+        manifest_lines +=
+            [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
       }
     }
 
@@ -903,19 +946,13 @@ template("loadable_module") {
       # make this redirect to the specific variant toolchain chosen for
       # this target.  In only that toolchain, the metadata will give the
       # binary a second install path with the variant suffix.
-      target.metdata_alias = {
-        target_name += toolchain.variant_suffix
-        metadata = {  # GN counts this as shadowing.
-        }
-        metadata = {
-          manifest_inputs = [ "$target_out_dir/${output_name}.so" ]
-          manifest_lines =
-              [ get_path_info(invoker.install_path, "dir") + "/" +
-                get_path_info(invoker.install_path, "name") +
-                toolchain.variant_suffix +
-                get_path_info(invoker.install_path, "extension") + "=" +
-                rebase_path(manifest_inputs[0], root_build_dir) ]
-        }
+      target.variant_suffix_metdata = {
+        manifest_inputs = [ output_file ]
+        manifest_lines = [ get_path_info(invoker.install_path, "dir") + "/" +
+                           get_path_info(invoker.install_path, "name") +
+                           toolchain.variant_suffix +
+                           get_path_info(invoker.install_path, "extension") +
+                           "=" + rebase_path(output_file, root_build_dir) ]
       }
     }
 
@@ -1087,11 +1124,7 @@ template("test") {
       if (is_host) {
         metadata = {  #TODO: host test metadata
         }
-        metadata_alias = {
-          target_name += toolchain.variant_suffix
-          metadata = {  #TODO: host test metadata
-          }
-        }
+        #TODO: variant_suffix_metadata = { ... }
       }
     }
   }
@@ -1117,12 +1150,15 @@ template("host_tool") {
     }
     if (is_host) {
       tool_executable = "$target_out_dir/$output_name"
+      tool_extension = ""
       if (output_extension != "") {
-        tool_executable += ".$output_extension"
+        tool_extension = ".$output_extension"
       }
       metadata = {
         # List of tool binaries that could be presented to users' command line.
-        tool_executables = [ tool_executable ]
+        tool_executables = [ get_path_info(tool_executable, "dir") + "/" +
+                             get_path_info(tool_executable, "name") +
+                             toolchain.variant_suffix + tool_extension ]
 
         # See host_tool_action().
         host_tool_barrier = []
@@ -1135,21 +1171,9 @@ template("host_tool") {
           host_tool_action_script = tool_executables
         }
       }
-      metadata_alias = {
-        target_name += toolchain.variant_suffix
-        sources = []  # GN counts this as shadowing.
-        sources = [
-          tool_executable,
-        ]
-        outputs = []  # GN counts this as shadowing.
-        outputs = [
-          tool_executable + toolchain.variant_suffix,
-        ]
-        metadata = {  # GN counts this as shadowing.
-        }
-        metadata = {
-          tool_executables = outputs
-        }
+      variant_suffix_outputs = [ tool_executable + tool_extension ]
+      variant_suffix_metadata = {
+        tool_executables = variant_suffix_outputs
       }
     }
   }

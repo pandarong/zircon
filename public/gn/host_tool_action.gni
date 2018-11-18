@@ -28,7 +28,6 @@ template("_host_tool_action_target") {
                              "depfile",
                              "deps",
                              "inputs",
-                             "metadata",
                              "outputs",
                              "public_deps",
                              "sources",
@@ -60,6 +59,15 @@ template("_host_tool_action_target") {
       script = "$tool_out_dir/" +
                get_label_info("${invoker.tool}($_host_toolchain)", "name")
       args = invoker.args
+    }
+
+    metadata = {
+      # Never follow the deps to find link outputs from invoker.tool.
+      # TODO: Maybe should still follow invoker.deps?
+      link_barrier = []
+      if (defined(invoker.metadata)) {
+        forward_variables_from(invoker.metadata, "*")
+      }
     }
   }
 }
