@@ -129,14 +129,6 @@ standard_variants = [
       }
     }
   },
-]
-
-# This list is appended to the $variants list for the build.
-# It provides default selectors that match if nothing else does.
-default_variants = [
-  {
-    variant = "clang"
-  },
   {
     variant = {
       name = "asan"
@@ -145,6 +137,27 @@ default_variants = [
         "useronly",
       ]
     }
+  },
+]
+
+# This list is appended to the $variants list for the build.  It provides
+# default selectors that match if nothing else does.  The first catch-all
+# selector must be compatible with all environments used in select_toolchain(),
+default_variants = [
+  {
+    environment = [
+      # Not efi or host.
+      # TODO: others don't work because of kludgy literal deps in lieu of get_metadata
+      #"kernel",
+      #"multiboot",
+      #"physmem",
+      #"userboot",
+      "user",
+    ]
+    variant = "gcc"
+  },
+  {
+    variant = "clang"
   },
 ]
 
