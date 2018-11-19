@@ -6,6 +6,12 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+set -eo pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-exec $DIR/flash-avb -b imx8mmevk
+$DIR/package-image.sh -a -b imx8mmevk -B build-arm64 \
+    -d $DIR/../kernel/target/arm64/dtb/dummy-device-tree.dtb -D mkbootimg \
+    -m -M 0x40000000
+
+$DIR/flash-avb -b imx8mmevk
