@@ -6,6 +6,11 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+set -eo pipefail
 
-exec $DIR/flash-avb -b imx8mevk
+SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ZIRCON_DIR=${SCRIPTS_DIR}/..
+
+${ZIRCON_DIR}/kernel/target/arm64/board/imx8mevk/package-image.sh -B ${ZIRCON_DIR}/build-arm64
+
+${SCRIPTS_DIR}/flash-avb -b imx8mevk
