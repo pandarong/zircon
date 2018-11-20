@@ -6,11 +6,13 @@ library("fidl-utils") {
   sources = []
   deps = [
     "$zx/system/ulib/fidl",
+    "$zx/system/ulib/fidl-async",
   ]
   public_deps = [
     "$zx/system/ulib/async:headers",
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/fidl:headers",
+    "$zx/system/ulib/fidl-async:headers",
     "$zx/system/ulib/zx:headers",
   ]
 }
