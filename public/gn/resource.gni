@@ -26,7 +26,7 @@ template("resource") {
       }
     }
 
-    # TODO: dismal kludge in the absence of get_metadata()
+    # TODO(get_metadata): dismal kludge in the absence of get_metadata()
     data = rebase_path(rebase_path([
                                      "$target_gen_dir/$target_name.manifest",
                                      "$target_gen_dir/$target_name.d",

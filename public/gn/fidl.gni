@@ -85,7 +85,9 @@ template("fidl_library") {
       # The generated headers of a dependent fidl_library() will #include the
       # generated headers for its dependencies' bindings libraries.
       #
-      # TODO: this presumes all deps are direct fidl_library() deps
+      # TODO(get_metadata): This presumes all deps are direct
+      # fidl_library() deps.  Instead, just include deps' bindings header
+      # dirs in include_dirs below via metadata.
       foreach(dep, fidl_deps) {
         public_deps += [ "$dep:c.headers" ]
       }
@@ -106,7 +108,7 @@ template("fidl_library") {
         "$_fidl_gen_dir/include",
         # The generated headers of a dependent fidl_library() will #include the
         # generated headers for its dependencies' bindings libraries.
-        #TODO: get_metadata([ ":$fidl_target" ], [ "fidl_c_include_dirs" ]),
+        # TODO(get_metadata): get_metadata("", [ "fidl_c_include_dirs" ]),
       ]
       deps = [
         ":$gen_target($default_toolchain)",
@@ -141,14 +143,14 @@ template("fidl_library") {
         ]
         tool = "$zx/system/host/fidl:fidlc"
         outputs = gen_outputs
-        if (false) {  #TODO
+        if (false) {  # TODO(get_metadata)
           sources = [
-            get_metadata([ ":$fidl_target" ], [ "fidl_inputs" ]),
+            # This is not "" so it doesn't get the host_tool_action() tool dep.
+            get_metadata(deps, [ "fidl_inputs" ]),
           ]
-          args = gen_args +
-                 [ get_metadata([ ":$fidl_target" ], [ "fidl_input_args" ]) ]
+          args = gen_args + [ get_metadata(deps, [ "fidl_input_args" ]) ]
         } else {
-          # TODO: horrible hack, uses action below
+          # TODO(get_metadata): horrible hack, uses action below
           sources = [
             "$_fidl_gen_dir/${gen_target}.rsp",
           ]
@@ -158,7 +160,7 @@ template("fidl_library") {
       }
     }
 
-    # TODO: horrible hack, used above
+    # TODO(get_metadata): horrible hack, used above
     _fidl_rsp = []
     foreach(dep, fidl_deps) {
       dep_name = get_label_info(dep, "name")

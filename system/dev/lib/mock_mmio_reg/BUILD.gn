@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 library("mock_mmio_reg") {
-  #TODO: testonly = true
+  # TODO: testonly = true
   sources = [
     "mock_mmio_reg.cpp",
   ]

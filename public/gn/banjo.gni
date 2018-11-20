@@ -8,10 +8,6 @@ template("banjo_library") {
   assert(defined(invoker.sources),
          "banjo_library(\"$target_name\") must set `sources`")
 
-  if (defined(invoker.deps)) {
-    not_needed(invoker, [ "deps" ])  #TODO
-  }
-
   banjo_target = target_name
 
   # The generated headers are the same in every toolchain, so generate only
@@ -41,7 +37,7 @@ template("banjo_library") {
           [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
       banjo_include_dirs = [ "$_banjo_gen_dir/include" ]
     }
-    if (false) {  #TODO
+    if (false) {  # TODO(get_metadata)
       # The generated headers of a dependent banjo_library() will #include the
       # generated headers for its dependencies' bindings libraries.
       include_dirs =
@@ -100,14 +96,14 @@ template("banjo_library") {
 
       outputs = gen_outputs
 
-      if (false) {  #TODO
+      if (false) {  # TODO(get_metadata)
         sources = [
           get_metadata([ ":$banjo_target" ], [ "banjo_inputs" ]),
         ]
         args = gen_args +
                [ get_metadata([ ":$banjo_target" ], [ "banjo_input_args" ]) ]
       } else {
-        # TODO: horrible hack, uses action below
+        # TODO(get_metadata): horrible hack, uses action below
         sources = [
           "$_banjo_gen_dir/${gen_target}.rsp",
         ]
@@ -119,7 +115,7 @@ template("banjo_library") {
       }
     }
 
-    # TODO: horrible hack, used above
+    # TODO(get_metadata): horrible hack, used above
     _banjo_rsp = []
     if (defined(invoker.deps)) {
       foreach(dep, invoker.deps) {

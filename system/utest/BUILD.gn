@@ -10,7 +10,7 @@ group("utest") {
   testonly = true
 
   deps = [
-    ":host",  # TODO: reach this differently?
+    ":host",  # TODO(mcgrathr): reach this differently?
     "$zx/system/core/virtcon:virtual-console-test",
     "$zx/system/dev/nand/broker:nand",
     "$zx/system/dev/nand/nandpart:nandpart-test",
@@ -173,6 +173,7 @@ group("host") {
 
 build_api_module("host_tests") {
   tests = [
-    #TODO: get_metadata([ ":host-tests-all-platforms" ], [ "test_spec" ])
+    # TODO(get_metadata)
+    # get_metadata([ ":host-tests-all-platforms" ], [ "test_spec" ])
   ]
 }

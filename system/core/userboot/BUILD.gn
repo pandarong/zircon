@@ -85,7 +85,7 @@ if (current_toolchain == default_toolchain) {
     deps = [
       "$zx/system/ulib/zircon",
     ]
-    if (false) {  #TODO
+    if (false) {  # TODO(get_metadata)
       sources = [
         get_metadata(deps, [ "link_output" ]),
       ]
@@ -104,7 +104,8 @@ if (current_toolchain == default_toolchain) {
     args = [
       "-a",
 
-      #TODO: get_metadata(deps, [ "link_output_arg" ]),
+      # This is not "" so it doesn't get any tool deps from the action.
+      # TODO(get_metadata): get_metadata(deps, [ "link_output_arg" ]),
       rebase_path(sources[0], root_build_dir),
 
       rebase_path(outputs[0], root_build_dir),

@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
-if (false || is_kernel) {  #TODO
+if (is_kernel) {  # TODO(mcgrathr): just move the code into the kernel proper
   library("zxcpp") {
     kernel = true
     static = true
@@ -12,10 +12,6 @@ if (false || is_kernel) {  #TODO
       "new.cpp",
       "pure_virtual.cpp",
     ]
-    if (!is_kernel) {
-      sources += [ "thread_atexit.cpp" ]
-      configs += [ "$zx/public/gn/config:visibility_hidden" ]
-    }
     if (toolchain.environment == "kernel") {
       # Avoid circularity.
       configs -= [ "$zx/kernel/vm:headers" ]

@@ -35,7 +35,7 @@ if (defined(zx)) {
     ]
   }
 } else {
-  #TODO: what uses this old BUILD.gn???
+  # TODO: what uses this old BUILD.gn???
 
   config("banjo_config") {
     include_dirs = [ "include" ]

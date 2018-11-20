@@ -14,7 +14,8 @@ source_set("sanitizers") {
 
   # There is no '#if __has_feature(coverage)', so this file has to be
   # excluded from the build entirely when not in use.
-  if (false) {  #TODO: in sancov variant
+  sancov = [ "$zx/public/gn/config/sanitizers:sancov" ]
+  if (configs + sancov - sancov != configs) {
     sources += [ "sancov-stubs.S" ]
   }
 }

@@ -26,7 +26,7 @@ group("tools") {
     ":tools-${host_os}-${host_cpu}",
   ]
 
-  if (false) {  #TODO: later copy("tools")
+  if (false) {  # TODO(get_metadata): later copy("tools")
     # Install the host developer tools for the running host platform in the
     # "$root_build_dir/tools/" directory.
 
@@ -59,7 +59,7 @@ foreach(cpu, standard_fuchsia_cpus) {
       deps += [ "$zx/public/$target:$cpu" ]
     }
 
-    # TODO: dismal kludge
+    # TODO(get_metadata): dismal kludge
     deps += [ ":$cpu.zbi" ]
   }
 }
@@ -82,7 +82,7 @@ group("all-cpu") {
     deps += [ ":$cpu" ]
   }
 
-  # TODO: dismal kludge, used below
+  # TODO(get_metadata): dismal kludge, used below
   write_runtime_deps = "$root_build_dir/runtime_deps"
 }
 
@@ -94,7 +94,7 @@ group("default") {
   ]
 }
 
-# TODO: dismal kludge
+# TODO(get_metadata): dismal kludge
 foreach(cpu, standard_fuchsia_cpus) {
   action("bootfs-$cpu.manifest") {
     testonly = true
@@ -138,7 +138,7 @@ foreach(cpu, standard_fuchsia_cpus) {
   }
 }
 
-# TODO: oy
+# TODO(get_metadata): oy
 action("fmh") {
   visibility = [ ":*" ]
   outputs = [

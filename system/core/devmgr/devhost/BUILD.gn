@@ -13,9 +13,8 @@ config("enable_driver_tracing") {
   }
 }
 
-executable("devhost") {
-  #TODO: asan variant installs as devhost.asan
-
+# ASan-based toolchains set ${toolchain.devhost_suffix} to ".asan".
+executable("devhost${toolchain.devhost_suffix}") {
   sources = [
     "main.cpp",
   ]

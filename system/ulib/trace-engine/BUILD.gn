@@ -11,7 +11,7 @@ library("trace-engine") {
     "nonce.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
-  #TODO: defines = [ "DDK_TRACING" ]
+  # TODO: defines = [ "DDK_TRACING" ]
   deps = [
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",

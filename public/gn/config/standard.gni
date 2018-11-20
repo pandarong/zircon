@@ -145,15 +145,16 @@ standard_variants = [
 # selector must be compatible with all environments used in select_toolchain(),
 default_variants = [
   {
-    environment = [
-      # Not efi or host.
-      # TODO: others don't work because of kludgy literal deps in lieu of get_metadata
-      #"kernel",
-      #"multiboot",
-      #"physmem",
-      #"userboot",
-      "user",
-    ]
+    # The EFI toolchain is only supported using Clang.
+    # For host default to Clang.
+    environment = [ "efi", "host" ]
+    variant = "clang"
+  },
+  {
+    # TODO(get_metadata): Others don't work because of kludgy literal deps
+    # in lieu of get_metadata.  Make this catch-all to default to gcc as the
+    # old makefile build does.
+    environment = [ "user" ]
     variant = "gcc"
   },
   {
