@@ -12,6 +12,7 @@ library("minfs") {
     "inode-manager.cpp",
     "minfs.cpp",
     "superblock.cpp",
+    "transaction-limits.cpp",
     "vnode.cpp",
     "writeback.cpp",
   ]

@@ -4,6 +4,7 @@
 
 test("fit") {
   sources = [
+    "bridge_tests.cpp",
     "defer_tests.cpp",
     "examples/function_example1.cpp",
     "examples/function_example2.cpp",

@@ -10,6 +10,7 @@ driver("dwmac") {
     "pinned-buffer.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-ethernet-board",
     "$zx/system/banjo/ddk-protocol-ethernet-mac",
     "$zx/system/banjo/ddk-protocol-gpio",

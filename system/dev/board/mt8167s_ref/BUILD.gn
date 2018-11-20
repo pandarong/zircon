@@ -10,6 +10,7 @@ driver("mt8167s_ref") {
     "mt8167-emmc.cpp",
     "mt8167-gpio.cpp",
     "mt8167-i2c.cpp",
+    "mt8167-sdio.cpp",
     "mt8167-soc.cpp",
     "mt8167.cpp",
   ]
@@ -22,6 +23,7 @@ driver("mt8167s_ref") {
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/hwreg",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",

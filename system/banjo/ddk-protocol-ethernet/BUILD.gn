@@ -2,14 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("rndis") {
+import("$zx/public/gn/banjo.gni")
+
+banjo_library("ddk-protocol-ethernet") {
   sources = [
-    "rndishost.c",
+    "ethernet.banjo",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-ethernet",
-    "$zx/system/dev/lib/usb",
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/zircon",
+    "$zx/system/banjo/zircon-listnode",
   ]
 }
