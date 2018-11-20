@@ -327,7 +327,7 @@ template("shared_library") {
         if (defined(invoker.metadata)) {
           forward_variables_from(invoker.metadata, "*")
         }
-        if (!defined(driver_blacklist) && false) {  # TODO(juliehockett): should be allowed
+        if (!defined(driver_blacklist)) {
           driver_blacklist = [ true ]
         }
       }

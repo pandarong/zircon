@@ -72,6 +72,13 @@ template("boot_shim") {
         "$target_out_dir/${board}-boot-shim.elf",
       ]
       metadata = {
+        image_files = outputs
+        images = [
+          {
+            name = "${board}-boot-shim"
+            path = rebase_path(image_files[0], root_build_dir)
+          },
+        ]
         bootimage_inputs = outputs
         bootimage_script = [ invoker.script ]
         bootimage_args = invoker.args + rebase_path(outputs, root_build_dir)
