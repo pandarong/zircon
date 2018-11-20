@@ -248,3 +248,12 @@ group("recovery") {
     # TODO: some group() of useful diag/recovery tools
   ]
 }
+
+# This plus a kernel in deps makes a zbi() that's just for running core-tests.
+zbi_input("core-tests") {
+  type = "cmdline"
+  args = [ "userboot=bin/core-tests" ]
+  deps = [
+    "$zx/system/utest/core:core-tests",
+  ]
+}

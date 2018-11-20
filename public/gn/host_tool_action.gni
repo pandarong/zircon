@@ -42,7 +42,7 @@ template("_host_tool_action_target") {
     }
     deps += [ ":_tool.$action_target" ]
 
-    if (false) {  # TODO
+    if (false) {  # TODO(get_metadata)
       script = get_metadata([ ":_tool.$action_target" ],
                             [ "host_tool_action_script" ],
                             [ "host_tool_barrier" ])

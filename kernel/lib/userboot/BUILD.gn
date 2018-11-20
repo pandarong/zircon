@@ -8,27 +8,15 @@ import("$zx/kernel/lib/vdso/rodso.gni")
 
 source_set("userboot") {
   sources = [
-    "userboot-image.S",
     "userboot.cpp",
   ]
-
   include_dirs = [ target_gen_dir ]
   deps = [
     ":gen-userboot-code-header",
+    ":image",
     "$zx/kernel/lib/console",
     "$zx/kernel/lib/vdso",
   ]
-
-  if (false) {  #TODO
-    inputs = [
-      # userboot-image.S includes the userboot contents and so must be
-      # reassembled when that changes.  Note we can't have core/userboot in
-      # deps here because that would try to link it into the kernel.
-      get_metadata([ ":gen-userboot-code-header" ],
-                   [ "link_output" ],
-                   [ "link_barrier" ]),
-    ]
-  }
 }
 
 # The userboot-code.h generated header file tells the userboot.cpp code
@@ -40,12 +28,35 @@ rodso_code_header("gen-userboot-code-header") {
     "$target_gen_dir/userboot-code.h",
   ]
   deps = [
+    # TODO(mcgrathr): mv //system/core/userboot ./user
     "$zx/system/core/userboot",
   ]
 
-  # TODO: should be automatic via metadata; breaks variants, etc.
+  # TODO(get_metadata): should be automatic via metadata; breaks variants, etc.
   inputs = [
     get_label_info("${deps[0]}(${deps[0]}-${current_cpu}-clang)",
                    "target_out_dir") + "/userboot.so",
   ]
+}
+
+# The generated header is also needed to tell .incbin how much of the
+# image file to embed (see $zx/kernel/lib/vdso/include/lib/rodso-asm.h).
+source_set("image") {
+  visibility = [ ":*" ]
+  sources = [
+    "userboot-image.S",
+  ]
+  include_dirs = [ target_gen_dir ]
+  deps = [
+    ":gen-userboot-code-header",
+    "$zx/kernel/lib/vdso",
+  ]
+  if (false) {  # TODO(get_metadata)
+    inputs = [
+      # userboot-image.S includes the userboot contents and so must be
+      # reassembled when that changes.  Note we can't have core/userboot in
+      # deps here because that would try to link it into the kernel.
+      get_metadata("", [ "link_output" ], [ "link_barrier" ]),
+    ]
+  }
 }

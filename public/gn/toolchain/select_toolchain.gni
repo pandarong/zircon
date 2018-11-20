@@ -18,12 +18,6 @@ import("$zx/public/gn/config/standard.gni")
 #    works in any vanilla variant toolchain.shlib because shared_library
 #    doesn't redirect
 #
-#  * TODO: fuzzer binaries for a package: specific set of variants
-#    (multiply deps by all variants) regardless of variants buildarg
-#    matching.  Needs either fuzzer toolchains defined so their fuzzer
-#    executables don't redirect, or maybe secret alternate target name
-#    for non-redirect in all redirecting toolchains?
-#
 #  Parameters
 #
 #    cpu

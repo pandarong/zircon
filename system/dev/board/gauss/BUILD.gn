@@ -43,7 +43,7 @@ driver("gauss-i2c-test") {
   ]
 }
 
-if (false) {  #TODO: ifeq (PLEASE_DISCUSS_WITH_SWETLAND,)
+if (false) {  # TODO: ifeq (PLEASE_DISCUSS_WITH_SWETLAND,)
   driver("gauss-led") {
     sources = [
       "gauss-led.c",

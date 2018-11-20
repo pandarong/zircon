@@ -511,7 +511,7 @@ template("library") {
                                rebase_path(manifest_inputs[0], root_build_dir) ]
           }
 
-          # TODO: dismal kludge in the absence of get_metadata()
+          # TODO(get_metadata): dismal kludge in the absence of get_metadata()
           data =
               rebase_path(rebase_path([
                                         "$target_gen_dir/$target_name.manifest",
@@ -876,7 +876,7 @@ template("_basic_executable") {
                            rebase_path(manifest_inputs[0], root_build_dir) ]
       }
 
-      # TODO: dismal kludge in the absence of get_metadata()
+      # TODO(get_metadata): dismal kludge in the absence of get_metadata()
       if (defined(metadata) && current_toolchain == toolchain.label) {
         data =
             rebase_path(rebase_path([
@@ -956,7 +956,7 @@ template("loadable_module") {
       }
     }
 
-    # TODO: dismal kludge in the absence of get_metadata()
+    # TODO(get_metadata): dismal kludge in the absence of get_metadata()
     if (defined(invoker.install_path) && invoker.install_path != false &&
         (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib)) {
       data = rebase_path(rebase_path([
@@ -971,6 +971,10 @@ template("loadable_module") {
       write_file(data[1], rebase_path(metadata.manifest_inputs, root_build_dir))
     }
   }
+}
+
+if (!defined(toolchain.devhost_suffix)) {
+  toolchain.devhost_suffix = ""
 }
 
 template("driver") {
@@ -989,30 +993,21 @@ template("driver") {
     # symbols are used.
     configs += [ "$zx/public/gn/config:static-libc++" ]
 
-    # A driver depends on devhost being on the system.
-    #
-    # TODO: This should get the appropriate devhost to support the variant
-    # of the driver.  A direct dependency won't do it because that will get
-    # the variant redirector for devhost, even if we use the driver's own
-    # (non-shlib) toolchain.  That will also create conflicts for drivers
-    # in variants that don't use a special devhost install name.  Instead,
-    # it should be a special case in a variant spec to define a variant
-    # that gets a bespoke devhost.  Then this can depend on a purpose-made
-    # redirector target that does a select_toolchain() matching for devhost
-    # constrained by considering only variants that are compatible with the
-    # caller (toolchain) devhost flavor (i.e. asan or not--then whichever
-    # asan-compatible variant normally selected for devhost).
-    data_deps += [ "$zx/system/core/devmgr/devhost(${toolchain.label})" ]
+    # A driver depends on devhost being on the system.  Toolchains like
+    # ASan need a compatible devhost for their drivers to be loaded in.
+    # They define ${toolchain.devhost_suffix} so that this dependency and
+    # devhost target definition are distinct from generic devhost.
+    data_deps += [ "$zx/system/core/devmgr/devhost:devhost" +
+                   toolchain.devhost_suffix + "(${toolchain.label})" ]
 
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by
     # default, see shared_library() above) set `driver_blacklist=[true]`.
-    if (false) {  #TODO
-      assert_no_metadata(
-          [ ":$target_name" ],
-          [ "driver_blacklist" ],
-          [ "driver_blacklist_barrier" ],
-          "driver(\"$target_name\") deps on shared libraries not allowed")
+    if (false) {  # TODO(get_metadata)
+      assert_no_metadata("",
+                         [ "driver_blacklist" ],
+                         [ "driver_blacklist_barrier" ],
+                         "driver() targets cannot depend on shared libraries")
     }
 
     # Set the standard install_path.
@@ -1043,11 +1038,11 @@ template("test_driver") {
 }
 
 if (!is_host && !is_kernel &&
-    # TODO: shlib exclusion only needed due to dismal kludge
+    # TODO(get_metadata): shlib exclusion only needed due to dismal kludge
     defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
   template("executable") {
     executable_name = target_name
-    action(executable_name) {  #TODO: oy upon oy
+    action(executable_name) {  # TODO(get_metadata): oy upon oy
       forward_variables_from(invoker,
                              [
                                "testonly",
@@ -1062,7 +1057,7 @@ if (!is_host && !is_kernel &&
         ":_bin.$executable_name",
       ]
     }
-    _basic_executable("_bin.$executable_name") {  #TODO: just target_name
+    _basic_executable("_bin.$executable_name") {  # TODO(get_metadata): just target_name
       target_type = "executable"
       forward_variables_from(invoker, "*", [ "visibility" ])
       forward_variables_from(invoker, [ "visibility" ])
@@ -1107,7 +1102,7 @@ template("test") {
         output_extension = toolchain.executable_extension
       }
 
-      # TODO: shlib exclusion required only due to dismal kludge
+      # TODO(get_metadata): shlib exclusion required only due to dismal kludge
       if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
         if (!is_host && !defined(install_path)) {
           if (defined(invoker.test_group)) {
@@ -1122,9 +1117,9 @@ template("test") {
         }
       }
       if (is_host) {
-        metadata = {  #TODO: host test metadata
+        metadata = {  # TODO: host test metadata
         }
-        #TODO: variant_suffix_metadata = { ... }
+        # TODO: variant_suffix_metadata = { ... }
       }
     }
   }

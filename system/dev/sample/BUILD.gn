@@ -6,7 +6,7 @@ group("sample") {
   deps = [
     "fifo",
   ]
-  if (false) {  #TODO
+  if (false) {  # TODO: not to be included in most images
     deps += [
       "multi",
       "null",

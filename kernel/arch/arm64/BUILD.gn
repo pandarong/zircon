@@ -40,7 +40,7 @@ if (current_toolchain == default_toolchain) {
     ]
 
     if (!is_gcc) {
-      #TODO: cflags += [ "-mcmodel=tiny" ]
+      # TODO(TC-237): cflags += [ "-mcmodel=tiny" ]
     }
   }
 
