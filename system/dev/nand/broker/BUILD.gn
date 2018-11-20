@@ -31,6 +31,7 @@ test("nand") {
   sources = [
     "test/broker-test.cpp",
     "test/main.cpp",
+    "test/parent.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-nand",

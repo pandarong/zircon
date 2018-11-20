@@ -8,7 +8,4 @@ banjo_library("ddk-protocol-ethernet") {
   sources = [
     "ethernet.banjo",
   ]
-  deps = [
-    "$zx/system/banjo/zircon-listnode",
-  ]
 }
