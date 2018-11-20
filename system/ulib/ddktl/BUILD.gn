@@ -15,6 +15,7 @@ library("ddktl") {
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-platform-device",
@@ -37,6 +38,7 @@ test_driver("ddktl-test") {
     "test/ethernet-tests.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-test",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

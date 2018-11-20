@@ -7,6 +7,7 @@ driver("asix-88772b") {
     "asix-88772b.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

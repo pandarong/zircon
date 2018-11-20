@@ -8,6 +8,7 @@ test("memfs") {
     "fidl-tests.cpp",
     "main.c",
     "memfs-tests.cpp",
+    "vmofile-tests.cpp",
   ]
   deps = [
     "$zx/system/fidl/fuchsia-io:c",
@@ -18,8 +19,10 @@ test("memfs") {
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fs",
     "$zx/system/ulib/fzl",
     "$zx/system/ulib/memfs",
+    "$zx/system/ulib/memfs:memfs-cpp",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/unittest",

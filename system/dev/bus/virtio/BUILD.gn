@@ -21,6 +21,7 @@ driver("virtio") {
   deps = [
     "$zx/system/banjo/ddk-protocol-block",
     "$zx/system/banjo/ddk-protocol-display-controller",
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/ulib/ddk",

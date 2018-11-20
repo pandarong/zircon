@@ -7,7 +7,6 @@
 library("common") {
   kernel = true
   sources = [
-    "arm_gic_common.cpp",
     "arm_gic_hw_interface.cpp",
   ]
   deps = [

@@ -22,6 +22,7 @@ driver("vim") {
     "vim.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-gpio-impl",
     "$zx/system/banjo/ddk-protocol-iommu",
