@@ -49,14 +49,12 @@ if (current_toolchain == default_toolchain) {
     output_extension = "bin"
     metadata = {
       image_files = [ "$root_out_dir/$target_name.$output_extension" ]
-      if (false) { #TODO(juliehockett): Should allow lists of anything here.
-        images = [
-          {
-            name = "multiboot"
-            path = rebase_path(image_files[0], root_build_dir)
-          },
-        ]
-      }
+      images = [
+        {
+          name = "multiboot"
+          path = rebase_path(image_files[0], root_build_dir)
+        },
+      ]
     }
     sources = [
       "multiboot-main.c",
