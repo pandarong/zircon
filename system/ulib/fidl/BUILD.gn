@@ -4,7 +4,6 @@
 
 library("fidl") {
   sources = [
-    "bind.c",
     "builder.cpp",
     "decoding.cpp",
     "encoding.cpp",
