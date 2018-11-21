@@ -59,7 +59,7 @@ standard_configs = [
   {
     # Additional configs apply only to code built into shared libraries.
     # This means everything in a ${toolchain.shlib} toolchain, not just code
-    # directly in the `sources of a shared_library() or library() target.
+    # directly in the `sources` of a shared_library() or library() target.
     shlib = true
     add = [
       "$zx/public/gn/config:shared_library_config",
@@ -131,10 +131,62 @@ standard_variants = [
   },
   {
     variant = {
-      name = "asan"
+      name = "lto"
+      configs = [ "$zx/public/gn/config/lto" ]
+    }
+  },
+  {
+    variant = {
+      name = "thinlto"
+      configs = [ "$zx/public/gn/config/lto:thinlto" ]
+    }
+  },
+  {
+    variant = {
+      name = "profile"
+      configs = [ "$zx/public/gn/config/instrumentation:profile" ]
       tags = [
         "instrumented",
         "useronly",
+      ]
+    }
+  },
+  {
+    variant = {
+      name = "asan"
+      configs = [
+        "$zx/public/gn/sanitizers:asan",
+        {
+          types = [
+            "executable",
+            "host_tool",
+            "test",
+          ]
+          add = [ "$zx/public/gn/instrumentation:asan_default_options" ]
+        },
+      ]
+      tags = [
+        "instrumented",
+        "useronly",
+      ]
+    }
+  },
+  {
+    variant = {
+      name = "ubsan"
+      configs = [ "$zx/public/gn/instrumentation:ubsan" ]
+      tags = [
+        "instrumented",
+        "useronly",
+      ]
+    }
+  },
+  {
+    variant = {
+      name = "asan-ubsan"
+      bases = [
+        "asan",
+        "ubsan",
       ]
     }
   },
@@ -147,7 +199,10 @@ default_variants = [
   {
     # The EFI toolchain is only supported using Clang.
     # For host default to Clang.
-    environment = [ "efi", "host" ]
+    environment = [
+      "efi",
+      "host",
+    ]
     variant = "clang"
   },
   {
