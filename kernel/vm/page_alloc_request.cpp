@@ -8,11 +8,12 @@
 
 #include <fbl/alloc_checker.h>
 #include <fbl/auto_lock.h>
+#include <fbl/canary.h>
 #include <fbl/intrusive_single_list.h>
 #include <fbl/ref_ptr.h>
+#include <new>
 #include <vm/pmm.h>
 #include <zircon/listnode.h>
-#include <zxcpp/new.h>
 #include <trace.h>
 
 #define LOCAL_TRACE 1
