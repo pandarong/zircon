@@ -171,7 +171,7 @@ public:
 
     // get a pointer to the page structure and/or physical address at the specified offset.
     // valid flags are VMM_PF_FLAG_*
-    virtual zx_status_t GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
+    virtual zx_status_t GetPageLocked(uint64_t offset, uint pf_flags,
                                       vm_page_t** page, paddr_t* pa) TA_REQ(lock_) {
         return ZX_ERR_NOT_SUPPORTED;
     }

@@ -507,7 +507,7 @@ zx_status_t VmMapping::MapRange(size_t offset, size_t len, bool commit) {
 
         zx_status_t status;
         paddr_t pa;
-        status = object_->GetPageLocked(vmo_offset, pf_flags, nullptr, nullptr, &pa);
+        status = object_->GetPageLocked(vmo_offset, pf_flags, nullptr, &pa);
         if (status != ZX_OK) {
             // no page to map
             if (commit) {
@@ -646,7 +646,7 @@ zx_status_t VmMapping::PageFault(vaddr_t va, const uint pf_flags) {
     // fault in or grab an existing page
     paddr_t new_pa;
     vm_page_t* page;
-    zx_status_t status = object_->GetPageLocked(vmo_offset, pf_flags, nullptr, &page, &new_pa);
+    zx_status_t status = object_->GetPageLocked(vmo_offset, pf_flags, &page, &new_pa);
     if (status != ZX_OK) {
         // TODO(cpu): This trace was originally TRACEF() always on, but it fires if the
         // VMO was resized, rather than just when the system is running out of memory.

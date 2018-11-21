@@ -367,12 +367,7 @@ zx_status_t VmObjectPaged::AddPageLocked(vm_page_t* p, uint64_t offset) {
 
 // Looks up the page at the requested offset, faulting it in if requested and necessary.  If
 // this VMO has a parent and the requested page isn't found, the parent will be searched.
-//
-// |free_list|, if not NULL, is a list of allocated but unused vm_page_t that
-// this function may allocate from.  This function will need at most one entry,
-// and will not fail if |free_list| is a non-empty list, faulting in was requested,
-// and offset is in range.
-zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_node* free_list,
+zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags,
                                          vm_page_t** const page_out, paddr_t* const pa_out) {
     canary_.Assert();
     DEBUG_ASSERT(lock_.lock().IsHeld());
@@ -410,7 +405,7 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
         uint parent_pf_flags = pf_flags & ~(VMM_PF_FLAG_FAULT_MASK);
 
         zx_status_t status = parent_->GetPageLocked(parent_offset, parent_pf_flags,
-                                                    nullptr, &p, &pa);
+                                                    &p, &pa);
         if (status == ZX_OK) {
             // we have a page from them. if we're read-only faulting, return that page so they can map
             // or read from it directly
@@ -430,12 +425,6 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
             // if we're write faulting, we need to clone it and return the new page
             paddr_t pa_clone;
             vm_page_t* p_clone = nullptr;
-            if (free_list) {
-                p_clone = list_remove_head_type(free_list, vm_page, queue_node);
-                if (p_clone) {
-                    pa_clone = p_clone->paddr();
-                }
-            }
             if (!p_clone) {
 #if 1
                 PageAllocRequest request;
@@ -505,12 +494,6 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
     }
 
     // allocate a page
-    if (free_list) {
-        p = list_remove_head_type(free_list, vm_page, queue_node);
-        if (p) {
-            pa = p->paddr();
-        }
-    }
     if (!p) {
 #if 1
         PageAllocRequest request;
@@ -585,37 +568,6 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
     DEBUG_ASSERT(end > offset);
     offset = ROUNDDOWN(offset, PAGE_SIZE);
 
-    // make a pass through the list, counting the number of pages we need to allocate
-    size_t count = 0;
-    uint64_t expected_next_off = offset;
-    page_list_.ForEveryPageInRange(
-        [&count, &expected_next_off](const auto p, uint64_t off) {
-
-            count += (off - expected_next_off) / PAGE_SIZE;
-            expected_next_off = off + PAGE_SIZE;
-            return ZX_ERR_NEXT;
-        },
-        expected_next_off, end);
-
-    // If expected_next_off isn't at the end of the range, there was a gap at
-    // the end.  Add it back in
-    DEBUG_ASSERT(end >= expected_next_off);
-    count += (end - expected_next_off) / PAGE_SIZE;
-    if (count == 0) {
-        return ZX_OK;
-    }
-
-#if 0
-    // allocate count number of pages
-    list_node page_list;
-    list_initialize(&page_list);
-
-    zx_status_t status = pmm_alloc_pages(count, pmm_alloc_flags_, &page_list);
-    if (status != ZX_OK) {
-        return status;
-    }
-#endif
-
     // unmap all of the pages in this range on all the mapping regions
     RangeChangeUpdateLocked(offset, end - offset);
 
@@ -632,11 +584,9 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
         const uint flags = VMM_PF_FLAG_SW_FAULT | VMM_PF_FLAG_WRITE;
         // Should not be able to fail, since we're providing it memory and the
         // range should be valid.
-        zx_status_t status = GetPageLocked(o, flags, nullptr, &p, &pa);
+        zx_status_t status = GetPageLocked(o, flags, &p, &pa);
         ASSERT(status == ZX_OK);
     }
-
-    //DEBUG_ASSERT(list_is_empty(&page_list));
 
     return ZX_OK;
 }
@@ -920,7 +870,7 @@ zx_status_t VmObjectPaged::ReadWriteInternal(uint64_t offset, size_t len, bool w
         paddr_t pa;
         auto status = GetPageLocked(src_offset,
                                     VMM_PF_FLAG_SW_FAULT | (write ? VMM_PF_FLAG_WRITE : 0),
-                                    nullptr, nullptr, &pa);
+                                    nullptr, &pa);
         if (status != ZX_OK) {
             return status;
         }
@@ -1006,7 +956,7 @@ zx_status_t VmObjectPaged::Lookup(uint64_t offset, uint64_t len, uint pf_flags,
                  missing_off += PAGE_SIZE) {
 
                 paddr_t pa;
-                zx_status_t status = this->GetPageLocked(missing_off, pf_flags, nullptr,
+                zx_status_t status = this->GetPageLocked(missing_off, pf_flags,
                                                          nullptr, &pa);
                 if (status != ZX_OK) {
                     return ZX_ERR_NO_MEMORY;
@@ -1042,7 +992,7 @@ zx_status_t VmObjectPaged::Lookup(uint64_t offset, uint64_t len, uint pf_flags,
     // If expected_next_off isn't at the end, there's a gap to process
     for (uint64_t off = expected_next_off; off < end_page_offset; off += PAGE_SIZE) {
         paddr_t pa;
-        zx_status_t status = GetPageLocked(off, pf_flags, nullptr, nullptr, &pa);
+        zx_status_t status = GetPageLocked(off, pf_flags, nullptr, &pa);
         if (status != ZX_OK) {
             return ZX_ERR_NO_MEMORY;
         }
@@ -1125,7 +1075,7 @@ zx_status_t VmObjectPaged::CacheOp(const uint64_t start_offset, const uint64_t l
 
         // lookup the physical address of the page, careful not to fault in a new one
         paddr_t pa;
-        auto status = GetPageLocked(op_start_offset, 0, nullptr, nullptr, &pa);
+        auto status = GetPageLocked(op_start_offset, 0, nullptr, &pa);
 
         if (likely(status == ZX_OK)) {
             // Convert the page address to a Kernel virtual address.
