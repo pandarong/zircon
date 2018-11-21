@@ -449,7 +449,7 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
 
                 p_clone = list_remove_head_type(request.page_list(), vm_page_t, queue_node);
                 DEBUG_ASSERT(p_clone);
-                pa_clone = p->paddr();
+                pa_clone = p_clone->paddr();
 #else
                 status = pmm_alloc_page(pmm_alloc_flags_, &p_clone, &pa_clone);
 #endif

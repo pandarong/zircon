@@ -60,7 +60,7 @@ zx_status_t PageAllocRequest::Wait(zx_time_t deadline) {
     canary_.Assert();
     DEBUG_ASSERT(state_ != FREE);
 
-    zx_status_t err = event_.Wait(deadline);
+    zx_status_t err = event_.WaitUnInterruptable(deadline);
     return err;
 }
 

@@ -108,6 +108,10 @@ public:
         return event_wait_deadline(&event_, deadline, true);
     }
 
+    zx_status_t WaitUnInterruptable(zx_time_t deadline) {
+        return event_wait_deadline(&event_, deadline, false);
+    }
+
     void Signal(zx_status_t status = ZX_OK) {
         event_signal_etc(&event_, true, status);
     }
