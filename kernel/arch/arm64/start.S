@@ -208,9 +208,17 @@ FUNCTION(_start)
     adr     tmp2, __code_start
     sub     tmp, tmp, tmp2
     add     tmp, tmp, kernel_vaddr
+
+// Uncommenting the line below results in a hang rather returning to the bootloader,
+// so we get this far in the boot.
+//    b   .
+
     br      tmp
 
 .Lmmu_on_vaddr:
+
+// We never reach this instruction below. We reset and return to the bootloader instead.
+    b   .
 
     /* Disable trampoline page-table in ttbr0 */
     movlit  tmp, MMU_TCR_FLAGS_KERNEL

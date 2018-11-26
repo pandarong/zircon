@@ -1,0 +1,16 @@
+/dts-v1/;
+
+/ {
+	model = "Qualcomm Technologies, Inc. APQ 8953 Lite";
+	qcom,msm-id = <0x130 0x0>;
+	qcom,pmic-id = <0x10016 0x20011 0x0 0x0>;
+	qcom,board-id = <0x1010020 0x0>;
+
+	chosen {
+		bootargs = [00];
+	};
+
+	memory {
+		device_type = "memory";
+	};
+};
