@@ -6,12 +6,19 @@ library("blobfs") {
   host = true
   sources = [
     "common.cpp",
+    "extent-reserver.cpp",
     "fsck.cpp",
+    "iterator/allocated-extent-iterator.cpp",
+    "iterator/block-iterator.cpp",
+    "iterator/vector-extent-iterator.cpp",
     "lz4.cpp",
+    "node-reserver.cpp",
   ]
   if (is_fuchsia) {
     sources += [
+      "allocator.cpp",
       "blobfs.cpp",
+      "iterator/node-populator.cpp",
       "journal.cpp",
       "metrics.cpp",
       "rpc.cpp",

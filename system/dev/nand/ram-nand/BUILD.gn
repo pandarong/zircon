@@ -38,7 +38,6 @@ source_set("common") {
 test("ram-nand-test") {
   output_name = "ram-nand-test"
   sources = [
-    "test/fake-ddk.cpp",
     "test/main.cpp",
     "test/ram-nand-ctl.cpp",
     "test/ram-nand.cpp",
@@ -47,6 +46,7 @@ test("ram-nand-test") {
   deps = [
     ":common",
     "$zx/system/banjo/ddk-protocol-nand",
+    "$zx/system/dev/lib/fake_ddk",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",

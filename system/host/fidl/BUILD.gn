@@ -15,6 +15,7 @@ if (defined(zx)) {
       "lib/lexer.cpp",
       "lib/library_zx.cpp",
       "lib/names.cpp",
+      "lib/ordinals.cpp",
       "lib/parser.cpp",
       "lib/raw_ast.cpp",
       "lib/source_file.cpp",
@@ -25,6 +26,7 @@ if (defined(zx)) {
     ]
     deps = [
       ":json_schema",
+      "$zx/third_party/ulib/uboringssl",
     ]
   }
 

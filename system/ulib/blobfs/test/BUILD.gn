@@ -1,0 +1,25 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+group("test") {
+  deps = [
+    ":blobfs-unit",
+  ]
+}
+
+test("blobfs-unit") {
+  sources = [
+    "allocated-extent-iterator-test.cpp",
+    "allocator-test.cpp",
+    "extent-reserver-test.cpp",
+    "main.cpp",
+    "node-populator-test.cpp",
+    "node-reserver-test.cpp",
+    "utils.cpp",
+    "vector-extent-iterator-test.cpp",
+  ]
+  deps = [
+    "..",
+  ]
+}

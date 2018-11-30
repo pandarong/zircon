@@ -4,9 +4,11 @@
 
 library("zxio") {
   sources = [
+    "debuglog.cpp",
     "null.cpp",
     "pipe.cpp",
     "remote.cpp",
+    "vmofile.cpp",
     "zxio.cpp",
   ]
   public_deps = [

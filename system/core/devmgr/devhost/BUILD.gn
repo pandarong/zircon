@@ -45,10 +45,12 @@ library("driver") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
+    "$zx/system/ulib/fs",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
+    "$zx/system/ulib/zxio",
   ]
 
   if (enable_driver_tracing) {

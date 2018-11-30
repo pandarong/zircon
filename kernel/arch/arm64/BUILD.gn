@@ -100,6 +100,7 @@ if (current_toolchain == default_toolchain) {
     deps = [
       "$zx/kernel/dev/iommu/dummy",
       "$zx/kernel/lib/console",
+      "$zx/kernel/lib/counters",
       "$zx/kernel/lib/crashlog",
       "$zx/kernel/object",
       "$zx/kernel/syscalls:syscall-abi",

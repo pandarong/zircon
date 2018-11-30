@@ -2,18 +2,27 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test("devfs") {
-  test_group = "fs"
+library("bootfs") {
   sources = [
-    "fdio-tests.cpp",
-    "fidl-tests.cpp",
-    "main.c",
+    "parser.cpp",
   ]
   deps = [
-    "$zx/system/fidl/fuchsia-io:c",
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}
+
+test("bootfs-test") {
+  sources = [
+    "parser-test.cpp",
+  ]
+  deps = [
+    "$zx/system/ulib/bootfs",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
-    "$zx/system/ulib/fs",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

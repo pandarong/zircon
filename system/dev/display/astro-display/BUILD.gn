@@ -8,7 +8,6 @@ driver("astro-display") {
     "aml-mipi-phy.cpp",
     "astro-clock.cpp",
     "astro-display.cpp",
-    "backlight.cpp",
     "bind.c",
     "dw-mipi-dsi.cpp",
     "lcd.cpp",

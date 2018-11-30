@@ -5,6 +5,7 @@
 driver("astro") {
   sources = [
     "astro-audio.c",
+    "astro-backlight.c",
     "astro-bluetooth.c",
     "astro-buttons.c",
     "astro-canvas.c",

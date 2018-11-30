@@ -12,6 +12,7 @@ driver("mtk-sdmmc") {
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-sdmmc",
+    "$zx/system/dev/lib/mt8167",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
