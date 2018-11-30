@@ -38,6 +38,7 @@ source_set("syscalls") {
     ":syscall-abi",
     "$zx/kernel/dev/udisplay",
     "$zx/kernel/lib/console",
+    "$zx/kernel/lib/counters",
     "$zx/kernel/lib/crypto",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/gfxconsole",

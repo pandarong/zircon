@@ -56,6 +56,7 @@ library("object") {
     "$zx/kernel/dev/pcie",
     "$zx/kernel/dev/udisplay",
     "$zx/kernel/lib/console",
+    "$zx/kernel/lib/counters",
     "$zx/kernel/lib/fbl",
     "$zx/kernel/lib/hypervisor",
     "$zx/kernel/lib/oom",

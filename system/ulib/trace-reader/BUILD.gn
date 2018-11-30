@@ -9,6 +9,10 @@ library("trace-reader") {
     "records.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
+  public_deps = [
+    # <trace-reader/records.h> has #include <trace-engine/types.h>.
+    "$zx/system/ulib/trace-engine:headers",
+  ]
   deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/trace-engine",

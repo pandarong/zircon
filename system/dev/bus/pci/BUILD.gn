@@ -14,27 +14,34 @@ group("pci") {
 }
 
 driver("bus-pci") {
-  if (enable_user_pci) {
-    sources = [
-      "upci.c",
-    ]
-  } else {
-    sources = [
-      "kpci.c",
-    ]
-  }
   deps = [
     "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/banjo/ddk-protocol-pciroot",
-    "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
   ]
+  if (enable_user_pci) {
+    sources = [
+      "binding.c",
+      "bus.cpp",
+      "config.cpp",
+    ]
+    deps += [
+      "$zx/system/ulib/ddktl",
+      "$zx/system/ulib/fbl",
+      "$zx/system/ulib/zxcpp",
+    ]
+  } else {
+    sources = [
+      "kpci/kpci.c",
+    ]
+    deps += [ "$zx/system/banjo/ddk-protocol-platform-device" ]
+  }
 }
 
 driver("bus-pci.proxy") {
   sources = [
-    "proxy.c",
+    "kpci/proxy.c",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-pci",

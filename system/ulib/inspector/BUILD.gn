@@ -5,14 +5,17 @@
 library("inspector") {
   sources = [
     "backtrace.cpp",
+    "debug-info.cpp",
     "dso-list.cpp",
     "registers.cpp",
     "utils.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
+    "$zx/system/ulib/backtrace-request",
     "$zx/system/ulib/elf-search",
     "$zx/system/ulib/fbl",
+    "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/backtrace",

@@ -2,19 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test("zxio") {
+library("fake_ddk") {
+  testonly = true
   sources = [
-    "main.c",
-    "null-test.cpp",
-    "vmofile-test.cpp",
-    "zxio-test.cpp",
+    "fake_ddk.cpp",
   ]
   deps = [
-    "$zx/system/fidl/fuchsia-io:c",
-    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/ddk",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
-    "$zx/system/ulib/zxio",
   ]
 }

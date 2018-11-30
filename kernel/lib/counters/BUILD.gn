@@ -10,6 +10,17 @@ library("counters") {
     "counters.cpp",
   ]
   deps = [
+    ":tests",  # TODO: testonly
     "$zx/kernel/lib/console",
+  ]
+}
+
+source_set("tests") {
+  # TODO: testonly = true
+  sources = [
+    "counters_tests.cpp",
+  ]
+  deps = [
+    "$zx/kernel/lib/unittest",
   ]
 }

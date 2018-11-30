@@ -9,7 +9,8 @@ library("fit") {
   sources = [
     "promise.cpp",
     "scheduler.cpp",
-    "sequential_executor.cpp",
+    "sequencer.cpp",
+    "single_threaded_executor.cpp",
   ]
 
   if (is_fuchsia) {

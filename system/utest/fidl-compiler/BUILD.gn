@@ -17,6 +17,7 @@ if (current_toolchain == default_toolchain) {
       "$examples_dir/events.fidl",
       "$examples_dir/example-0.fidl",
       "$examples_dir/example-1.fidl",
+      "$examples_dir/example-10.fidl",
       "$examples_dir/example-2.fidl",
       "$examples_dir/example-3.fidl",
       "$examples_dir/example-4.fidl",
@@ -44,6 +45,7 @@ if (current_toolchain == default_toolchain) {
     sources = [
       "attributes_tests.cpp",
       "consts_tests.cpp",
+      "enums_tests.cpp",
       "flat_ast_tests.cpp",
       "formatter_unittests.cpp",
       "json_generator_tests.cpp",
@@ -52,6 +54,7 @@ if (current_toolchain == default_toolchain) {
       "max_bytes_tests.cpp",
       "max_handle_tests.cpp",
       "optionals_tests.cpp",
+      "ordinals_tests.cpp",
       "parsing_tests.cpp",
       "superinterface_tests.cpp",
       "table_tests.cpp",
