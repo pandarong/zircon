@@ -56,7 +56,9 @@ source_set("image") {
       # userboot-image.S includes the userboot contents and so must be
       # reassembled when that changes.  Note we can't have core/userboot in
       # deps here because that would try to link it into the kernel.
-      get_metadata("", [ "link_output" ], [ "link_barrier" ]),
+      get_metadata([ ":gen-userboot-code-header" ],
+                   [ "link_output" ],
+                   [ "link_barrier" ]),
     ]
   }
 }

@@ -284,7 +284,7 @@ template("_shlib_toolchain_target") {
     }
 
     # Everything else is passed through (everything in solink toolchains).
-    # But also apply configs->deps and output_name_suffix transformations.
+    # But also apply configs->deps.
     forward_variables_from(invoker,
                            "*",
                            [
@@ -298,11 +298,6 @@ template("_shlib_toolchain_target") {
     if (defined(invoker.deps)) {
       deps += invoker.deps
     }
-
-    if (!defined(output_name)) {
-      output_name = target_name
-    }
-    output_name += toolchain.output_name_suffix
   }
 }
 
@@ -320,10 +315,26 @@ template("shared_library") {
                              ])
       forward_variables_from(invoker, [ "visibility" ])
 
-      # Each shared_library() that's not on the whitelist gets a poison
-      # pill to flag it if it appears in the dependency graph from a
-      # driver() target.
+      if (!defined(output_name)) {
+        output_name = target_name
+      }
+      output_name += toolchain.output_name_suffix
+      if (!defined(output_extension)) {
+        output_extension = "so"
+      }
+      output_file = "$target_out_dir/lib$output_name"
+      if (output_extension != "") {
+        output_file += ".$output_extension"
+      }
+
       metadata = {
+        link_output = [ output_file ]
+        link_output_arg = rebase_path(link_output, root_build_dir)
+        link_barrier = []
+
+        # Each shared_library() that's not on the whitelist gets a poison
+        # pill to flag it if it appears in the dependency graph from a
+        # driver() target.
         if (defined(invoker.metadata)) {
           forward_variables_from(invoker.metadata, "*")
         }
@@ -738,7 +749,7 @@ template("_variant_target") {
     }
 
     if (defined(target.variant_suffix_metadata)) {
-      # We'll define a real variant suffixed target in every variant.
+      # We'll define a real variant-suffixed target in every variant.
       builder_toolchain = current_toolchain
     }
   }
@@ -842,6 +853,7 @@ template("_basic_executable") {
                            [
                              "configs",
                              "deps",
+                             "metadata",
                              "target",
                              "visibility",
                            ])
@@ -850,20 +862,37 @@ template("_basic_executable") {
     if (defined(invoker.deps)) {
       deps += invoker.deps
     }
+
     if (!defined(output_name)) {
-      output_name = target_name + toolchain.output_name_suffix
+      output_name = target_name
     }
+    output_name += toolchain.output_name_suffix
+    if (!defined(output_extension)) {
+      output_extension = toolchain.executable_extension
+    }
+    output_file = "$target_out_dir/$output_name"
+    if (output_extension != "") {
+      output_file += ".$output_extension"
+    }
+
+    metadata = {
+      if (defined(invoker.metadata)) {
+        forward_variables_from(invoker.metadata, "*")
+      }
+      link_output = [ output_file ]
+      link_output_arg = rebase_path(link_output, root_build_dir)
+      link_barrier = []
+    }
+
     if (!is_host && !is_kernel) {
       # An explicit `install_path = false` means this binary is not installed.
       if (!defined(install_path)) {
-        install_path = "bin/$output_name"
+        install_path = "bin/" + get_path_info(output_file, "file")
       }
       if (install_path != false) {
-        metadata = {
-          manifest_inputs = [ "$target_out_dir/$output_name" ]
-          manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
-                             rebase_path(manifest_inputs[0], root_build_dir) ]
-        }
+        metadata.manifest_inputs = [ output_file ]
+        metadata.manifest_lines =
+            [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
       }
 
       # Also define an alias with the variant suffix.  _variant_target will
@@ -871,9 +900,8 @@ template("_basic_executable") {
       # this target.  In only that toolchain, the metadata will give the
       # binary a second install path with the variant suffix.
       target.variant_suffix_metadata = {
-        manifest_inputs = [ "$target_out_dir/$output_name" ]
-        manifest_lines = [ "${install_path}=" +
-                           rebase_path(manifest_inputs[0], root_build_dir) ]
+        manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
+                           rebase_path(output_file, root_build_dir) ]
       }
 
       # TODO(get_metadata): dismal kludge in the absence of get_metadata()
@@ -918,8 +946,9 @@ template("loadable_module") {
     forward_variables_from(invoker, [ "visibility" ])
 
     if (!defined(output_name)) {
-      output_name = target_name + toolchain.output_name_suffix
+      output_name = target_name
     }
+    output_name += toolchain.output_name_suffix
     if (!defined(output_extension)) {
       output_extension = "so"
     }
@@ -929,6 +958,10 @@ template("loadable_module") {
     }
 
     metadata = {
+      link_output = [ output_file ]
+      link_output_arg = rebase_path(link_output, root_build_dir)
+      link_barrier = []
+
       if (defined(invoker.install_path)) {
         manifest_inputs = []
         manifest_lines = []
@@ -946,7 +979,7 @@ template("loadable_module") {
       # make this redirect to the specific variant toolchain chosen for
       # this target.  In only that toolchain, the metadata will give the
       # binary a second install path with the variant suffix.
-      target.variant_suffix_metdata = {
+      target.variant_suffix_metadata = {
         manifest_inputs = [ output_file ]
         manifest_lines = [ get_path_info(invoker.install_path, "dir") + "/" +
                            get_path_info(invoker.install_path, "name") +
@@ -997,8 +1030,8 @@ template("driver") {
     # ASan need a compatible devhost for their drivers to be loaded in.
     # They define ${toolchain.devhost_suffix} so that this dependency and
     # devhost target definition are distinct from generic devhost.
-    data_deps += [ "$zx/system/core/devmgr/devhost:devhost" +
-                   toolchain.devhost_suffix + "(${toolchain.label})" ]
+    data_deps +=
+        [ "$zx/system/core/devmgr/devhost:devhost" + toolchain.devhost_suffix ]
 
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by

@@ -87,7 +87,7 @@ if (current_toolchain == default_toolchain) {
     ]
     if (false) {  # TODO(get_metadata)
       sources = [
-        get_metadata(deps, [ "link_output" ]),
+        get_metadata("", [ "link_output" ]),
       ]
     } else {
       sources = [

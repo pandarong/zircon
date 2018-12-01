@@ -23,7 +23,6 @@ library("vdso") {
   # generated (below) from libzircon.so itself, so it will always be
   # touched when libzircon.so has been touched and thus ensure vdso-image.S
   # is reassembled with the new vDSO contents.
-  #inputs = [ get_metadata(["$zx/system/ulib/zircon"],["link_output"]) ]
   if (is_kernel) {
     deps = [
       ":gen-categories",
@@ -39,6 +38,11 @@ library("vdso") {
       # <lib/rodso.h> has #include <object/handle.h>.
       "$zx/kernel/object",
     ]
+    if (false) {  # TODO(get_metadata)
+      inputs = [
+        get_metadata([ ":vdso-code-header" ], [ "link_output" ]),
+      ]
+    }
   }
 }
 
