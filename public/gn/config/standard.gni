@@ -81,6 +81,15 @@ standard_fuchsia_user_configs = [
     types = [ "host_tool" ]
     add = [ "$zx/system/ulib/fdio" ]
   },
+  {
+    # The "driver_config" target represents the execution environment into
+    # which driver modules get loaded.  This represents the vanilla (or
+    # configured) environment.  Variants can remove this and add a
+    # different variant driver_config label that represents the execution
+    # environment those drivers should get.
+    types = [ "driver" ]
+    add = [ "$zx/system/core/devmgr:driver_config" ]
+  },
 ]
 
 # See define_environment().  These are the environments that are
@@ -164,6 +173,13 @@ standard_variants = [
           ]
           add = [ "$zx/public/gn/instrumentation:asan_default_options" ]
         },
+        {
+          # ASan drivers need to live in an ASan-compatible environment.
+          #
+          types = [ "driver" ]
+          remove = [ "$zx/system/core/devmgr:driver_config" ]
+          add = [ "$zx/system/core/devmgr:driver_config.$name" ]
+        },
       ]
       tags = [
         "instrumented",
@@ -234,6 +250,15 @@ variant_shorthands = [
       {
         variant = "asan"
         host = true
+      },
+    ]
+  },
+  {
+    name = "asan_drivers"
+    selectors = [
+      {
+        variant = "asan"
+        target_type = [ "driver" ]
       },
     ]
   },

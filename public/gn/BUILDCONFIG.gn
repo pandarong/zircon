@@ -1088,10 +1088,6 @@ template("loadable_module") {
   }
 }
 
-if (!defined(toolchain.devhost_suffix)) {
-  toolchain.devhost_suffix = ""
-}
-
 template("driver") {
   loadable_module(target_name) {
     data_deps = []
@@ -1107,13 +1103,6 @@ template("driver") {
     # hermetic static library.  This has no effect if no C++ library
     # symbols are used.
     configs += [ "$zx/public/gn/config:static-libc++" ]
-
-    # A driver depends on devhost being on the system.  Toolchains like
-    # ASan need a compatible devhost for their drivers to be loaded in.
-    # They define ${toolchain.devhost_suffix} so that this dependency and
-    # devhost target definition are distinct from generic devhost.
-    data_deps +=
-        [ "$zx/system/core/devmgr/devhost:devhost" + toolchain.devhost_suffix ]
 
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by
@@ -1159,7 +1148,12 @@ template("test_driver") {
 template("executable") {
   _basic_executable(target_name) {
     target_type = "executable"
-    forward_variables_from(invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "target_type",
+                             "visibility",
+                           ])
     forward_variables_from(invoker, [ "visibility" ])
   }
 }
