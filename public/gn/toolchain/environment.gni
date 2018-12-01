@@ -557,6 +557,10 @@ template("define_environment") {
             variant_suffix = ".$variant"
           }
 
+          if (!defined(libprefix)) {
+            libprefix = ""
+          }
+
           other_variants = []
           foreach(other_variant, toolchain_variants) {
             if (other_variant.name != variant) {

@@ -484,8 +484,7 @@ template("library") {
       if (defined(invoker.install_path)) {
         install_path = invoker.install_path
       } else {
-        # TODO: toolchain prefix for asan, xray
-        install_path = "lib/lib${_library_name}.so"
+        install_path = "lib/${toolchain.libprefix}lib${_library_name}.so"
       }
       shared_library("${_library_name}.shared") {
         output_name = _library_name
