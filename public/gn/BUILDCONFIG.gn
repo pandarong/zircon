@@ -979,13 +979,16 @@ template("loadable_module") {
       # make this redirect to the specific variant toolchain chosen for
       # this target.  In only that toolchain, the metadata will give the
       # binary a second install path with the variant suffix.
+      extension = get_path_info(invoker.install_path, "extension")
+      if (extension != "") {
+        extension = ".$extension"
+      }
       target.variant_suffix_metadata = {
         manifest_inputs = [ output_file ]
         manifest_lines = [ get_path_info(invoker.install_path, "dir") + "/" +
                            get_path_info(invoker.install_path, "name") +
-                           toolchain.variant_suffix +
-                           get_path_info(invoker.install_path, "extension") +
-                           "=" + rebase_path(output_file, root_build_dir) ]
+                           toolchain.variant_suffix + extension + "=" +
+                           rebase_path(output_file, root_build_dir) ]
       }
     }
 
