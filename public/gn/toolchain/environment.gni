@@ -92,7 +92,7 @@ declare_args() {
 #     the environment's (potentially overriding their individual elements).
 #     Note: select_toolchain() with `environment_label` set to this
 #     environment may not work if this does not include $default_variants.
-#     Default: $variants + $default_variants
+#     Default: $variants + $default_variants + $standard_variants
 #
 #   exclude_variant_tags
 #     Optional: A list of strings that might appear in the .tags list of a
@@ -139,7 +139,7 @@ template("define_environment") {
   if (defined(invoker.variant_selectors)) {
     raw_selectors = invoker.variant_selectors
   } else {
-    raw_selectors = variants + default_variants
+    raw_selectors = variants + default_variants + standard_variants
   }
 
   # First expand the plain-string shorthand selectors to full scopes.
@@ -181,6 +181,7 @@ template("define_environment") {
   }
 
   # This pass canonicalizes the selectors and collects the variant specs.
+  defined_variant_names = []
   variant_names = []
   variant_specs = []
   foreach(selector, selectors) {
@@ -194,9 +195,10 @@ template("define_environment") {
         assert(defined(variant.name),
                "`variants` element .variant scope missing .name: $selector")
         assert(
-            variant_names + [ variant.name ] - [ variant.name ] ==
-                variant_names,
+            defined_variant_names + [ variant.name ] - [ variant.name ] ==
+                defined_variant_names,
             "`variants` element overrides variant ${variant.name}: $selector")
+        defined_variant_names += [ variant.name ]
         variant_names += [ variant.name ]
         variant_specs += [ variant ]
         sel_variant = variant.name
@@ -276,8 +278,6 @@ template("define_environment") {
   # appended to toolchain_variants if it's complete.  An incomplete variant
   # has a nonempty .bases list that will be resolved in the second pass;
   # these are appended to incomplete_variants instead.
-  complete_variant_names = []
-  incomplete_variant_names = []
   incomplete_variants = []
   foreach(raw_spec, variant_specs) {
     spec = {
@@ -297,51 +297,9 @@ template("define_environment") {
     }
     if (spec.bases == []) {
       toolchain_variants += [ spec ]
-      complete_variant_names += [ spec.name ]
     } else {
       incomplete_variants += [ spec ]
-      incomplete_variant_names += [ spec.name ]
       variant_names += spec.bases
-    }
-  }
-
-  # If some variants referenced by selectors or by .bases lists are not
-  # defined, then do a pass over the $standard_variants list adding those
-  # as if they'd been seen in the first pass.
-  dangling = variant_names - complete_variant_names - incomplete_variant_names
-  if (dangling != []) {
-    foreach(standard, standard_variants) {
-      foreach(standard, [ standard.variant ]) {
-        if (dangling + [ standard.name ] - [ standard.name ] != dangling) {
-          # Canonicalize this standard spec as above.
-          spec = {
-            # Clear from previous iteration.
-          }
-          spec = {
-            bases = []
-            configs = []
-            tags = []
-            globals = {
-            }
-            toolchain_args = {
-            }
-            toolchain_vars = {
-            }
-            forward_variables_from(standard, "*")
-          }
-          if (spec.bases == []) {
-            toolchain_variants += [ spec ]
-            complete_variant_names += [ spec.name ]
-          } else {
-            incomplete_variants += [ spec ]
-            incomplete_variant_names += [ spec.name ]
-            variant_names += spec.bases
-          }
-          dangling += variant_names
-          dangling -= complete_variant_names
-          dangling -= incomplete_variant_names
-        }
-      }
     }
   }
 

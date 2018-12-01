@@ -164,18 +164,17 @@ standard_variants = [
     variant = {
       name = "asan"
       configs = [
-        "$zx/public/gn/sanitizers:asan",
+        "$zx/public/gn/config/instrumentation:asan",
         {
           types = [
             "executable",
             "host_tool",
             "test",
           ]
-          add = [ "$zx/public/gn/instrumentation:asan_default_options" ]
+          add = [ "$zx/public/gn/config/instrumentation:asan_default_options" ]
         },
         {
           # ASan drivers need to live in an ASan-compatible environment.
-          #
           types = [ "driver" ]
           remove = [ "$zx/system/core/devmgr:driver_config" ]
           add = [ "$zx/system/core/devmgr:driver_config.$name" ]
@@ -190,22 +189,22 @@ standard_variants = [
   {
     variant = {
       name = "ubsan"
-      configs = [ "$zx/public/gn/instrumentation:ubsan" ]
+      configs = [ "$zx/public/gn/config/instrumentation:ubsan" ]
       tags = [
         "instrumented",
         "useronly",
       ]
     }
   },
-  {
-    variant = {
-      name = "asan-ubsan"
-      bases = [
-        "asan",
-        "ubsan",
-      ]
-    }
-  },
+#  {
+#    variant = {
+#      name = "asan-ubsan"
+#      bases = [
+#        "asan",
+#        "ubsan",
+#      ]
+#    }
+#  },
 ]
 
 # This list is appended to the $variants list for the build.  It provides
@@ -222,14 +221,14 @@ default_variants = [
     variant = "clang"
   },
   {
+    variant = "clang"
+  },
+  {
     # TODO(get_metadata): Others don't work because of kludgy literal deps
     # in lieu of get_metadata.  Make this catch-all to default to gcc as the
     # old makefile build does.
     environment = [ "user" ]
     variant = "gcc"
-  },
-  {
-    variant = "clang"
   },
 ]
 
