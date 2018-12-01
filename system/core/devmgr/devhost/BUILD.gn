@@ -13,8 +13,7 @@ config("enable_driver_tracing") {
   }
 }
 
-# ASan-based toolchains set ${toolchain.devhost_suffix} to ".asan".
-executable("devhost${toolchain.devhost_suffix}") {
+executable("devhost") {
   sources = [
     "main.cpp",
   ]
