@@ -180,6 +180,9 @@ standard_variants = [
           add = [ "$zx/system/core/devmgr:driver_config.$name" ]
         },
       ]
+      toolchain_vars = {
+        libprefix = "asan/"
+      }
       tags = [
         "instrumented",
         "useronly",
