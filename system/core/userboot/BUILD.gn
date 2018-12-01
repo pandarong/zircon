@@ -117,7 +117,7 @@ if (current_toolchain == default_toolchain) {
   # this hack, the userboot code doesn't need to do any special work to
   # find the vDSO and its entry points, keeping the code far simpler.
   toolchain_utils_action("gen-vdso-syms-ld") {
-    visibility = [ ":userboot" ]
+    visibility = [ ":*" ]
     outputs = [
       vdso_syms_ld,
     ]
