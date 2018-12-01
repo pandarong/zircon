@@ -329,6 +329,10 @@ template("shared_library") {
       }
 
       metadata = {
+        if (defined(invoker.metadata)) {
+          forward_variables_from(invoker.metadata, "*")
+        }
+
         # Every terminal target provides these metadata keys.  The first two
         # are used as data keys for the output of the link, $link_output for
         # GN file contexts and $link_output_arg for command-line contexts.
@@ -341,9 +345,6 @@ template("shared_library") {
         # Each shared_library() that's not on the whitelist gets a poison
         # pill to flag it if it appears in the dependency graph from a
         # driver() target.
-        if (defined(invoker.metadata)) {
-          forward_variables_from(invoker.metadata, "*")
-        }
         if (!defined(driver_blacklist)) {
           driver_blacklist = [ true ]
         }
@@ -527,20 +528,6 @@ template("library") {
             manifest_lines = [ "${install_path}=" +
                                rebase_path(manifest_inputs[0], root_build_dir) ]
           }
-
-          # TODO(get_metadata): dismal kludge in the absence of get_metadata()
-          data =
-              rebase_path(rebase_path([
-                                        "$target_gen_dir/$target_name.manifest",
-                                        "$target_gen_dir/$target_name.d",
-                                      ],
-                                      root_gen_dir,
-                                      root_build_dir),
-                          "",
-                          "$root_build_dir/bootfs-$current_cpu")
-          write_file(data[0], metadata.manifest_lines)
-          write_file(data[1],
-                     rebase_path(metadata.manifest_inputs, root_build_dir))
         }
       }
     }
@@ -649,6 +636,10 @@ template("library") {
 
 template("_variant_target") {
   target = {
+    main_metadata = {
+    }
+    variant_metadata = {
+    }
     forward_variables_from(invoker.target, "*")
     if (!defined(match)) {
       match = type
@@ -658,15 +649,36 @@ template("_variant_target") {
     type = target.match
   }
 
+  main_target_name = target_name
+
+  # Elaborate the default to simplify deriving names later.
+  if (defined(invoker.output_name)) {
+    output_name = invoker.output_name
+  } else {
+    output_name = target_name
+  }
+
   if (toolchain.variant_selectors == []) {
     # This toolchain does not participate in variant selection.
-    builder_toolchain = current_toolchain
+    # Each target is just what it seems.
+    target(target.type, main_target_name) {
+      forward_variables_from(invoker, "*", [ "visibility" ])
+      forward_variables_from(invoker, [ "visibility" ])
+    }
   } else {
-    # The first matching variant selector determines which toolchain actually
-    # builds this target.
+    # Most toolchains defined with define_environment() do variant selection.
+    # The ${toolchain.variant_selectors} list (usually ultimately from the
+    # $variants build argument and some defaults) controls which sibling
+    # toolchain among all the offspring of the same define_environment() is
+    # the usual builder for each target.  The first matching selector in the
+    # list wins.
     builder_toolchain = false
     foreach(selector, toolchain.variant_selectors) {
+      # An empty selector always matches, so start with the flag set.
+      # Each `if` block below applies each inclusion criterion: if it's
+      # present and it does not include this target, then clear the flag.
       match = true
+
       if (selector.cpu != []) {
         if (selector.cpu + [ current_cpu ] - [ current_cpu ] == selector.cpu) {
           match = false
@@ -704,11 +716,6 @@ template("_variant_target") {
         }
       }
       if (selector.output_name != []) {
-        if (defined(invoker.output_name)) {
-          output_name = invoker.output_name
-        } else {
-          output_name = target_name
-        }
         if (selector.output_name + [ output_name ] - [ output_name ] ==
             selector.output_name) {
           match = false
@@ -726,6 +733,11 @@ template("_variant_target") {
       if (defined(selector.kernel) && selector.kernel != is_kernel) {
         match = false
       }
+
+      # If the flag stayed set, this is the winner.  Since GN's foreach()
+      # has nothing like a `break` command to bail out of the loop early,
+      # the best we can do is ignore later matches when builder_toolchain
+      # is already set.
       if (match && builder_toolchain == false) {
         if (defined(target.shlib) && target.shlib &&
             defined(selector.shlib_toolchain)) {
@@ -735,107 +747,184 @@ template("_variant_target") {
         }
       }
     }
-    assert(builder_toolchain != false)
-  }
 
-  main_target_name = target_name
-  done_main_target = builder_toolchain != current_toolchain
-  if (done_main_target) {
-    # In other toolchains, the main target just redirects to builder_toolchain.
-    group(main_target_name) {
+    # Validation of the selector list in define_environment()
+    # should have made sure there was a catch-all selector.
+    assert(builder_toolchain != false)
+
+    # So that's handy for choosing a non-default variant for a target based on
+    # build-time configuration (i.e. build arguments like $variants).  But
+    # another handy feature is building both the default target and one or
+    # more separate variant builds of the same target under a different name
+    # (i.e. the $output_name gets a per-variant suffix) just by putting the
+    # suffixed target label into the dependency graph.  That is, just use:
+    # `deps += [ "//some/dir:foobin.foovariant" ]` without worrying about the
+    # exact toolchain name.  Only "//some/dir:foobin" is defined directly.
+    # When that target name is used, the variant chosen via the selector list
+    # is installed as "foobin".  But there's also a "foobin.$variant" target
+    # defined that will install the given variant of that binary as
+    # "foobin.$variant" so that multiple variants can exist side by side in
+    # the same install directory.
+
+    variant_target_name = main_target_name + toolchain.variant_suffix
+
+    # To get this ease of use, a lot more goes on under the covers.  Firstly,
+    # each toolchain in the environment must define a "$target_name.$variant"
+    # target for each *other* variant that just redirects to that toolchain.
+    extra_visibility = []
+    foreach(other, toolchain.other_variants) {
+      other_target_name = main_target_name + other.suffix
+      extra_visibility += [ ":other_target_name" ]
+      group(other_target_name) {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        public_deps = [
+          ":$other_target_name(${other.label})",
+        ]
+      }
+    }
+
+    # Since the variant-suffixed targets exist and so might be in the
+    # dependency graph, every toolchain needs to define an actual linking
+    # target to build this binary.  In the chosen builder_toolchain, that same
+    # binary needs be installed under a different name as well.  There's no
+    # reason to link or compile the same thing twice, so we don't want two
+    # compiling targets.  Instead, one can simply refer to the other and
+    # change the installed name.  That is, either a copy() target to
+    # physically copy the binary to a different $output_name or a group() that
+    # simply provides metadata that says where to place the binary in a
+    # filesystem image.  In either case the (physical or virtual) copy target
+    # has the "real" compiling target in `deps`.
+    #
+    # The fly in the ointment with that scheme is the metadata.  The metadata
+    # to build up a filesystem image (e.g. `manifest_lines`) means that if a
+    # target is in the dependency graph then it will wind up in the image.
+    # So, say we were to define "foobin.foovariant" as the real compiling
+    # target, with metadata to install it as "foobin.foovariant"; and "foobin"
+    # as a group() with `deps = [ ":foobin.foovariant" ]` and metadata to
+    # install that same binary as "foobin".  Now, if the intent is to include
+    # only "foobin.foovariant" as so only "foobin.foovariant" is in the
+    # dependency graph, it works out fine.  However, more often the intent is
+    # instead to include only "foobin" in the dependency graph and have only
+    # "foobin" installed.  In that case, since "foobin" depends on
+    # "foobin.foovariant", the metadata collection finds both and the binary
+    # winds up installed under both names when that was not requested.
+    #
+    # One approach is to use a dependency barrier protocol with the
+    # get_metadata() calls done for filesystem image construction.  That is,
+    # those calls use `manifest_barrier` as a walk key.  Then "foobin" has
+    # `manifest_barrier = []` in its `metadata` so that the collection picks
+    # up the metadata to install as "foobin" but stops there.  If and only if
+    # the dependency graph in the get_metadata() call separately reaches
+    # "foobin.foovariant" will the metadata to install as "foobin.foovariant"
+    # be seen by that walk.  The trouble with this scheme is that it also cuts
+    # off the `deps` and `data_deps` of "foobin.foovariant" from the metadata
+    # walk so the runtime files the binary requires (shared libraries,
+    # resources) are omitted from the filesystem image.  Perhaps that could be
+    # mitigated by putting all those `deps` and `data_deps` from the real
+    # builder target (expanded to "label_with_toolchain" to get what they
+    # would be in the builder) into the `manifest_barrier` list (and thus they
+    # would have to be in the group's `data_deps` too).
+    #
+    # Instead, we use an approach that is not specific to any particular
+    # metadata protocol.  The real linking target is yet a third target, an
+    # internal target called "foobin._build" that's defined *without* the
+    # `metadata` set by the invoker.  Both "foobin" and "foobin.foovariant"
+    # are just group() targets with `deps = [ ":foobin._build" ]`, but each
+    # has different metadata.
+    #
+    # This internal target is only really required in the chosen builder
+    # toolchain, since in other toolchains the variant-suffixed target is the
+    # only one that causes something to be installed rather than just being a
+    # pure redirect to builder_toolchain.  But for consistency and (relative)
+    # simplicity of this code, we always define it.
+    builder_target_name = "${main_target_name}._build"
+
+    # TODO(docs): NOTE!!! NOTE!!! This whole scheme means that visibility
+    # lists of deps of terminal targets can't really list individual targets,
+    # only directory wildcards like ":*".  `visibility = [ ":foobin" ]` would
+    # not allow the "foobin.foovariant" target (or the internal
+    # "foobin._build" target) to have that dependency.
+
+    extra_visibility += [ ":$main_target_name" ]
+    if (current_toolchain == builder_toolchain) {
+      # In the chosen builder toolchain, the main target redirects
+      # to the builder target but also adds the metadata.
+      group(main_target_name) {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        public_deps = [
+          ":$builder_target_name",
+        ]
+        metadata = {
+          if (defined(invoker.metadata)) {
+            forward_variables_from(invoker.metadata, "*")
+            assert(!defined(manifest_inputs) && !defined(manifest_lines),
+                   "the `manifest_inputs` and `manifest_lines` metadata keys" +
+                       " are reserved for standard templates; use resource()")
+          }
+          forward_variables_from(target.main_metadata, "*")
+        }
+      }
+    } else {
+      # In all other toolchains, the main target just redirects
+      # to the builder_toolchain (where the metadata lives).
+      group(main_target_name) {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        public_deps = [
+          ":$main_target_name($builder_toolchain)",
+        ]
+      }
+    }
+
+    # The variant-suffixed target redirects to the builder target but also
+    # adds the metadata--different metadata than the main target above.
+    extra_visibility += [ ":$variant_target_name" ]
+    group(variant_target_name) {
       forward_variables_from(invoker,
                              [
                                "testonly",
                                "visibility",
                              ])
-      not_needed(invoker, "*")
       public_deps = [
-        ":$main_target_name($builder_toolchain)",
+        ":$builder_target_name",
       ]
+      metadata = {
+        if (defined(invoker.metadata)) {
+          forward_variables_from(invoker.metadata, "*")
+          assert(!defined(manifest_inputs) && !defined(manifest_lines),
+                 "the `manifest_inputs` and `manifest_lines` metadata keys" +
+                     " are reserved for standard templates; use resource()")
+        }
+        forward_variables_from(target.variant_metadata, "*")
+      }
     }
 
-    if (defined(target.variant_suffix_metadata)) {
-      # We'll define a real variant-suffixed target in every variant.
-      builder_toolchain = current_toolchain
-    }
-  }
-
-  if (builder_toolchain == current_toolchain) {
-    builder_target_name = main_target_name
-    builder_output_name = invoker.output_name
-    if (defined(target.variant_suffix_metadata)) {
-      # Define the real target with its variant suffixed target_name and
-      # output_name.
-      builder_target_name += toolchain.variant_suffix
-      builder_output_name += toolchain.variant_suffix
-    }
-
+    # Finally, define the actual builder target--with no metadata.
     target(target.type, builder_target_name) {
       forward_variables_from(invoker,
                              "*",
                              [
+                               "metadata",
                                "output_name",
                                "target",
                                "visibility",
                              ])
-      output_name = builder_output_name
+      output_name = output_name
       if (defined(invoker.visibility)) {
-        # Make sure we're visible to the redirector groups defined below.
-        visibility = invoker.visibility + [
-                       ":$builder_target_name",
-                       ":$main_target_name",
-                     ]
+        # Make sure we're visible to the redirector groups.
+        visibility = invoker.visibility + extra_visibility
       }
-    }
-
-    if (!done_main_target) {
-      if (defined(target.variant_suffix_metadata)) {
-        if (defined(target.variant_suffix_outputs)) {
-          alias_type = "copy"
-        } else {
-          alias_type = "group"
-        }
-        target(alias_type, main_target_name) {
-          forward_variables_from(invoker,
-                                 [
-                                   "testonly",
-                                   "visibility",
-                                 ])
-          deps = [
-            ":${builder_target_name}($builder_toolchain)",
-          ]
-          if (alias_type == "copy") {
-            outputs = target.variant_suffix_outputs
-            sources = [
-              "$target_out_dir/${invoker.output_name}${toolchain.variant_suffix}",
-            ]
-            if (defined(invoker.output_extension) &&
-                invoker.output_extension != "") {
-              sources[0] += ".${invoker.output_extension}"
-            }
-          }
-          metadata = target.variant_suffix_metadata
-          if (defined(visibility)) {
-            # Make sure we're visible to the redirector groups defined below.
-            visibility += [ ":$target_name" ]
-          }
-        }
-      }
-    }
-  }
-
-  # Now define a suffixed redirector for each other variant's suffix.
-  foreach(other, toolchain.other_variants) {
-    other_target_name = main_target_name + other.suffix
-    group(other_target_name) {
-      forward_variables_from(invoker,
-                             [
-                               "testonly",
-                               "visibility",
-                             ])
-      public_deps = [
-        ":$other_target_name(${other.label})",
-      ]
     }
   }
 }
@@ -903,34 +992,21 @@ template("_basic_executable") {
         install_path = "bin/" + get_path_info(output_file, "file")
       }
       if (install_path != false) {
-        metadata.manifest_inputs = [ output_file ]
-        metadata.manifest_lines =
-            [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
-      }
+        target.main_metadata = {
+          manifest_inputs = [ output_file ]
+          manifest_lines =
+              [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
+        }
 
-      # Also define an alias with the variant suffix.  _variant_target will
-      # make this redirect to the specific variant toolchain chosen for
-      # this target.  In only that toolchain, the metadata will give the
-      # binary a second install path with the variant suffix.
-      target.variant_suffix_metadata = {
-        manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
-                           rebase_path(output_file, root_build_dir) ]
-      }
-
-      # TODO(get_metadata): dismal kludge in the absence of get_metadata()
-      if (defined(metadata) && current_toolchain == toolchain.label) {
-        data =
-            rebase_path(rebase_path([
-                                      "$target_gen_dir/$target_name.manifest",
-                                      "$target_gen_dir/$target_name.d",
-                                    ],
-                                    root_gen_dir,
-                                    root_build_dir),
-                        "",
-                        "$root_build_dir/bootfs-$current_cpu")
-        write_file(data[0], metadata.manifest_lines)
-        write_file(data[1],
-                   rebase_path(metadata.manifest_inputs, root_build_dir))
+        # Also define an alias with the variant suffix.  _variant_target will
+        # make this redirect to the specific variant toolchain chosen for
+        # this target.  In only that toolchain, the metadata will give the
+        # binary a second install path with the variant suffix.
+        target.variant_metadata = {
+          manifest_inputs = [ output_file ]
+          manifest_lines = [ "${install_path}${toolchain.variant_suffix}=" +
+                             rebase_path(output_file, root_build_dir) ]
+        }
       }
     }
   }
@@ -972,6 +1048,10 @@ template("loadable_module") {
     }
 
     metadata = {
+      if (defined(invoker.metadata)) {
+        forward_variables_from(invoker.metadata, "*")
+      }
+
       # Every terminal target provides these metadata keys.  The first two
       # are used as data keys for the output of the link, $link_output for
       # GN file contexts and $link_output_arg for command-line contexts.
@@ -980,20 +1060,15 @@ template("loadable_module") {
       link_output = [ output_file ]
       link_output_arg = rebase_path(link_output, root_build_dir)
       link_barrier = []
-
-      if (defined(invoker.install_path)) {
-        manifest_inputs = []
-        manifest_lines = []
-        if (defined(invoker.metadata)) {
-          forward_variables_from(invoker.metadata, "*")
-        }
-        manifest_inputs += [ output_file ]
-        manifest_lines +=
-            [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
-      }
     }
 
     if (defined(invoker.install_path)) {
+      target.main_metadata = {
+        manifest_inputs = [ output_file ]
+        manifest_lines =
+            [ "${install_path}=" + rebase_path(output_file, root_build_dir) ]
+      }
+
       # Also define an alias with the variant suffix.  _variant_target will
       # make this redirect to the specific variant toolchain chosen for
       # this target.  In only that toolchain, the metadata will give the
@@ -1002,28 +1077,13 @@ template("loadable_module") {
       if (extension != "") {
         extension = ".$extension"
       }
-      target.variant_suffix_metadata = {
+      target.variant_metadata = {
         manifest_inputs = [ output_file ]
         manifest_lines = [ get_path_info(invoker.install_path, "dir") + "/" +
                            get_path_info(invoker.install_path, "name") +
                            toolchain.variant_suffix + extension + "=" +
                            rebase_path(output_file, root_build_dir) ]
       }
-    }
-
-    # TODO(get_metadata): dismal kludge in the absence of get_metadata()
-    if (defined(invoker.install_path) && invoker.install_path != false &&
-        (!defined(toolchain.shlib) || current_toolchain == toolchain.shlib)) {
-      data = rebase_path(rebase_path([
-                                       "$target_gen_dir/$target_name.manifest",
-                                       "$target_gen_dir/$target_name.d",
-                                     ],
-                                     root_gen_dir,
-                                     root_build_dir),
-                         "",
-                         "$root_build_dir/bootfs-$current_cpu")
-      write_file(data[0], metadata.manifest_lines)
-      write_file(data[1], rebase_path(metadata.manifest_inputs, root_build_dir))
     }
   }
 }
@@ -1069,6 +1129,7 @@ template("driver") {
     if (!defined(output_name)) {
       output_name = target_name
     }
+
     # Set the standard install_path.
     if (!defined(install_path)) {
       install_path = "driver/${output_name}.so"
@@ -1086,6 +1147,7 @@ template("test_driver") {
                              "visibility",
                            ])
     forward_variables_from(invoker, [ "visibility" ])
+
     # Elaborate the defaults to compute the output file name.
     if (!defined(output_name)) {
       output_name = target_name
@@ -1094,42 +1156,11 @@ template("test_driver") {
   }
 }
 
-if (!is_host && !is_kernel &&
-    # TODO(get_metadata): shlib exclusion only needed due to dismal kludge
-    defined(toolchain.shlib) && toolchain.label != toolchain.shlib) {
-  template("executable") {
-    executable_name = target_name
-    action(executable_name) {  # TODO(get_metadata): oy upon oy
-      forward_variables_from(invoker,
-                             [
-                               "testonly",
-                               "visibility",
-                             ])
-      script = "/usr/bin/touch"
-      outputs = [
-        "$target_out_dir/$executable_name.bogostamp",
-      ]
-      args = rebase_path(outputs, root_build_dir)
-      data_deps = [
-        ":_bin.$executable_name",
-      ]
-    }
-    _basic_executable("_bin.$executable_name") {  # TODO(get_metadata): just target_name
-      target_type = "executable"
-      forward_variables_from(invoker, "*", [ "visibility" ])
-      forward_variables_from(invoker, [ "visibility" ])
-      if (!defined(output_name)) {
-        output_name = executable_name
-      }
-    }
-  }
-} else {
-  template("executable") {
-    _basic_executable(target_name) {
-      target_type = "executable"
-      forward_variables_from(invoker, "*", [ "visibility" ])
-      forward_variables_from(invoker, [ "visibility" ])
-    }
+template("executable") {
+  _basic_executable(target_name) {
+    target_type = "executable"
+    forward_variables_from(invoker, "*", [ "visibility" ])
+    forward_variables_from(invoker, [ "visibility" ])
   }
 }
 
@@ -1159,20 +1190,18 @@ template("test") {
         output_extension = toolchain.executable_extension
       }
 
-      # TODO(get_metadata): shlib exclusion required only due to dismal kludge
-      if (!defined(toolchain.shlib) || toolchain.label != toolchain.shlib) {
-        if (!is_host && !defined(install_path)) {
-          if (defined(invoker.test_group)) {
-            test_group = invoker.test_group
-          } else {
-            test_group = "sys"
-          }
-          install_path = "test/$test_group/$output_name"
-          if (output_extension != "") {
-            install_path += ".$output_extension"
-          }
+      if (!is_host && !defined(install_path)) {
+        if (defined(invoker.test_group)) {
+          test_group = invoker.test_group
+        } else {
+          test_group = "sys"
+        }
+        install_path = "test/$test_group/$output_name"
+        if (output_extension != "") {
+          install_path += ".$output_extension"
         }
       }
+
       if (is_host) {
         metadata = {  # TODO: host test metadata
         }

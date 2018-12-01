@@ -190,10 +190,7 @@ if (current_toolchain == default_toolchain) {
 
   zircon_raw = "$target_out_dir/zircon.bin"
   image_binary("raw") {
-    visibility = [
-      ":fixups",
-      ":image",
-    ]
+    visibility = [ ":*" ]
     deps = [
       ":zircon",
     ]
@@ -209,7 +206,7 @@ if (current_toolchain == default_toolchain) {
   # the kernel at boot.  This generates the "kernel-fixups.inc" file that's
   # #include'd by "arch/$zircon_cpu/image.S".
   toolchain_utils_action("fixups") {
-    visibility = [ ":image" ]
+    visibility = [ ":*" ]
     deps = [
       ":zircon",
     ]
@@ -233,7 +230,7 @@ if (current_toolchain == default_toolchain) {
   }
 
   executable("image") {
-    visibility = [ ":kernel" ]
+    visibility = [ ":*" ]
     configs += [ ":kernel_defsym" ]
     deps = [
       ":fixups",
