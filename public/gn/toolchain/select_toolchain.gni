@@ -102,9 +102,12 @@ template("select_toolchain") {
   # likely to be selected for an arbitrary target in the selected environment.
   # That will dispatch to the correct variant for each particular target.
   foreach(default, default_variants) {
-    if (!defined(variant) && default == {
-                               variant = default.variant
-                             }) {
+    if (!defined(variant) &&
+        (!defined(default.environment) || default.environment == [] ||
+         default.environment + [ environment ] - [ environment ] !=
+         default.environment ||
+         default.environment + [ base_environment ] - [ base_environment ] !=
+         default.environment)) {
       variant = default.variant
     }
   }

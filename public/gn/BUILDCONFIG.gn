@@ -1281,7 +1281,6 @@ template("host_tool") {
 # compile `sources` with the $current_toolchain tools.  All these get a
 # default `configs` below, so targets use `configs +=` and `configs -=`.
 _compile_target_types = [
-  "driver",
   "executable",
   "host_tool",
   "library",
@@ -1290,8 +1289,13 @@ _compile_target_types = [
   "source_set",
   "static_library",
   "test",
-  "test_driver",
 ]
+if (toolchain.environment == "user") {
+  _compile_target_types += [
+    "driver",
+    "test_driver",
+  ]
+}
 
 # ${toolchain.configs} gives the initial `configs` set for every compile
 # target in this toolchain.  Targets use `+=` rather than `=` unless they

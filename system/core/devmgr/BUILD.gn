@@ -29,7 +29,7 @@ foreach(other, toolchain.other_variants) {
 foreach(variant, variant_suffixes) {
   group("driver_config$variant") {
     data_deps = [
-      "devhost:devhost$variant",
+      "devhost:devhost$variant(${toolchain.label})",
     ]
   }
 }
