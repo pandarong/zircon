@@ -887,43 +887,66 @@ template("_variant_target") {
       }
     }
 
-    # The variant-suffixed target redirects to the builder target but also
-    # adds the metadata--different metadata than the main target above.
-    extra_visibility += [ ":$variant_target_name" ]
-    group(variant_target_name) {
-      forward_variables_from(invoker,
-                             [
-                               "testonly",
-                               "visibility",
-                             ])
-      public_deps = [
-        ":$builder_target_name",
-      ]
-      metadata = {
-        if (defined(invoker.metadata)) {
-          forward_variables_from(invoker.metadata, "*")
-          assert(!defined(manifest_inputs) && !defined(manifest_lines),
-                 "the `manifest_inputs` and `manifest_lines` metadata keys" +
-                     " are reserved for standard templates; use resource()")
-        }
-        forward_variables_from(target.variant_metadata, "*")
+    # The metadata-defining targets must be defined in the shlib toolchain so
+    # that their $root_out_dir-based expansions are correct.  Both targets in
+    # the main toolchain just redirect to the shlib toolchain.
+    if (defined(target.shlib) && target.shlib && defined(toolchain.shlib) &&
+        current_toolchain != toolchain.shlib) {
+      group(variant_target_name) {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        public_deps = [
+          ":$variant_target_name(${toolchain.shlib})",
+        ]
       }
-    }
 
-    # Finally, define the actual builder target--with no metadata.
-    target(target.type, builder_target_name) {
-      forward_variables_from(invoker,
-                             "*",
-                             [
-                               "metadata",
-                               "output_name",
-                               "target",
-                               "visibility",
-                             ])
-      output_name = output_name
-      if (defined(invoker.visibility)) {
-        # Make sure we're visible to the redirector groups.
-        visibility = invoker.visibility + extra_visibility
+      not_needed(invoker, "*")
+      not_needed([
+                   "builder_target_name",
+                   "output_name",
+                 ])
+    } else {
+      # The variant-suffixed target redirects to the builder target but also
+      # adds the metadata--different metadata than the main target above.
+      extra_visibility += [ ":$variant_target_name" ]
+      group(variant_target_name) {
+        forward_variables_from(invoker,
+                               [
+                                 "testonly",
+                                 "visibility",
+                               ])
+        public_deps = [
+          ":$builder_target_name",
+        ]
+        metadata = {
+          if (defined(invoker.metadata)) {
+            forward_variables_from(invoker.metadata, "*")
+            assert(!defined(manifest_inputs) && !defined(manifest_lines),
+                   "the `manifest_inputs` and `manifest_lines` metadata keys" +
+                       " are reserved for standard templates; use resource()")
+          }
+          forward_variables_from(target.variant_metadata, "*")
+        }
+      }
+
+      # Finally, define the actual builder target--with no metadata.
+      target(target.type, builder_target_name) {
+        forward_variables_from(invoker,
+                               "*",
+                               [
+                                 "metadata",
+                                 "output_name",
+                                 "target",
+                                 "visibility",
+                               ])
+        output_name = output_name
+        if (defined(invoker.visibility)) {
+          # Make sure we're visible to the redirector groups.
+          visibility = invoker.visibility + extra_visibility
+        }
       }
     }
   }
