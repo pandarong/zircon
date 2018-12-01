@@ -315,6 +315,7 @@ template("shared_library") {
                              ])
       forward_variables_from(invoker, [ "visibility" ])
 
+      # Elaborate the toolchain's defaults to compute the output file name.
       if (!defined(output_name)) {
         output_name = target_name
       }
@@ -328,6 +329,11 @@ template("shared_library") {
       }
 
       metadata = {
+        # Every terminal target provides these metadata keys.  The first two
+        # are used as data keys for the output of the link, $link_output for
+        # GN file contexts and $link_output_arg for command-line contexts.
+        # The third is used as a walk key to provide a dependency barrier
+        # against e.g. shared_library() deps or other executable() data_deps.
         link_output = [ output_file ]
         link_output_arg = rebase_path(link_output, root_build_dir)
         link_barrier = []
@@ -863,6 +869,7 @@ template("_basic_executable") {
       deps += invoker.deps
     }
 
+    # Elaborate the toolchain's defaults to compute the output file name.
     if (!defined(output_name)) {
       output_name = target_name
     }
@@ -879,6 +886,12 @@ template("_basic_executable") {
       if (defined(invoker.metadata)) {
         forward_variables_from(invoker.metadata, "*")
       }
+
+      # Every terminal target provides these metadata keys.  The first two
+      # are used as data keys for the output of the link, $link_output for
+      # GN file contexts and $link_output_arg for command-line contexts.
+      # The third is used as a walk key to provide a dependency barrier
+      # against e.g. shared_library() deps or other executable() data_deps.
       link_output = [ output_file ]
       link_output_arg = rebase_path(link_output, root_build_dir)
       link_barrier = []
@@ -945,6 +958,7 @@ template("loadable_module") {
                            ])
     forward_variables_from(invoker, [ "visibility" ])
 
+    # Elaborate the toolchain's defaults to compute the output file name.
     if (!defined(output_name)) {
       output_name = target_name
     }
@@ -958,6 +972,11 @@ template("loadable_module") {
     }
 
     metadata = {
+      # Every terminal target provides these metadata keys.  The first two
+      # are used as data keys for the output of the link, $link_output for
+      # GN file contexts and $link_output_arg for command-line contexts.
+      # The third is used as a walk key to provide a dependency barrier
+      # against e.g. shared_library() deps or other executable() data_deps.
       link_output = [ output_file ]
       link_output_arg = rebase_path(link_output, root_build_dir)
       link_barrier = []
@@ -1046,10 +1065,11 @@ template("driver") {
                          "driver() targets cannot depend on shared libraries")
     }
 
-    # Set the standard install_path.
+    # Elaborate the defaults to compute the output file name.
     if (!defined(output_name)) {
       output_name = target_name
     }
+    # Set the standard install_path.
     if (!defined(install_path)) {
       install_path = "driver/${output_name}.so"
     }
@@ -1066,6 +1086,7 @@ template("test_driver") {
                              "visibility",
                            ])
     forward_variables_from(invoker, [ "visibility" ])
+    # Elaborate the defaults to compute the output file name.
     if (!defined(output_name)) {
       output_name = target_name
     }
