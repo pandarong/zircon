@@ -199,15 +199,15 @@ standard_variants = [
       ]
     }
   },
-#  {
-#    variant = {
-#      name = "asan-ubsan"
-#      bases = [
-#        "asan",
-#        "ubsan",
-#      ]
-#    }
-#  },
+  {
+    variant = {
+      name = "asan-ubsan"
+      bases = [
+        "asan",
+        "ubsan",
+      ]
+    }
+  },
 ]
 
 # This list is appended to the $variants list for the build.  It provides

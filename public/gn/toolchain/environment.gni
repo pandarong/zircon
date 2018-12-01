@@ -321,11 +321,15 @@ template("define_environment") {
     bases += [ incomplete ]
     toolchain_variants += [
       {
+        name = incomplete.name
+
         # Append each list from all the bases.
         configs = []
         tags = []
         foreach(base, bases) {
           configs += base.configs
+          tags += base.tags
+          tags -= base.tags
           tags += base.tags
         }
 
