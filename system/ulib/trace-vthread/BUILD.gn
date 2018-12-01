@@ -1,0 +1,40 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+library("trace-vthread") {
+  sources = [
+    "event_vthread.cpp",
+  ]
+  deps = [
+    "$zx/public/gn/config:visibility_hidden",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/trace",
+    "$zx/system/ulib/zircon",
+  ]
+}
+
+test("trace-vthread-test") {
+  sources = [
+    "event_vthread_tests.cpp",
+  ]
+  deps = [
+    "$zx/system/ulib/async",
+    "$zx/system/ulib/async-loop",
+    "$zx/system/ulib/async-loop.cpp",
+    "$zx/system/ulib/async.cpp",
+    "$zx/system/ulib/async.default",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/trace",
+    "$zx/system/ulib/trace-engine",
+    "$zx/system/ulib/trace-provider.handler",
+    "$zx/system/ulib/trace-reader",
+    "$zx/system/ulib/trace-test-utils",
+    "$zx/system/ulib/trace-vthread",
+    "$zx/system/ulib/unittest",
+    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
+  ]
+}
