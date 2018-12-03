@@ -322,6 +322,9 @@ typedef uint64_t zx_off_t;
 #define ZX_BTI_COMPRESS           ((uint32_t)1u << 3)
 #define ZX_BTI_CONTIGUOUS         ((uint32_t)1u << 4)
 
+// Pager op flags.
+#define ZX_PAGER_OP_SUPPLY_PAGES        ((uint32_t) 0)
+
 typedef uint32_t zx_obj_type_t;
 
 #define ZX_OBJ_TYPE_NONE            ((zx_obj_type_t)0u)
