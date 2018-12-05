@@ -20,6 +20,7 @@ source_set("syscalls") {
     "hypervisor.cpp",
     "object.cpp",
     "object_wait.cpp",
+    "pager.cpp",
     "port.cpp",
     "profile.cpp",
     "resource.cpp",

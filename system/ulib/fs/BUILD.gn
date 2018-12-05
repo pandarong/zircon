@@ -29,6 +29,7 @@ library("fs") {
       "handler.c",
       "lazy-dir.cpp",
       "managed-vfs.cpp",
+      "metrics.cpp",
       "mount.cpp",
       "pseudo-dir.cpp",
       "pseudo-file.cpp",
@@ -47,13 +48,17 @@ library("fs") {
     ]
     configs += [ "$zx/public/gn/config:visibility_hidden" ]
     deps += [
+      "$zx/system/fidl/fuchsia-cobalt:c",
       "$zx/system/fidl/fuchsia-io:c",
+      "$zx/system/fidl/fuchsia-mem:c",
       "$zx/system/ulib/async",
       "$zx/system/ulib/async:async-cpp",
+      "$zx/system/ulib/cobalt-client",
       "$zx/system/ulib/fbl",
       "$zx/system/ulib/fdio",
       "$zx/system/ulib/fidl",
       "$zx/system/ulib/fidl-utils",
+      "$zx/system/ulib/fzl",
       "$zx/system/ulib/sync",
       "$zx/system/ulib/trace",
       "$zx/system/ulib/trace-engine",

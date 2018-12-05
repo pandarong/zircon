@@ -22,7 +22,6 @@ test("trace") {
     "$zx/system/ulib/async-loop",
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
     "$zx/system/ulib/trace",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/trace-provider:trace-handler",
@@ -32,5 +31,9 @@ test("trace") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
+
+    # fdio is here so that things like printf work.
+    # Otherwise they silently fail (output is dropped).
+    "$zx/system/ulib/fdio",
   ]
 }

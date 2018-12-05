@@ -54,7 +54,6 @@ group("uapp") {
     "nand-loader",
     "nand-util",
     "netdump",
-    "netreflector",
     "ping",
     "psutils",
     "rng-trials",

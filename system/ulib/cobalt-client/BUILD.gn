@@ -3,13 +3,16 @@
 # found in the LICENSE file.
 
 library("cobalt-client") {
+  host = true
   sources = [
-    "cobalt_logger.cpp",
     "collector.cpp",
     "counter.cpp",
     "histogram.cpp",
     "metric_info.cpp",
   ]
+  if (is_fuchsia) {
+    sources += [ "cobalt_logger.cpp" ]
+  }
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   public_deps = [
     # <cobalt-client/cpp/timer.h> has #include <lib/fzl/time.h>.

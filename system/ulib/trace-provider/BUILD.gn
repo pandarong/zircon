@@ -4,7 +4,9 @@
 
 library("trace-provider") {
   sources = [
+    "fdio_connect.cpp",
     "provider_impl.cpp",
+    "provider_with_fdio.cpp",
     "session.cpp",
     "trace_provider.fidl.client.cpp",
     "trace_provider.fidl.h",
