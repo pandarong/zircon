@@ -10,7 +10,7 @@
 #include <zircon/types.h>
 #include <zircon/hw/usb.h>
 #include <zircon/hw/usb-hub.h>
-#include <ddk/protocol/usb-hub.h>
+#include <ddk/protocol/usb/hub.h>
 
 __BEGIN_CDECLS;
 
@@ -21,7 +21,7 @@ typedef struct usb_bus_protocol_ops {
     zx_status_t (*hub_device_added)(void* ctx, zx_device_t* hub_device, int port,
                                     usb_speed_t speed);
     zx_status_t (*hub_device_removed)(void* ctx, zx_device_t* hub_device, int port);
-    zx_status_t (*set_hub_interface)(void* ctx, zx_device_t* usb_device, usb_hub_interface_t* hub);
+    zx_status_t (*set_hub_interface)(void* ctx, zx_device_t* usb_device, usb_hub_protocol_t* hub);
 } usb_bus_protocol_ops_t;
 
 typedef struct usb_bus_protocol {
@@ -46,7 +46,7 @@ static inline zx_status_t usb_bus_hub_device_removed(usb_bus_protocol_t* bus,
 }
 
 static inline zx_status_t usb_bus_set_hub_interface(usb_bus_protocol_t* bus,
-                                                    zx_device_t* usb_device, usb_hub_interface_t* hub) {
+                                                    zx_device_t* usb_device, usb_hub_protocol_t* hub) {
     return bus->ops->set_hub_interface(bus->ctx, usb_device, hub);
 }
 

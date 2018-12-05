@@ -97,7 +97,7 @@ static zx_status_t bus_device_removed(void* ctx, zx_device_t* hub_device, int po
     return usb_hci_hub_device_removed(&bus->hci, hub_id, port);
 }
 
-static zx_status_t bus_set_hub_interface(void* ctx, zx_device_t* usb_device, usb_hub_interface_t* hub) {
+static zx_status_t bus_set_hub_interface(void* ctx, zx_device_t* usb_device, usb_hub_protocol_t* hub) {
     usb_bus_t* bus = ctx;
     uint32_t usb_device_id;
     if (bus_get_device_id(usb_device, &usb_device_id) != ZX_OK) {

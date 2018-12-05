@@ -7,7 +7,7 @@
 #include <ddk/binding.h>
 #include <ddk/device.h>
 #include <ddk/protocol/usb-hci.h>
-#include <ddk/protocol/usb-hub.h>
+#include <ddk/protocol/usb/hub.h>
 #include <ddk/protocol/usb.h>
 #include <usb/usb-request.h>
 #include <lib/sync/completion.h>
@@ -32,7 +32,7 @@ typedef struct usb_device {
     usb_speed_t speed;
 
     // Interface to talk to the hub driver
-    usb_hub_interface_t hub_intf;
+    usb_hub_protocol_t hub_intf;
 
     usb_device_descriptor_t device_desc;
     usb_configuration_descriptor_t** config_descs;
@@ -69,7 +69,7 @@ typedef struct usb_device_req_internal {
     list_node_t node;
 } usb_device_req_internal_t;
 
-void usb_device_set_hub_interface(usb_device_t* dev, usb_hub_interface_t* hub_intf);
+void usb_device_set_hub_interface(usb_device_t* dev, usb_hub_protocol_t* hub_intf);
 
 zx_status_t usb_device_add(usb_bus_t* bus, uint32_t device_id, uint32_t hub_id,
                            usb_speed_t speed, usb_device_t** out_device);

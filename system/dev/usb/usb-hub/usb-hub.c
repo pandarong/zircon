@@ -8,7 +8,7 @@
 #include <ddk/driver.h>
 #include <ddk/protocol/usb.h>
 #include <ddk/protocol/usb-bus.h>
-#include <ddk/protocol/usb-hub.h>
+#include <ddk/protocol/usb/hub.h>
 #include <ddk/usb/usb.h>
 #include <usb/usb-request.h>
 #include <zircon/hw/usb-hub.h>
@@ -217,18 +217,20 @@ static void usb_hub_port_connected(usb_hub_t* hub, int port) {
     usb_hub_port_enabled(hub, port);
 }
 
-static void usb_hub_port_reset(void* ctx, uint32_t port) {
+static zx_status_t usb_hub_port_reset(void* ctx, uint32_t port) {
     port_status_t status;
     usb_hub_t* hub = ctx;
 
     usb_set_feature(&hub->usb, USB_RECIP_PORT, USB_FEATURE_PORT_RESET, port, ZX_TIME_INFINITE);
-    if (usb_hub_wait_for_port(hub, port, &status, USB_PORT_ENABLE, USB_PORT_ENABLE | USB_PORT_RESET,
-                              ZX_MSEC(100)) != ZX_OK) {
+    status = usb_hub_wait_for_port(hub, port, &status, USB_PORT_ENABLE,
+                                   USB_PORT_ENABLE | USB_PORT_RESET, ZX_MSEC(100));
+    if (status != ZX_OK) {
         zxlogf(ERROR, "usb_hub_wait_for_port USB_PORT_RESET failed for USB hub, port %d\n", port);
     }
+    return status;
 }
 
-static usb_hub_interface_ops_t _hub_interface = {
+static usb_hub_protocol_ops_t _hub_interface = {
     .reset_port = usb_hub_port_reset,
 };
 
@@ -501,7 +503,7 @@ static zx_status_t usb_hub_bind(void* ctx, zx_device_t* device) {
         return status;
     }
 
-    static usb_hub_interface_t hub_intf;
+    static usb_hub_protocol_t hub_intf;
     hub_intf.ops = &_hub_interface;
     hub_intf.ctx = hub;
     usb_bus_set_hub_interface(&bus, hub->usb_device, &hub_intf);
