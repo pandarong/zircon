@@ -4,7 +4,7 @@
 
 #include <ddk/debug.h>
 #include <ddk/protocol/usb.h>
-#include <ddk/protocol/usb-bus.h>
+#include <ddk/protocol/usb/bus.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
