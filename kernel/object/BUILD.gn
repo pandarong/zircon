@@ -29,6 +29,7 @@ library("object") {
     "log_dispatcher.cpp",
     "mbuf.cpp",
     "message_packet.cpp",
+    "pager_dispatcher.cpp",
     "pci_device_dispatcher.cpp",
     "pci_interrupt_dispatcher.cpp",
     "pinned_memory_token_dispatcher.cpp",

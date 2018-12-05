@@ -4,7 +4,6 @@
 
 driver("hikey-usb") {
   sources = [
-    "bind.c",
     "hikey-usb.cpp",
   ]
   deps = [

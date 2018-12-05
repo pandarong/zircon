@@ -4,7 +4,6 @@
 
 driver("xhci") {
   sources = [
-    "bind.c",
     "usb-xhci.cpp",
     "xdc-transfer.cpp",
     "xdc.cpp",

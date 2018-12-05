@@ -4,7 +4,6 @@
 
 driver("dwc3") {
   sources = [
-    "bind.c",
     "dwc3-commands.cpp",
     "dwc3-endpoints.cpp",
     "dwc3-ep0.cpp",

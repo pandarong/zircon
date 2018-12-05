@@ -29,6 +29,7 @@ driver("bus-pci") {
     deps += [
       "$zx/system/ulib/ddktl",
       "$zx/system/ulib/fbl",
+      "$zx/system/ulib/pretty",
       "$zx/system/ulib/zxcpp",
     ]
   } else {

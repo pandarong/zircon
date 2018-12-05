@@ -5,6 +5,7 @@
 group("usb-test") {
   testonly = true
   deps = [
+    "flash-programmer",
     "fx3",
     "usb-tester",
   ]

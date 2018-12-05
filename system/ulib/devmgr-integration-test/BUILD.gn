@@ -2,17 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("usb-test-fwloader") {
+library("devmgr-integration-test") {
   testonly = true
+  shared = true
   sources = [
-    "usb-test-fwloader.cpp",
+    "file-wait.cpp",
+    "launcher.cpp",
   ]
   deps = [
-    "$zx/system/fidl/zircon-usb-test-fwloader:c",
-    "$zx/system/fidl/zircon-usb-tester:c",
+    "$zx/system/ulib/devmgr-launcher",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
-    "$zx/system/ulib/fzl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
