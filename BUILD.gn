@@ -60,7 +60,7 @@ foreach(cpu, standard_fuchsia_cpus) {
     }
 
     # TODO(get_metadata): dismal kludge
-    deps += [ ":$cpu.zbi" ]
+    #deps += [ ":$cpu.zbi" ]
   }
 }
 
@@ -79,7 +79,7 @@ group("all-cpu") {
   testonly = true
   deps = []
   foreach(cpu, standard_fuchsia_cpus) {
-    deps += [ ":$cpu" ]
+    deps += [ ":$cpu.zbi" ]
   }
 
   # TODO(get_metadata): dismal kludge, used below
@@ -96,21 +96,33 @@ group("default") {
 
 # TODO(get_metadata): dismal kludge
 foreach(cpu, standard_fuchsia_cpus) {
-  action("bootfs-$cpu.manifest") {
-    testonly = true
-    script = "munge-manifest.sh"
-    deps = [
-      ":fmh",
-    ]
-    outputs = [
-      "$root_build_dir/$target_name",
-    ]
-    sources = [
-      "$root_build_dir/runtime_deps",
-    ]
-    depfile = "${outputs[0]}.d"
-    args = rebase_path(outputs + sources + [ depfile ], root_build_dir) +
-           [ "bootfs-$cpu" ]
+  if (false) {
+    action("bootfs-$cpu.manifest") {
+      testonly = true
+      script = "munge-manifest.sh"
+      deps = [
+        ":fmh",
+      ]
+      outputs = [
+        "$root_build_dir/$target_name",
+      ]
+      sources = [
+        "$root_build_dir/runtime_deps",
+      ]
+      depfile = "${outputs[0]}.d"
+      args = rebase_path(outputs + sources + [ depfile ], root_build_dir) +
+             [ "bootfs-$cpu" ]
+    }
+  } else {
+    write_data("bootfs-$cpu.manifest") {
+      testonly = true
+      deps = [
+        ":$cpu",
+      ]
+      write_data_output = "$root_build_dir/$target_name"
+      write_output_conversion = "list lines"
+      data_keys = [ "manifest_lines" ]
+    }
   }
 
   host_tool_action("$cpu.zbi") {
@@ -128,7 +140,11 @@ foreach(cpu, standard_fuchsia_cpus) {
     deps = [
       ":bootfs-$cpu.manifest",
     ]
-    sources = get_target_outputs(deps[0])
+    sources = [
+      "$root_build_dir/bootfs-$cpu.manifest",
+    ]
+
+    #sources = get_target_outputs(deps[0])
     foreach(target, public_targets + testonly_public_targets) {
       deps += [ "$zx/public/$target:$cpu" ]
     }
