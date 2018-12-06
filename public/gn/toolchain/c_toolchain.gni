@@ -146,25 +146,49 @@ template("define_c_toolchain") {
     outfile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
     runtime_outputs = [ outfile ]
     outputs = runtime_outputs
+
+    # All others are ELF and so might have build IDs.
+    make_id_link = invoker.os != "mac" && invoker.os != "win"
+    if (make_id_link) {
+      id_dir = ".build-id"
+    }
+
     if (use_strip) {
       unstripped_outfile = "${outfile}.debug"
       outputs += [ unstripped_outfile ]
       strip_command = " && "
-      if (invoker.strip == true) {
+      if (invoker.strip == true && !make_id_link) {
         strip_command +=
             "$dir_prefix${tc.tool_prefix}strip -o $outfile $unstripped_outfile"
       } else {
-        strip_command += "$dir_prefix${tc.tool_prefix}objcopy ${invoker.strip} $unstripped_outfile $outfile"
+        if (invoker.strip == true) {
+          strip_switch = "--strip-all"
+        } else {
+          strip_switch = invoker.strip
+        }
+        if (make_id_link && !use_gcc) {
+          # llvm-objcopy has built-in support for populating $id_dir.
+          strip_switch +=
+              " --build-id-link-dir=$id_dir" + " --build-id-link-output=" +
+              " --build-id-link-input=.debug"
+          make_id_link = false
+        }
+        strip_command += "$dir_prefix${tc.tool_prefix}objcopy ${strip_switch} $unstripped_outfile $outfile"
       }
     } else {
       unstripped_outfile = outfile
       strip_command = ""
     }
-    if (invoker.os != "mac" && invoker.os != "win") {  # All others are ELF.
+
+    if (make_id_link) {
       readelf = "$dir_prefix${tc.tool_prefix}readelf"
-      id_dir = "build-id"
-      strip_command += " && notes=\$(\"$readelf\" -n $unstripped_outfile) && id=\"\${notes##*Build ID: }\" && nl=\$(echo; echo '*') && id=\"\${id%%\$nl}\" && { test -z \"\$id\" || { mkdir -p \"$id_dir/\${id:0:2}\" && ln -f $unstripped_outfile \"$id_dir/\${id:0:2}/\${id:2}\" ; } ; }"
+      # This works with bash, but ${var:n:m} syntax is not standard.
+      #strip_command += " && notes=\$(\"$readelf\" -n $unstripped_outfile) && id=\"\${notes##*Build ID: }\" && nl=\$(echo; echo '*') && id=\"\${id%%\$nl}\" && { test -z \"\$id\" || { mkdir -p \"$id_dir/\${id:0:2}\" && ln -f $unstripped_outfile \"$id_dir/\${id:0:2}/\${id:2}.debug\" && ln -f $outfile \"$id_dir/\${id:0:2}/\${id:2}\" ; } ; }"
+
+      # This works with any POSIX-compliant sh and sed.
+      strip_command += " && eval \$(\"$readelf\" -n $unstripped_outfile | sed -n 's/.*Build ID: \\(..\\)\\(.*\\)\$/id0=\\1 id1=\\2/p') && { test -z \"\$id0\" || { mkdir -p \"$id_dir/\$id0\" && ln -f $unstripped_outfile \"$id_dir/\$id0/\$id1.debug\" && ln -f $outfile \"$id_dir/\$id0/\$id1\" ; } ; }"
     }
+
     rspfile = "${outfile}.rsp"
     switches = "-o $unstripped_outfile {{ldflags}}"
     if (invoker.os == "mac") {
