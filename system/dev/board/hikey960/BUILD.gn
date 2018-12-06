@@ -11,6 +11,7 @@ driver("hikey960") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-usb-mode-switch",
     "$zx/system/banjo/ddk-protocol-gpio-impl",
     "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-iommu",

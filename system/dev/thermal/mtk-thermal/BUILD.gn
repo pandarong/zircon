@@ -2,23 +2,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("dwc3") {
+driver("mtk-thermal") {
   sources = [
-    "dwc3-commands.cpp",
-    "dwc3-endpoints.cpp",
-    "dwc3-ep0.cpp",
-    "dwc3-events.cpp",
-    "dwc3.cpp",
+    "binding.c",
+    "mtk-thermal.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-clk",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/banjo/ddk-protocol-usb-mode-switch",
-    "$zx/system/dev/lib/usb",
+    "$zx/system/banjo/ddk-protocol-scpi",
+    "$zx/system/dev/lib/mt8167",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/hwreg",
-    "$zx/system/ulib/pretty",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
