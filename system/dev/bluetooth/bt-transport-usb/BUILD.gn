@@ -8,6 +8,7 @@ driver("bt-transport-usb") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-bt-hci",
+    "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

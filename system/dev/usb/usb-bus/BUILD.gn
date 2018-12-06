@@ -10,6 +10,7 @@ driver("usb-bus") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-usb-bus",
+    "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/banjo/ddk-protocol-usb-hub",
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-device:c",
