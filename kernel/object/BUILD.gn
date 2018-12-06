@@ -26,6 +26,7 @@ library("object") {
     "interrupt_event_dispatcher.cpp",
     "iommu_dispatcher.cpp",
     "job_dispatcher.cpp",
+    "job_policy.cpp",
     "log_dispatcher.cpp",
     "mbuf.cpp",
     "message_packet.cpp",
@@ -33,7 +34,6 @@ library("object") {
     "pci_device_dispatcher.cpp",
     "pci_interrupt_dispatcher.cpp",
     "pinned_memory_token_dispatcher.cpp",
-    "policy_manager.cpp",
     "port_dispatcher.cpp",
     "process_dispatcher.cpp",
     "profile_dispatcher.cpp",
@@ -86,6 +86,7 @@ source_set("tests") {
   # TODO: testonly = true
   sources = [
     "buffer_chain_tests.cpp",
+    "job_policy_tests.cpp",
     "mbuf_tests.cpp",
     "message_packet_tests.cpp",
     "state_tracker_tests.cpp",
