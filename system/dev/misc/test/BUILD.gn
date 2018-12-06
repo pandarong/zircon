@@ -4,11 +4,12 @@
 
 driver("test") {
   sources = [
-    "test.c",
+    "test.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-test",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zxcpp",
   ]
 }

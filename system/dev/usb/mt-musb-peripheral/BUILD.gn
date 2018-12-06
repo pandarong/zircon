@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("mt-usb") {
+driver("mt-usb-peripheral") {
   sources = [
     "mt-usb.cpp",
   ]

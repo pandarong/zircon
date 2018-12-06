@@ -2,17 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-hub") {
+import("$zx/public/gn/banjo.gni")
+
+banjo_library("ddk-protocol-usb-bus") {
   sources = [
-    "usb-hub.c",
+    "usb-bus.banjo",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-usb-bus",
+    "$zx/system/banjo/ddk-driver",
     "$zx/system/banjo/ddk-protocol-usb-hub",
-    "$zx/system/dev/lib/usb",
-    "$zx/system/dev/lib/usb",
-    "$zx/system/ulib/ddk",
-    "$zx/system/ulib/sync",
-    "$zx/system/ulib/zircon",
   ]
 }

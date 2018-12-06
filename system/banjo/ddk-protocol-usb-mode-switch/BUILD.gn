@@ -1,0 +1,18 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("$zx/public/gn/banjo.gni")
+
+group("ddk-protocol-usb-mode-switch") {
+  # TODO: rename the dir
+  public_deps = [
+    ":ddk-protocol-usb-modeswitch",
+  ]
+}
+
+banjo_library("ddk-protocol-usb-modeswitch") {
+  sources = [
+    "usb-mode-switch.banjo",
+  ]
+}

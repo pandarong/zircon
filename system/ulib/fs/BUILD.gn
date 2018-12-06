@@ -26,7 +26,7 @@ library("fs") {
     sources += [
       "connection.cpp",
       "fvm.cpp",
-      "handler.c",
+      "handler.cpp",
       "lazy-dir.cpp",
       "managed-vfs.cpp",
       "metrics.cpp",

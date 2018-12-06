@@ -2,26 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("dwc3") {
+# TODO: test_driver?
+driver("flash-programmer") {
+  testonly = true
   sources = [
-    "dwc3-commands.cpp",
-    "dwc3-endpoints.cpp",
-    "dwc3-ep0.cpp",
-    "dwc3-events.cpp",
-    "dwc3.cpp",
+    "flash-programmer.cpp",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/banjo/ddk-protocol-usb-mode-switch",
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/hwreg",
-    "$zx/system/ulib/pretty",
-    "$zx/system/ulib/sync",
+    "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
 }

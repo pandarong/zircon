@@ -9,6 +9,7 @@ library("fidl") {
     "encoding.cpp",
     "epitaph.c",
     "formatting.cpp",
+    "handle_closing.cpp",
     "message.cpp",
     "message_buffer.cpp",
     "message_builder.cpp",
@@ -18,6 +19,7 @@ library("fidl") {
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
     "$zx/system/ulib/async",
+    "$zx/system/ulib/fit",
     "$zx/system/ulib/zircon",
   ]
 }
