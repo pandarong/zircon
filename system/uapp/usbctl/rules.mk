@@ -20,7 +20,9 @@ MODULE_LIBS := \
 MODULE_STATIC_LIBS := \
     system/ulib/fidl \
 
-MODULE_FIDL_LIBS := system/fidl/zircon-usb-peripheral
+MODULE_FIDL_LIBS := \
+    system/fidl/fuchsia-usb-virtual-bus \
+    system/fidl/zircon-usb-peripheral \
 
 MODULE_BANJO_LIBS := \
     system/banjo/ddk-protocol-usb-mode-switch \
