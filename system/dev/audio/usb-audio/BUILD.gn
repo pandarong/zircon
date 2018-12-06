@@ -18,6 +18,7 @@ driver("usb-audio") {
     "usb-midi-source.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",

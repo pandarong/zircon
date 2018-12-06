@@ -10,6 +10,7 @@ driver("fx3") {  # TODO: test_driver?
     "fx3.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",
