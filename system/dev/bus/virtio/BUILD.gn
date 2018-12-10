@@ -15,6 +15,7 @@ driver("virtio") {
     "input.cpp",
     "ring.cpp",
     "rng.cpp",
+    "socket.cpp",
     "virtio_c.c",
     "virtio_driver.cpp",
   ]
@@ -24,6 +25,9 @@ driver("virtio") {
     "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/banjo/ddk-protocol-pci",
+    "$zx/system/fidl/fuchsia-device-vsock:c",
+    "$zx/system/ulib/async:async-cpp",
+    "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

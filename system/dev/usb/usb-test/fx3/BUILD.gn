@@ -12,6 +12,7 @@ driver("fx3") {  # TODO: test_driver?
   deps = [
     "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
@@ -23,6 +24,7 @@ driver("fx3") {  # TODO: test_driver?
 
 firmware("firmware") {
   sources = [
+    "$firmware_dir/fx3-flash/cyfxflashprog.img",
     "$firmware_dir/usb-testing/fx3/fx3.img",
   ]
 }

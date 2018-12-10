@@ -69,7 +69,6 @@ group("uapp") {
     "tee-test",
     "thread-depth",
     "thread-stress",
-    "tpmctl",
     "trace-benchmark",
     "trace-example",
     "traceme",

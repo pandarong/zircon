@@ -5,11 +5,16 @@
 test("driver-tests") {
   test_group = "ddk"
   sources = [
-    "main.c",
+    "main.cpp",
   ]
   deps = [
+    "$zx/system/ulib/devmgr-integration-test",
+    "$zx/system/ulib/devmgr-launcher",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }

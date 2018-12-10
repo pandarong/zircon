@@ -58,6 +58,7 @@ if (current_toolchain == default_toolchain) {
       "parsing_tests.cpp",
       "superinterface_tests.cpp",
       "table_tests.cpp",
+      "types_tests.cpp",
       "using_tests.cpp",
       "visitor_unittests.cpp",
     ]

@@ -17,5 +17,6 @@ test_driver("ddk-test") {
     "$zx/system/ulib/sync",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
+    "$zx/system/dev/lib/fake-bti",
   ]
 }

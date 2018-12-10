@@ -4,12 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-usb-test-fwloader") {
-  testonly = true
+fidl_library("fuchsia-device-vsock") {
   sources = [
-    "usb-test-fwloader.fidl",
-  ]
-  deps = [
-    "$zx/system/fidl/fuchsia-mem",
+    "vsock.fidl",
   ]
 }
