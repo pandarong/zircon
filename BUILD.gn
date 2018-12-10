@@ -119,8 +119,10 @@ foreach(cpu, standard_fuchsia_cpus) {
       deps = [
         ":$cpu",
       ]
-      write_data_output = "$root_build_dir/$target_name"
-      write_output_conversion = "list lines"
+      outputs = [
+        "$root_build_dir/$target_name",
+      ]
+      output_conversion = "list lines"
       data_keys = [ "manifest_lines" ]
     }
   }
