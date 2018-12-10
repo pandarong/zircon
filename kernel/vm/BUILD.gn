@@ -11,6 +11,7 @@ library("vm") {
     "bootreserve.cpp",
     "kstack.cpp",
     "page.cpp",
+    "page_source.cpp",
     "pinned_vm_object.cpp",
     "pmm.cpp",
     "pmm_arena.cpp",

@@ -9,4 +9,7 @@ library("cmpctmalloc") {
   sources = [
     "cmpctmalloc.cpp",
   ]
+  deps = [
+    "$zx/kernel/lib/counters",
+  ]
 }

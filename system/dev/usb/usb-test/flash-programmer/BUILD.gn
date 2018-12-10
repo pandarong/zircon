@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("$zx/public/gn/firmware.gni")
+
 # TODO: test_driver?
 driver("flash-programmer") {
   testonly = true
@@ -9,7 +11,9 @@ driver("flash-programmer") {
     "flash-programmer.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/dev/lib/usb",
+    "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
@@ -17,5 +21,14 @@ driver("flash-programmer") {
     "$zx/system/ulib/fidl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zxcpp",
+  ]
+  data_deps = [
+    ":fx3-firmware",
+  ]
+}
+
+firmware("fx3-firmware") {
+  sources = [
+    "$firmware_dir/fx3-boot/Fx3BootAppGcc.img",
   ]
 }

@@ -2,15 +2,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-source_set("interrupt") {
-  testonly = true
+library("topology") {
+  host = true
+  kernel = true
   sources = [
-    "interrupt-test.cpp",
+    "system-topology.cpp",
   ]
   deps = [
-    "$zx/system/ulib/fdio",
+    "$zx/system/ulib/fbl",
+  ]
+}
+
+host_test("topology") {
+  sources = [
+    "system-topology_test.cpp",
+  ]
+  deps = [
+    ":topology",
     "$zx/system/ulib/unittest",
-    "$zx/system/ulib/zircon",
-    "$zx/system/ulib/zx",
   ]
 }
