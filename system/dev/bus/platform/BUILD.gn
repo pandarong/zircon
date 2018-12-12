@@ -12,7 +12,6 @@ group("platform") {
 driver("platform-bus") {
   sources = [
     "device-resources.cpp",
-    "platform-bus-bind.c",
     "platform-bus.cpp",
     "platform-device.cpp",
     "platform-i2c.cpp",

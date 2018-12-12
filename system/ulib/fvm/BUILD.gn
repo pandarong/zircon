@@ -6,8 +6,8 @@ library("fvm") {
   host = true
   sources = [
     "fvm-check.cpp",
-    "fvm-lz4.cpp",
     "fvm.cpp",
+    "sparse-reader.cpp",
   ]
   deps = [
     "$zx/system/ulib/digest",

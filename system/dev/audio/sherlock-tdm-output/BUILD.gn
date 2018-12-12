@@ -2,20 +2,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("mt-usb-peripheral") {
+driver("sherlock-tdm-output") {
   sources = [
-    "mt-usb.cpp",
+    "audio-stream-out.cpp",
+    "binding.c",
+    "tas5720.cpp",
+    "tas5760.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-i2c",
+    "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/dev/lib/mt8167",
-    "$zx/system/dev/lib/usb",
+    "$zx/system/dev/audio/lib/simple-audio-stream",
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/ulib/audio-driver-proto",
+    "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/dispatcher-pool",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/hwreg",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

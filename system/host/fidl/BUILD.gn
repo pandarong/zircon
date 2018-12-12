@@ -24,8 +24,13 @@ if (defined(zx)) {
       "lib/tables_generator.cpp",
       "lib/tree_visitor.cpp",
     ]
+    public_deps = [
+      # <fidl/flat_ast.h> has #include <lib/fit/function.h>.
+      "$zx/system/ulib/fit:headers",
+    ]
     deps = [
       ":json_schema",
+      "$zx/system/ulib/fit",
       "$zx/third_party/ulib/uboringssl",
     ]
   }
