@@ -8,6 +8,7 @@ test("debugger") {
     "utils.cpp",
   ]
   deps = [
+    "$zx/system/ulib/backtrace-request",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/runtime",
