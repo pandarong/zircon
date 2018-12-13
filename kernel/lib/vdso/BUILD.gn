@@ -38,11 +38,10 @@ library("vdso") {
       # <lib/rodso.h> has #include <object/handle.h>.
       "$zx/kernel/object",
     ]
-    if (false) {  # TODO(get_metadata)
-      inputs = [
-        get_metadata([ ":vdso-code-header" ], [ "link_output" ]),
-      ]
-    }
+    inputs = get_metadata([ ":vdso-code-header" ],
+                          [ "link_output" ],
+                          [ "link_barrier" ],
+                          true)
   }
 }
 
@@ -104,13 +103,6 @@ rodso_code_header("gen-vdso-code-header") {
   ]
   deps = [
     ":userland",
-  ]
-
-  # TODO(get_metadata): should be automatic via metadata; breaks variants, etc.
-  inputs = [
-    get_label_info(
-            "$zx/system/ulib/zircon:zircon.shared($zx/public/gn/toolchain:user-${current_cpu}-clang.shlib)",
-            "target_out_dir") + "/libzircon.so.debug",
   ]
 }
 
