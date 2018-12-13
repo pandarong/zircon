@@ -81,9 +81,18 @@ public:
     // Returns ZX_OK if the request was synchronously fulfilled.
     // Returns ZX_ERR_SHOULD_WAIT if the request will be asynchronously
     // fulfilled. The caller should wait on |req|.
+    // Returns ZX_ERR_NEXT if the PageRequest is in batch mode and the caller
+    // can continue to add more pages to the request.
     // Returns ZX_ERR_NOT_FOUND if the request cannot be fulfilled.
     zx_status_t GetPage(uint64_t offset, PageRequest* req,
                         vm_page_t** const page_out, paddr_t* const pa_out);
+
+    // Called to complete a batched PageRequest if the last call to GetPage
+    // returned ZX_ERR_NEXT.
+    //
+    // Returns ZX_OK if the PageRequest will be fulfilled after being waited upon.
+    // Returns ZX_ERR_NOT_FOUND if the request will never be resolved.
+    zx_status_t FinalizeRequest(PageRequest* node);
 
     // Updates the request tracking metadata to account for pages [offset, len) having
     // been supplied to the owning vmo.
@@ -106,6 +115,13 @@ private:
     // Tree of pending_request structs which have been sent to the callback.
     fbl::WAVLTree<uint64_t, PageRequest*> outstanding_requests_ TA_GUARDED(mtx_);
 
+    // Tracks the request currently being processed (only used for verifying batching assertions).
+    PageRequest* current_request_ TA_GUARDED(mtx_) = nullptr;
+
+    // Sends a read request to the backing source, or queues the request if the needed
+    // region has already been requested from the source.
+    void RaiseReadRequestLocked(PageRequest* request) TA_REQ(mtx_);
+
     // Wakes up the given PageRequest and all overlapping requests.
     void CompleteRequestLocked(PageRequest* head) TA_REQ(mtx_);
 
@@ -120,18 +136,22 @@ private:
 class PageRequest : public fbl::WAVLTreeContainable<PageRequest*>,
                     public fbl::DoublyLinkedListable<PageRequest*> {
 public:
-    explicit PageRequest() {}
+    // If |allow_batching| is true, then a single request can be used to service
+    // multiple consecutive pages.
+    explicit PageRequest(bool allow_batching = false) : allow_batching_(allow_batching) {}
     ~PageRequest();
 
     // Returns ZX_OK on success or ZX_ERR_INTERNAL_INTR_KILLED if the thread was killed.
     zx_status_t Wait();
 
-    uint64_t GetKey() const { return offset_; }
+    uint64_t GetKey() const { return GetEnd(); }
 
     DISALLOW_COPY_ASSIGN_AND_MOVE(PageRequest);
 
 private:
     void Init(fbl::RefPtr<PageSource> src, uint64_t offset);
+
+    const bool allow_batching_;
 
     // The page source this request is currently associated with.
     fbl::RefPtr<PageSource> src_;
@@ -139,12 +159,24 @@ private:
     event_t event_;
     // PageRequests are active if offset_ is not UINT64_MAX.
     uint64_t offset_ = UINT64_MAX;
+    uint64_t len_;
+
+    // Keeps track of the size of the request that still needs to be fulfilled. This
+    // can become incorrect if some pages get supplied, decommitted, and then
+    // re-supplied. If that happens, then it will cause the page request to complete
+    // prematurely. However, page source clients should be operating in a loop to handle
+    // evictions, so this will simply result in some redundant read requests to the
+    // page source. Given the rarity in which this situation should arise, it's not
+    // worth the complexity of tracking it.
+    uint64_t pending_size;
 
     // List node for overlapping requests.
     fbl::DoublyLinkedList<PageRequest*> overlap_;
 
     // Request struct for the PageSourceCallback
     page_request_t read_request_;
+
+    uint64_t GetEnd() const { return offset_ + len_; }
 
     friend PageSource;
 };

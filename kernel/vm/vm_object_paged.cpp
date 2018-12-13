@@ -20,9 +20,9 @@
 #include <string.h>
 #include <trace.h>
 #include <vm/fault.h>
-#include <vm/page_source.h>
 #include <vm/physmap.h>
 #include <vm/vm.h>
+#include <vm/page_source.h>
 #include <vm/vm_address_region.h>
 #include <zircon/types.h>
 
@@ -508,7 +508,7 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
             }
 
             return ZX_OK;
-        } else if (status == ZX_ERR_SHOULD_WAIT) {
+        } else if (status == ZX_ERR_SHOULD_WAIT || status == ZX_ERR_NEXT) {
             return status;
         }
     }
@@ -589,81 +589,149 @@ zx_status_t VmObjectPaged::CommitRange(uint64_t offset, uint64_t len) {
     canary_.Assert();
     LTRACEF("offset %#" PRIx64 ", len %#" PRIx64 "\n", offset, len);
 
-    Guard<fbl::Mutex> guard{&lock_};
-
-    // trim the size
-    uint64_t new_len;
-    if (!TrimRange(offset, len, size_, &new_len)) {
-        return ZX_ERR_OUT_OF_RANGE;
-    }
-
-    // TODO: Update commit to support these
-    if (GetRootPageSourceLocked() != nullptr) {
-        return ZX_ERR_INVALID_ARGS;
-    }
-
-    // was in range, just zero length
-    if (new_len == 0) {
-        return ZX_OK;
-    }
-
-    // compute a page aligned end to do our searches in to make sure we cover all the pages
-    uint64_t end = ROUNDUP_PAGE_SIZE(offset + new_len);
-    DEBUG_ASSERT(end > offset);
-    offset = ROUNDDOWN(offset, PAGE_SIZE);
-
-    // make a pass through the list, counting the number of pages we need to allocate
-    size_t count = 0;
-    uint64_t expected_next_off = offset;
-    page_list_.ForEveryPageInRange(
-        [&count, &expected_next_off](const auto p, uint64_t off) {
-
-            count += (off - expected_next_off) / PAGE_SIZE;
-            expected_next_off = off + PAGE_SIZE;
-            return ZX_ERR_NEXT;
-        },
-        expected_next_off, end);
-
-    // If expected_next_off isn't at the end of the range, there was a gap at
-    // the end.  Add it back in
-    DEBUG_ASSERT(end >= expected_next_off);
-    count += (end - expected_next_off) / PAGE_SIZE;
-    if (count == 0) {
-        return ZX_OK;
-    }
-
-    // allocate count number of pages
     list_node page_list;
     list_initialize(&page_list);
 
-    zx_status_t status = pmm_alloc_pages(count, pmm_alloc_flags_, &page_list);
-    if (status != ZX_OK) {
-        return status;
-    }
+    fbl::RefPtr<PageSource> vmo_source;
+    {
+        Guard<fbl::Mutex> guard{&lock_};
 
-    // unmap all of the pages in this range on all the mapping regions
-    RangeChangeUpdateLocked(offset, end - offset);
-
-    // add them to the appropriate range of the object
-    for (uint64_t o = offset; o < end; o += PAGE_SIZE) {
-        // Don't commit if we already have this page
-        vm_page_t* p = page_list_.GetPage(o);
-        if (p) {
-            continue;
+        // trim the size
+        if (!TrimRange(offset, len, size_, &len)) {
+            return ZX_ERR_OUT_OF_RANGE;
         }
 
-        // Check if our parent has the page
-        paddr_t pa;
-        const uint flags = VMM_PF_FLAG_SW_FAULT | VMM_PF_FLAG_WRITE;
-        // Should not be able to fail, since we're providing it memory and the
-        // range should be valid.
-        zx_status_t status = GetPageLocked(o, flags, &page_list, nullptr, &p, &pa);
-        ASSERT(status == ZX_OK);
+        // was in range, just zero length
+        if (len == 0) {
+            return ZX_OK;
+        }
+
+        // If this vmo has a page source, then the source will provide the backing memory. Otherwise
+        // we allocate all the pages up front. It's possible that we overallocate if something
+        // else touches the vmo while we're waiting on a page request, but that should be rare.
+        size_t count = 0;
+        if (page_source_ == nullptr) {
+            // compute a page aligned end to do our searches in to make sure we cover all the pages
+            uint64_t end = ROUNDUP_PAGE_SIZE(offset + len);
+            DEBUG_ASSERT(end > offset);
+            offset = ROUNDDOWN(offset, PAGE_SIZE);
+
+            // make a pass through the list, counting the number of pages we need to allocate
+            uint64_t expected_next_off = offset;
+            page_list_.ForEveryPageInRange(
+                [&count, &expected_next_off](const auto p, uint64_t off) {
+
+                    count += (off - expected_next_off) / PAGE_SIZE;
+                    expected_next_off = off + PAGE_SIZE;
+                    return ZX_ERR_NEXT;
+                },
+                expected_next_off, end);
+
+            // If expected_next_off isn't at the end of the range, there was a gap at
+            // the end.  Add it back in
+            DEBUG_ASSERT(end >= expected_next_off);
+            count += (end - expected_next_off) / PAGE_SIZE;
+            if (count == 0) {
+                return ZX_OK;
+            }
+        }
+
+        vmo_source = GetRootPageSourceLocked();
+
+        if (count) {
+            zx_status_t status = pmm_alloc_pages(count, pmm_alloc_flags_, &page_list);
+            if (status != ZX_OK) {
+                return status;
+            }
+        }
     }
 
-    DEBUG_ASSERT(list_is_empty(&page_list));
+    bool retry = false;
+    PageRequest page_request(true);
+    zx_status_t status = ZX_OK;
+    do {
+        if (retry) {
+            status = page_request.Wait();
+            if (status != ZX_OK) {
+                break;
+            }
+            retry = false;
+        }
 
-    return ZX_OK;
+        Guard<fbl::Mutex> guard{&lock_};
+        // trim the size
+        if (!TrimRange(offset, len, size_, &len)) {
+            status = ZX_ERR_OUT_OF_RANGE;
+            break;
+        }
+
+        // was in range, just zero length
+        if (len == 0) {
+            status = ZX_OK;
+            break;
+        }
+
+        // compute a page aligned end to do our searches in to make sure we cover all the pages
+        uint64_t end = ROUNDUP_PAGE_SIZE(offset + len);
+        DEBUG_ASSERT(end > offset);
+        offset = ROUNDDOWN(offset, PAGE_SIZE);
+
+        // cur_offset tracks how far we've made page requests, even if they're not done
+        uint64_t cur_offset = offset;
+        // new_offset tracks how far we've succesfully committed and is where we'll
+        // start from if we need to retry the commit
+        uint64_t new_offset = offset;
+        while (cur_offset < end) {
+            // Don't commit if we already have this page
+            vm_page_t* p = page_list_.GetPage(cur_offset);
+            if (!p) {
+                // Check if our parent has the page
+                const uint flags = VMM_PF_FLAG_SW_FAULT | VMM_PF_FLAG_WRITE;
+                // Should not be able to fail, since we're providing it memory and the
+                // range should be valid.
+                zx_status_t res = GetPageLocked(cur_offset, flags, &page_list,
+                                                &page_request, nullptr, nullptr);
+                if (res == ZX_ERR_NEXT || res == ZX_ERR_SHOULD_WAIT) {
+                    retry = true;
+                    if (res == ZX_ERR_SHOULD_WAIT) {
+                        break;
+                    }
+                } else if (res != ZX_OK) {
+                    status = res;
+                    break;
+                }
+            }
+
+            cur_offset += PAGE_SIZE;
+            if (!retry) {
+                new_offset = offset;
+            }
+        }
+        if (status != ZX_OK) {
+            break;
+        }
+
+        if (cur_offset - offset) {
+            // unmap all of the pages in this range on all the mapping regions
+            RangeChangeUpdateLocked(offset, cur_offset - offset);
+        }
+
+        if (retry) {
+            if (cur_offset == end) {
+                status = vmo_source->FinalizeRequest(&page_request);
+                if (status != ZX_ERR_SHOULD_WAIT) {
+                    break;
+                }
+            }
+        }
+        offset = new_offset;
+    } while (retry);
+
+    if (!list_is_empty(&page_list)) {
+        pmm_free(&page_list);
+    }
+
+    return status;
 }
 
 zx_status_t VmObjectPaged::DecommitRange(uint64_t offset, uint64_t len) {
@@ -1132,16 +1200,35 @@ zx_status_t VmObjectPaged::SupplyPages(uint64_t offset, uint64_t len, VmPageSpli
         return ZX_ERR_OUT_OF_RANGE;
     }
 
-    page_source_->OnPagesSupplied(offset, len);
+    list_node free_list;
+    list_initialize(&free_list);
+
+    uint64_t new_pages_start = offset;
+    uint64_t new_pages_len = 0;
     while (!pages->IsDone()) {
         vm_page* src_page = pages->Pop();
         zx_status_t status = AddPageLocked(src_page, offset);
         if (status == ZX_ERR_ALREADY_EXISTS) {
-            pmm_free_page(src_page);
+            list_add_tail(&free_list, &src_page->queue_node);
+
+            if (new_pages_len) {
+                page_source_->OnPagesSupplied(new_pages_start, new_pages_len);
+            }
+            new_pages_start = (offset + PAGE_SIZE);
+            new_pages_len = 0;
+        } else if (status == ZX_OK) {
+            new_pages_len += PAGE_SIZE;
         } else if (status != ZX_OK) {
             return status;
         }
         offset += PAGE_SIZE;
+    }
+    if (new_pages_len) {
+        page_source_->OnPagesSupplied(new_pages_start, new_pages_len);
+    }
+
+    if (!list_is_empty(&free_list)) {
+        pmm_free(&free_list);
     }
 
     return ZX_OK;
