@@ -12,6 +12,7 @@ driver("flash-programmer") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-usb-composite",
+    "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",
     "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",

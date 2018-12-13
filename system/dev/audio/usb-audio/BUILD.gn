@@ -19,6 +19,7 @@ driver("usb-audio") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-usb-composite",
+    "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/audio-driver-proto",
     "$zx/system/ulib/audio-proto-utils",

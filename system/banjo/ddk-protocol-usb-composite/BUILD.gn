@@ -8,4 +8,7 @@ banjo_library("ddk-protocol-usb-composite") {
   sources = [
     "usb-composite.banjo",
   ]
+  deps = [
+    "$zx/system/banjo/zircon-hw-usb",
+  ]
 }

@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("usb-test-fwloader") {
+executable("usb-fwloader") {
   testonly = true
   sources = [
-    "usb-test-fwloader.cpp",
+    "usb-fwloader.cpp",
   ]
   deps = [
     "$zx/system/fidl/fuchsia-mem:c",
