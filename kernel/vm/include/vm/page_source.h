@@ -86,6 +86,8 @@ public:
     // Gets an id used for ownership verification.
     uint64_t get_page_source_id() const { return page_source_id_; }
 
+    void Dump();
+
 protected:
     // Synchronously gets a page from the backing source.
     virtual bool GetPage(uint64_t offset,
