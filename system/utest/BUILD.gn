@@ -17,6 +17,7 @@ group("utest") {
     "$zx/system/dev/nand/ram-nand:ram-nand-test",
     "$zx/system/dev/nand/skip-block:skip-block-test",
     "$zx/system/uapp/disk-pave:install-disk-image-test",
+    "$zx/system/ulib/inspect/test",
     "$zx/system/ulib/kvstore:kvstore-test",
     "$zx/system/ulib/tftp:tftp-test",
     "abigen",

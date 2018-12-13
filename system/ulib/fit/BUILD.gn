@@ -9,6 +9,7 @@ library("fit") {
   sources = [
     "promise.cpp",
     "scheduler.cpp",
+    "scope.cpp",
     "sequencer.cpp",
     "single_threaded_executor.cpp",
   ]
