@@ -338,7 +338,7 @@ template("shared_library") {
         # GN file contexts and $link_output_arg for command-line contexts.
         # The third is used as a walk key to provide a dependency barrier
         # against e.g. shared_library() deps or other executable() data_deps.
-        link_output = [ output_file ]
+        link_output = [ output_file + toolchain.link_output_suffix ]
         link_output_arg = rebase_path(link_output, root_build_dir)
         link_barrier = []
 
@@ -1003,7 +1003,7 @@ template("_basic_executable") {
       # GN file contexts and $link_output_arg for command-line contexts.
       # The third is used as a walk key to provide a dependency barrier
       # against e.g. shared_library() deps or other executable() data_deps.
-      link_output = [ output_file ]
+      link_output = [ output_file + toolchain.link_output_suffix ]
       link_output_arg = rebase_path(link_output, root_build_dir)
       link_barrier = []
     }
@@ -1079,7 +1079,7 @@ template("loadable_module") {
       # GN file contexts and $link_output_arg for command-line contexts.
       # The third is used as a walk key to provide a dependency barrier
       # against e.g. shared_library() deps or other executable() data_deps.
-      link_output = [ output_file ]
+      link_output = [ output_file + toolchain.link_output_suffix ]
       link_output_arg = rebase_path(link_output, root_build_dir)
       link_barrier = []
     }

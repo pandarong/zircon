@@ -51,14 +51,14 @@ source_set("image") {
     ":gen-userboot-code-header",
     "$zx/kernel/lib/vdso",
   ]
+
   if (false) {  # TODO(get_metadata)
-    inputs = [
-      # userboot-image.S includes the userboot contents and so must be
-      # reassembled when that changes.  Note we can't have core/userboot in
-      # deps here because that would try to link it into the kernel.
-      get_metadata([ ":gen-userboot-code-header" ],
-                   [ "link_output" ],
-                   [ "link_barrier" ]),
-    ]
+    # userboot-image.S includes the userboot contents and so must be
+    # reassembled when that changes.  Note we can't have core/userboot in
+    # deps here because that would try to link it into the kernel.
+    inputs = get_metadata([ ":gen-userboot-code-header" ],
+                          [ "link_output" ],
+                          [ "link_barrier" ],
+                          true)
   }
 }
