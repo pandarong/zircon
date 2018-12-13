@@ -13,6 +13,7 @@ library("usb") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-usb-composite",
+    "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/ulib/ddk",
   ]
 }

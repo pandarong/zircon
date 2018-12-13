@@ -38,12 +38,19 @@ test("fbl") {
   ]
 
   if (is_fuchsia) {
+    # These tests won't run on the host. There are two primary reasons for this.
+    #
+    # First, Some of these tests (ref_counted_upgradeable and
+    # slab_allocator) need fbl::Mutex which currently isn't supported on
+    # the host.
+    #
+    # Second, some of these tests make use of the ASSERT_DEATH macro to
+    # ensure that certain actions result in program termination.  Again,
+    # this is not currently suppoted in the host test environment.
+    #
+    # See: TODO(ZX-1053)
     sources += [
-      # These tests won't run on the host.  Some of these tests need
-      # fbl::Mutex which currently isn't supported on the host.
-      #
-      # TODO(ZX-1053): Support fbl::Mutex on the host and make the ref
-      # counted and slab allocator tests work.
+      "condition_variable_tests.cpp",
       "ref_counted_tests.cpp",
       "slab_allocator_tests.cpp",
     ]

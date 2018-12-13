@@ -4,13 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-banjo_library("ddk-protocol-usb-bus") {
+banjo_library("zircon-hw-usb") {
   sources = [
-    "usb-bus.banjo",
-  ]
-  deps = [
-    "$zx/system/banjo/ddk-driver",
-    "$zx/system/banjo/ddk-protocol-usb-hub",
-    "$zx/system/banjo/zircon-hw-usb",
+    "usb.banjo",
   ]
 }

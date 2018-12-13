@@ -73,7 +73,7 @@ group("uapp") {
     "trace-example",
     "traceme",
     "unbind",
-    "usb-test-fwloader",
+    "usb-fwloader",
     "usbctl",
     "waitfor",
     "watch",

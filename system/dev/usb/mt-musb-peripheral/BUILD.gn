@@ -10,6 +10,7 @@ driver("mt-usb-peripheral") {
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/mt8167",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",

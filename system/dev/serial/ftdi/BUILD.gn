@@ -10,6 +10,7 @@ driver("ftdi") {
     "$zx/system/banjo/ddk-protocol-serial",
     "$zx/system/banjo/ddk-protocol-serial-impl",
     "$zx/system/banjo/ddk-protocol-usb-composite",
+    "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/zircon",
