@@ -2,14 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("crashsvc") {
+library("inspect") {
   sources = [
-    "crashsvc.cpp",
+    "heap.cpp",
+    "scanner.cpp",
   ]
   deps = [
+    "$zx/public/gn/config:visibility_hidden",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fdio",
-    "$zx/system/ulib/zircon",
+    "$zx/system/ulib/fzl",
+    "$zx/system/ulib/syslog",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
   ]
