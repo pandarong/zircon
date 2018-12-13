@@ -31,12 +31,6 @@ rodso_code_header("gen-userboot-code-header") {
     # TODO(mcgrathr): mv //system/core/userboot ./user
     "$zx/system/core/userboot",
   ]
-
-  # TODO(get_metadata): should be automatic via metadata; breaks variants, etc.
-  inputs = [
-    get_label_info("${deps[0]}(${deps[0]}-${current_cpu}-clang)",
-                   "target_out_dir") + "/userboot.so",
-  ]
 }
 
 # The generated header is also needed to tell .incbin how much of the

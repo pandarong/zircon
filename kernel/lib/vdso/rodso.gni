@@ -19,26 +19,13 @@ template("rodso_code_header") {
     assert(outputs == [ outputs[0] ],
            "rodso_code_header() outputs must have exactly one element")
 
-    if (false) {  # TODO(get_metadata)
-      sources = [
-        get_metadata("", [ "link_output" ], [ "link_barrier" ]),
-      ]
-    } else {
-      sources = invoker.inputs
-      assert(sources == [ sources[0] ])
-    }
-
     script = "$zx/scripts/gen-rodso-code.sh"
     utils = [
       "nm",
       "readelf",
     ]
-    args = [
-      rebase_path(outputs[0], root_build_dir),
-      invoker.name,
-
-      # TODO(get_metadata): get_metadata("", [ "link_output_arg" ], [ "link_barrier" ]),
-      rebase_path(sources[0], root_build_dir),
-    ]
+    sources = get_metadata([ "" ], [ "link_output" ], [ "link_barrier" ], true)
+    args = rebase_path(outputs, root_build_dir) + [ invoker.name ] +
+           get_metadata([ "" ], [ "link_output_arg" ], [ "link_barrier" ])
   }
 }
