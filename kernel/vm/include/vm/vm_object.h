@@ -248,6 +248,7 @@ public:
     }
 
     virtual uint64_t get_page_source_id() const { return 0; }
+    virtual void DetachSource() {}
 
 protected:
     // private constructor (use Create())

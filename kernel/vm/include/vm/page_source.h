@@ -46,35 +46,11 @@ typedef struct page_request {
     uint64_t length;
 } page_request_t;
 
-// Callback to whatever is backing the PageSource.
-class PageSourceCallback {
-public:
-    // Synchronously gets a page from the backing source.
-    virtual bool GetPage(uint64_t offset,
-                         vm_page_t** const page_out, paddr_t* const pa_out) = 0;
-    // Informs the backing source of a page request. The callback has ownership
-    // of |request| until the async request is cancelled.
-    virtual void GetPageAsync(page_request_t* request) = 0;
-    // Informs the backing source that a page request has been fulfilled. This
-    // must be called for all requests that are raised.
-    virtual void ClearAsyncRequest(page_request_t* request) = 0;
-    // Swaps the backing memory for a request. Assumes that |old|
-    // and |new_request| have the same type, offset, and length.
-    virtual void SwapRequest(page_request_t* old, page_request_t* new_req) = 0;
-
-    // OnClose should be called once no more requests will be made to the page source. The
-    // callback can keep a reference to the page source, so it must be called outside of
-    // the PageSource destructor.
-    virtual void OnClose() = 0;
-
-    virtual zx_status_t WaitOnEvent(event_t* event) = 0;
-};
-
 // Object which provides pages to a vm_object.
 class PageSource : public fbl::RefCounted<PageSource> {
 public:
-    PageSource(PageSourceCallback* callback, uint64_t page_source_id);
-    ~PageSource();
+    PageSource(uint64_t page_source_id);
+    virtual ~PageSource();
 
     // Sends a request to the backing source to provide the requested page.
     //
@@ -98,6 +74,11 @@ public:
     // been supplied to the owning vmo.
     void OnPagesSupplied(uint64_t offset, uint64_t len);
 
+    // Detaches the source. All future calls into the page source will fail. All
+    // pending read transactions are aborted. Pending flush transactions will still
+    // be serviced.
+    void Detach();
+
     // Closes the source. All pending transactions will be aborted and all future
     // calls will fail.
     void Close();
@@ -105,11 +86,35 @@ public:
     // Gets an id used for ownership verification.
     uint64_t get_page_source_id() const { return page_source_id_; }
 
+protected:
+    // Synchronously gets a page from the backing source.
+    virtual bool GetPage(uint64_t offset,
+                         vm_page_t** const page_out, paddr_t* const pa_out) = 0;
+    // Informs the backing source of a page request. The callback has ownership
+    // of |request| until the async request is cancelled.
+    virtual void GetPageAsync(page_request_t* request) = 0;
+    // Informs the backing source that a page request has been fulfilled. This
+    // must be called for all requests that are raised.
+    virtual void ClearAsyncRequest(page_request_t* request) = 0;
+    // Swaps the backing memory for a request. Assumes that |old|
+    // and |new_request| have the same type, offset, and length.
+    virtual void SwapRequest(page_request_t* old, page_request_t* new_req) = 0;
+
+    // OnDetach should be called once no more requests will be raised. It must be
+    // called before OnClose.
+    virtual void OnDetach() = 0;
+    // OnClose should be called once no more requests will be made to the page source. The
+    // callback can keep a reference to the page source, so it must be called outside of
+    // the destructor.
+    virtual void OnClose() = 0;
+
+    virtual zx_status_t WaitOnEvent(event_t* event) = 0;
+
 private:
-    PageSourceCallback* const callback_;
     const uint64_t page_source_id_;
 
     fbl::Mutex mtx_;
+    bool detached_ TA_GUARDED(mtx_) = false;
     bool closed_ TA_GUARDED(mtx_) = false;
 
     // Tree of pending_request structs which have been sent to the callback.

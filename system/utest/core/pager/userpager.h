@@ -26,6 +26,8 @@ public:
 
     // Validates this vmo's content in the specified pages using a mapped vmar.
     bool CheckVmar(uint64_t page_offset, uint64_t page_count, const void* expected = nullptr);
+    // Validates this vmo's content in the specified pages using vmo_read.
+    bool CheckVmo(uint64_t page_offset, uint64_t page_count, const void* expected = nullptr);
 
     // Commits the specified pages in this vmo.
     bool Commit(uint64_t page_offset, uint64_t page_count) {
@@ -79,6 +81,8 @@ public:
 
     // Creates a new paged vmo.
     bool CreateVmo(uint64_t size, Vmo** vmo_out);
+    // Detaches the paged vmo.
+    bool DetachVmo(Vmo* vmo);
     // Destroyes the paged vmo.
     void ReleaseVmo(Vmo* vmo);
     // Unmaps the paged vmo.
@@ -98,6 +102,7 @@ public:
     // wait until |deadline|.
     bool WaitForPageRead(Vmo* vmo, uint64_t page_offset,
                          uint64_t page_count, zx_time_t deadline);
+    bool WaitForPageComplete(uint64_t key, zx_time_t deadline);
 
     // Gets the first page read request. Blocks until |deadline|.
     bool GetPageReadRequest(Vmo* vmo, zx_time_t deadline,

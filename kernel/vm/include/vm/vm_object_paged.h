@@ -117,6 +117,12 @@ public:
         }
         return 0;
     }
+    void DetachSource() override {
+        DEBUG_ASSERT(page_source_);
+        if (page_source_) {
+            page_source_->Detach();
+        }
+    }
 
     // maximum size of a VMO is one page less than the full 64bit range
     static const uint64_t MAX_SIZE = ROUNDDOWN(UINT64_MAX, PAGE_SIZE);

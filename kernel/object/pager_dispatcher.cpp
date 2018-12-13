@@ -25,75 +25,73 @@ zx_status_t PagerDispatcher::Create(fbl::RefPtr<Dispatcher>* dispatcher, zx_righ
 
 PagerDispatcher::PagerDispatcher() : SoloDispatcher() {}
 
-PagerDispatcher::~PagerDispatcher() {}
+PagerDispatcher::~PagerDispatcher() {
+    DEBUG_ASSERT(srcs_.is_empty());
+}
 
 zx_status_t PagerDispatcher::CreateSource(fbl::RefPtr<PortDispatcher> port,
                                           uint64_t key, fbl::RefPtr<PageSource>* src_out) {
     fbl::AllocChecker ac;
-    auto wrapper = fbl::make_unique_checked<PageSourceWrapper>(&ac, this, ktl::move(port), key);
+    auto src = fbl::AdoptRef(new (&ac) PagerSource(get_koid(), this, ktl::move(port), key));
     if (!ac.check()) {
         return ZX_ERR_NO_MEMORY;
     }
 
-    auto src = fbl::AdoptRef(new (&ac) PageSource(wrapper.get(), get_koid()));
-    if (!ac.check()) {
-        return ZX_ERR_NO_MEMORY;
-    }
-
-    fbl::AutoLock lock(&wrapper->mtx_);
-    wrapper->src_ = src;
-
-    fbl::AutoLock lock2(&mtx_);
-    srcs_.push_front(ktl::move(wrapper));
-
+    fbl::AutoLock lock(&mtx_);
+    srcs_.push_front(src);
     *src_out = ktl::move(src);
     return ZX_OK;
 }
 
-void PagerDispatcher::ReleaseSource(PageSourceWrapper* src) {
+void PagerDispatcher::ReleaseSource(PagerSource* src) {
     fbl::AutoLock lock(&mtx_);
     srcs_.erase(*src);
 }
 
 void PagerDispatcher::on_zero_handles() {
-    fbl::DoublyLinkedList<fbl::unique_ptr<PageSourceWrapper>> srcs;
-
     mtx_.Acquire();
     while (!srcs_.is_empty()) {
-        auto& src = srcs_.front();
-        fbl::RefPtr<PageSource> inner;
-        {
-            fbl::AutoLock lock(&src.mtx_);
-            inner = src.src_;
-        }
+        // Keep a reference so we don't have to worry about the source being
+        // deleted out from under us.
+        fbl::RefPtr<PagerSource> src(&srcs_.front());
 
-        // Call close outside of the lock, since it will call back into ::OnClose.
+        // Call close outside of the lock, since it will likely call back into ::ReleaseSource
         mtx_.Release();
-        if (inner) {
-            inner->Close();
-        }
+        src->Close();
         mtx_.Acquire();
+
+        {
+            // Handle the case where the Close invocation didn't release the source
+            // because of a pending complete message.
+            fbl::AutoLock lock(&src->mtx_);
+            if (src->complete_pending_) {
+                src->port_->CancelQueued(&src->packet_);
+                src->complete_pending_ = false;
+                srcs_.pop_front();
+            }
+        }
     }
     mtx_.Release();
 }
 
-PageSourceWrapper::PageSourceWrapper(PagerDispatcher* dispatcher,
-                                     fbl::RefPtr<PortDispatcher> port, uint64_t key)
-    : pager_(dispatcher), port_(ktl::move(port)), key_(key) {
+PagerSource::PagerSource(uint64_t page_source_id, PagerDispatcher* dispatcher,
+                         fbl::RefPtr<PortDispatcher> port, uint64_t key)
+    : PageSource(page_source_id), pager_(dispatcher), port_(ktl::move(port)), key_(key) {
     LTRACEF("%p key %lx\n", this, key_);
 }
 
-PageSourceWrapper::~PageSourceWrapper() {
+PagerSource::~PagerSource() {
     LTRACEF("%p\n", this);
     DEBUG_ASSERT(closed_);
+    DEBUG_ASSERT(!complete_pending_);
 }
 
-void PageSourceWrapper::GetPageAsync(page_request_t* request) {
+void PagerSource::GetPageAsync(page_request_t* request) {
     fbl::AutoLock lock(&mtx_);
     QueueMessageLocked(request);
 }
 
-void PageSourceWrapper::QueueMessageLocked(page_request_t* request) {
+void PagerSource::QueueMessageLocked(page_request_t* request) {
     if (packet_busy_) {
         list_add_tail(&pending_requests_, &request->node);
         return;
@@ -102,16 +100,27 @@ void PageSourceWrapper::QueueMessageLocked(page_request_t* request) {
     packet_busy_ = true;
     active_request_ = request;
 
+    uint64_t offset, length;
+    uint16_t cmd;
+    if (request != &complete_request_) {
+        cmd = ZX_PAGER_VMO_READ;
+        offset = request->offset;
+        length = request->length;
+    } else {
+        offset = length = 0;
+        cmd = ZX_PAGER_VMO_COMPLETE;
+    }
+
     zx_port_packet_t packet = {
         .key = key_,
         .type = ZX_PKT_TYPE_PAGE_REQUEST,
         .status = ZX_OK,
         .page_request = {
-            .command = ZX_PAGER_VMO_READ,
+            .command = cmd,
             .flags = 0,
             .reserved0 = 0,
-            .offset = request->offset,
-            .length = request->length,
+            .offset = offset,
+            .length = length,
             .reserved1 = 0,
         },
     };
@@ -123,7 +132,7 @@ void PageSourceWrapper::QueueMessageLocked(page_request_t* request) {
     ASSERT(port_->Queue(&packet_, ZX_SIGNAL_NONE, 0) != ZX_ERR_SHOULD_WAIT);
 }
 
-void PageSourceWrapper::ClearAsyncRequest(page_request_t* request) {
+void PagerSource::ClearAsyncRequest(page_request_t* request) {
     fbl::AutoLock lock(&mtx_);
     if (request == active_request_) {
         // Condition on whether or not we atually cancel the packet, to make sure
@@ -136,7 +145,7 @@ void PageSourceWrapper::ClearAsyncRequest(page_request_t* request) {
     }
 }
 
-void PageSourceWrapper::SwapRequest(page_request_t* old, page_request_t* new_req) {
+void PagerSource::SwapRequest(page_request_t* old, page_request_t* new_req) {
     fbl::AutoLock lock(&mtx_);
     if (list_in_list(&old->node)) {
         list_replace_node(&old->node, &new_req->node);
@@ -144,21 +153,35 @@ void PageSourceWrapper::SwapRequest(page_request_t* old, page_request_t* new_req
         active_request_ = new_req;
     }
 }
-
-void PageSourceWrapper::OnClose() {
-    {
-        fbl::AutoLock lock(&mtx_);
-        closed_ = true;
-    }
-    pager_->ReleaseSource(this);
-}
-
-void PageSourceWrapper::Free(PortPacket* packet) {
+void PagerSource::OnDetach() {
     fbl::AutoLock lock(&mtx_);
-    OnPacketFreedLocked();
+    complete_pending_ = true;
+    QueueMessageLocked(&complete_request_);
 }
 
-void PageSourceWrapper::OnPacketFreedLocked() {
+void PagerSource::OnClose() {
+    fbl::AutoLock lock(&mtx_);
+    closed_ = true;
+    if (!complete_pending_) {
+        lock.release();
+        pager_->ReleaseSource(this);
+    }
+}
+
+void PagerSource::Free(PortPacket* packet) {
+    fbl::AutoLock lock(&mtx_);
+    if (active_request_ != &complete_request_) {
+        OnPacketFreedLocked();
+    } else {
+        complete_pending_ = false;
+        if (closed_) {
+            lock.release();
+            pager_->ReleaseSource(this);
+        }
+    }
+}
+
+void PagerSource::OnPacketFreedLocked() {
     packet_busy_ = false;
     active_request_ = nullptr;
     if (!list_is_empty(&pending_requests_)) {
@@ -166,7 +189,7 @@ void PageSourceWrapper::OnPacketFreedLocked() {
     }
 }
 
-zx_status_t PageSourceWrapper::WaitOnEvent(event_t* event) {
+zx_status_t PagerSource::WaitOnEvent(event_t* event) {
     ThreadDispatcher::AutoBlocked by(ThreadDispatcher::Blocked::PAGER);
     return event_wait_deadline(event, ZX_TIME_INFINITE, true);
 }

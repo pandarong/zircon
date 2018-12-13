@@ -11,25 +11,26 @@
 
 #define LOCAL_TRACE 0
 
-PageSource::PageSource(PageSourceCallback* callback, uint64_t page_source_id)
-        : callback_(callback), page_source_id_(page_source_id) {
-    LTRACEF("%p callback %p\n", this, callback_);
+PageSource::PageSource(uint64_t page_source_id) : page_source_id_(page_source_id) {
+    LTRACEF("%p\n", this);
 }
 
 PageSource::~PageSource() {
     LTRACEF("%p\n", this);
+    DEBUG_ASSERT(detached_);
     DEBUG_ASSERT(closed_);
 }
 
-void PageSource::Close() {
-    fbl::AutoLock info_lock(&mtx_);
+void PageSource::Detach() {
     LTRACEF("%p\n", this);
-
-    if (closed_) {
+    fbl::AutoLock info_lock(&mtx_);
+    if (detached_) {
         return;
     }
-    closed_ = true;
 
+    detached_ = true;
+
+    // Cancel read requests (which everything for now)
     while (!outstanding_requests_.is_empty()) {
         auto req = outstanding_requests_.pop_front();
         LTRACEF("dropping request with offset %lx\n", req->offset_);
@@ -39,15 +40,28 @@ void PageSource::Close() {
         // for this request.
         CompleteRequestLocked(req);
     }
-    callback_->OnClose();
+    OnDetach();
+}
+
+
+void PageSource::Close() {
+    LTRACEF("%p\n", this);
+    // TODO: Close will have more meaning once writeback is implemented
+    Detach();
+
+    fbl::AutoLock info_lock(&mtx_);
+    if (!closed_) {
+        closed_ = true;
+        OnClose();
+    }
 }
 
 void PageSource::OnPagesSupplied(uint64_t offset, uint64_t len) {
-    uint64_t end = offset + len;
-    fbl::AutoLock info_lock(&mtx_);
     LTRACEF("%p offset %lx, len %lx\n", this, offset, len);
+    uint64_t end = offset + len;
 
-    if (closed_) {
+    fbl::AutoLock info_lock(&mtx_);
+    if (detached_) {
         return;
     }
 
@@ -84,11 +98,11 @@ zx_status_t PageSource::GetPage(uint64_t offset, PageRequest* request,
     ASSERT(request);
 
     fbl::AutoLock info_lock(&mtx_);
-    if (closed_) {
+    if (detached_) {
         return ZX_ERR_NOT_FOUND;
     }
 
-    if (callback_->GetPage(offset, page_out, pa_out)) {
+    if (GetPage(offset, page_out, pa_out)) {
         return ZX_OK;
     }
 
@@ -149,7 +163,7 @@ zx_status_t PageSource::GetPage(uint64_t offset, PageRequest* request,
 zx_status_t PageSource::FinalizeRequest(PageRequest* request) {
     LTRACEF("%p\n", this);
     fbl::AutoLock info_lock(&mtx_);
-    if (closed_) {
+    if (detached_) {
         return ZX_ERR_NOT_FOUND;
     }
 
@@ -173,7 +187,7 @@ void PageSource::RaiseReadRequestLocked(PageRequest* request) {
         request->read_request_.offset = request->offset_;
         request->read_request_.length = request->len_;
 
-        callback_->GetPageAsync(&request->read_request_);
+        GetPageAsync(&request->read_request_);
         outstanding_requests_.insert(request);
     }
     current_request_ = nullptr;
@@ -182,7 +196,7 @@ void PageSource::RaiseReadRequestLocked(PageRequest* request) {
 void PageSource::CompleteRequestLocked(PageRequest* req) {
     // Take the request back from the callback before waking
     // up the corresponding thread.
-    callback_->ClearAsyncRequest(&req->read_request_);
+    ClearAsyncRequest(&req->read_request_);
 
     while (!req->overlap_.is_empty()) {
         auto waiter = req->overlap_.pop_front();
@@ -225,12 +239,12 @@ void PageSource::CancelRequest(PageRequest* request) {
         outstanding_requests_.erase(*request);
         outstanding_requests_.insert(new_node);
 
-        callback_->SwapRequest(&request->read_request_, &new_node->read_request_);
+        SwapRequest(&request->read_request_, &new_node->read_request_);
     } else if (static_cast<fbl::WAVLTreeContainable<PageRequest*>*>(request)->InContainer()) {
         LTRACEF("Outstanding no overlap\n");
         // This node is an outstanding request with no overlap
         outstanding_requests_.erase(*request);
-        callback_->ClearAsyncRequest(&request->read_request_);
+        ClearAsyncRequest(&request->read_request_);
     }
 
     request->offset_ = UINT64_MAX;
@@ -251,7 +265,7 @@ void PageRequest::Init(fbl::RefPtr<PageSource> src, uint64_t offset) {
 }
 
 zx_status_t PageRequest::Wait() {
-    zx_status_t status = src_->callback_->WaitOnEvent(&event_);
+    zx_status_t status = src_->WaitOnEvent(&event_);
     if (status != ZX_OK) {
         src_->CancelRequest(this);
     }
