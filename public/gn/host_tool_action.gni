@@ -45,13 +45,16 @@ template("_host_tool_action_target") {
     if (false) {  # TODO(get_metadata)
       script = get_metadata([ ":_tool.$action_target" ],
                             [ "host_tool_action_script" ],
-                            [ "host_tool_barrier" ])
-      inputs += [ get_metadata([ ":_tool.$action_target" ],
-                               [ "host_tool_action_inputs" ],
-                               [ "host_tool_barrier" ]) ]
-      args = [ get_metadata([ ":_tool.$action_target" ],
-                            [ "host_tool_action_args" ],
-                            [ "host_tool_barrier" ]) ] + invoker.args
+                            [ "host_tool_barrier" ],
+                            true)
+      script = script[0]
+      inputs += get_metadata([ ":_tool.$action_target" ],
+                             [ "host_tool_action_inputs" ],
+                             [ "host_tool_barrier" ],
+                             true)
+      args = get_metadata([ ":_tool.$action_target" ],
+                          [ "host_tool_action_args" ],
+                          [ "host_tool_barrier" ]) + invoker.args
     } else {
       _host_toolchain = "$zx/public/gn/toolchain:host-$host_cpu-$host_os-clang"
       tool_out_dir =
