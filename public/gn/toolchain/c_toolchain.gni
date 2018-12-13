@@ -182,6 +182,7 @@ template("define_c_toolchain") {
 
     if (make_id_link) {
       readelf = "$dir_prefix${tc.tool_prefix}readelf"
+
       # This works with bash, but ${var:n:m} syntax is not standard.
       #strip_command += " && notes=\$(\"$readelf\" -n $unstripped_outfile) && id=\"\${notes##*Build ID: }\" && nl=\$(echo; echo '*') && id=\"\${id%%\$nl}\" && { test -z \"\$id\" || { mkdir -p \"$id_dir/\${id:0:2}\" && ln -f $unstripped_outfile \"$id_dir/\${id:0:2}/\${id:2}.debug\" && ln -f $outfile \"$id_dir/\${id:0:2}/\${id:2}\" ; } ; }"
 
@@ -381,6 +382,13 @@ template("define_c_toolchain") {
         }
         if (!defined(output_name_suffix)) {
           output_name_suffix = ""
+        }
+
+        # This is used in setting metadata.link_output.
+        if (use_strip) {
+          link_output_suffix = ".debug"
+        } else {
+          link_output_suffix = ""
         }
       }
     }

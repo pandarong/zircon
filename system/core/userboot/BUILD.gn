@@ -85,31 +85,16 @@ if (current_toolchain == default_toolchain) {
     deps = [
       "$zx/system/ulib/zircon",
     ]
-    if (false) {  # TODO(get_metadata)
-      sources = [
-        get_metadata("", [ "link_output" ]),
-      ]
-    } else {
-      sources = [
-        get_label_info(
-                "$zx/system/ulib/zircon:zircon.shared($zx/public/gn/toolchain:user-${current_cpu}-clang.shlib)",
-                "target_out_dir") + "/libzircon.so.debug",
-      ]
-    }
+    sources = get_metadata(deps, [ "link_output" ], [ "link_barrier" ], true)
     outputs = [
       "$target_gen_dir/vdso-syms.h",
     ]
     utils = [ "nm" ]
     script = "$zx/scripts/shlib-symbols"
-    args = [
-      "-a",
-
-      # This is not "" so it doesn't get any tool deps from the action.
-      # TODO(get_metadata): get_metadata(deps, [ "link_output_arg" ]),
-      rebase_path(sources[0], root_build_dir),
-
-      rebase_path(outputs[0], root_build_dir),
-    ]
+    args = [ "-a" ] +
+           # This is not "" so it doesn't get any tool deps from the action.
+           get_metadata(deps, [ "link_output_arg" ], [ "link_barrier" ]) +
+           rebase_path(outputs, root_build_dir)
   }
 
   # This generated linker script defines symbols for each vDSO entry point
