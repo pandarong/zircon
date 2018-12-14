@@ -7,6 +7,8 @@ driver("usb-peripheral") {
     "usb-peripheral.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-usb-dci",
+    "$zx/system/banjo/ddk-protocol-usb-function",
     "$zx/system/banjo/ddk-protocol-usb-mode-switch",
     "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",

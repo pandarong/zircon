@@ -8,6 +8,7 @@ driver("ums-function") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-block",
+    "$zx/system/banjo/ddk-protocol-usb-function",
     "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",

@@ -22,6 +22,7 @@ driver("mt8167s_ref") {
     "$zx/system/banjo/ddk-protocol-gpio-impl",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-scpi",
     "$zx/system/dev/lib/mt8167",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
