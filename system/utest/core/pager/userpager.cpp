@@ -36,6 +36,50 @@ bool Vmo::CheckVmar(uint64_t offset, uint64_t len, const void* expected) {
     return true;
 }
 
+bool Vmo::CheckVmo(uint64_t offset, uint64_t len, const void* expected) {
+    len *= ZX_PAGE_SIZE;
+    offset *= ZX_PAGE_SIZE;
+
+    zx_handle_t tmp_vmo = ZX_HANDLE_INVALID;
+    zx_vaddr_t buf = 0;
+
+    bool success = true;
+
+    if (zx_vmo_create(len, 0, &tmp_vmo) != ZX_OK) {
+        success = false;
+        goto done;
+    }
+    if (zx_vmar_map(zx_vmar_root_self(), ZX_VM_PERM_READ | ZX_VM_PERM_WRITE,
+                    0, tmp_vmo, 0, len, &buf) != ZX_OK) {
+        success = false;
+        goto done;
+    }
+
+    if (vmo_.read(reinterpret_cast<void*>(buf), offset, len) != ZX_OK) {
+        success = false;
+        goto done;
+    }
+
+    for (uint64_t i = 0; i < len / sizeof(uint64_t); i++) {
+        auto data_buf = reinterpret_cast<uint64_t*>(buf);
+        auto expected_buf = static_cast<const uint64_t*>(expected);
+        if (data_buf[i] != (expected
+                    ? expected_buf[i] : base_val_ + (offset / sizeof(uint64_t)) + i)) {
+            success = false;
+            goto done;
+        }
+    }
+
+done:
+    if (buf) {
+        zx_vmar_unmap(zx_vmar_root_self(), buf, len);
+    }
+    if (tmp_vmo) {
+        zx_handle_close(tmp_vmo);
+    }
+    return success;
+}
+
 bool Vmo::OpRange(uint32_t op, uint64_t offset, uint64_t len) {
     return vmo_.op_range(op, offset * ZX_PAGE_SIZE, len * ZX_PAGE_SIZE, nullptr, 0) == ZX_OK;
 }

@@ -979,53 +979,66 @@ template <typename T>
 zx_status_t VmObjectPaged::ReadWriteInternal(uint64_t offset, size_t len, bool write, T copyfunc) {
     canary_.Assert();
 
-    Guard<fbl::Mutex> guard{&lock_};
+    {
+        Guard<fbl::Mutex> guard{&lock_};
+        // are we uncached? abort in this case
+        if (cache_policy_ != ARCH_MMU_FLAG_CACHED) {
+            return ZX_ERR_BAD_STATE;
+        }
 
-    // are we uncached? abort in this case
-    if (cache_policy_ != ARCH_MMU_FLAG_CACHED) {
-        return ZX_ERR_BAD_STATE;
-    }
-
-    // test if in range
-    uint64_t end_offset;
-    if (add_overflow(offset, len, &end_offset) || end_offset > size_) {
-        return ZX_ERR_OUT_OF_RANGE;
-    }
-
-    // TODO: Update read/write to support these
-    if (GetRootPageSourceLocked() != nullptr) {
-        return ZX_ERR_INVALID_ARGS;
+        // test if in range
+        uint64_t end_offset;
+        if (add_overflow(offset, len, &end_offset) || end_offset > size_) {
+            return ZX_ERR_OUT_OF_RANGE;
+        }
     }
 
     // walk the list of pages and do the write
     uint64_t src_offset = offset;
     size_t dest_offset = 0;
-    while (len > 0) {
-        size_t page_offset = src_offset % PAGE_SIZE;
-        size_t tocopy = MIN(PAGE_SIZE - page_offset, len);
-
-        // fault in the page
-        paddr_t pa;
-        auto status = GetPageLocked(src_offset,
-                                    VMM_PF_FLAG_SW_FAULT | (write ? VMM_PF_FLAG_WRITE : 0),
-                                    nullptr, nullptr, nullptr, &pa);
-        if (status != ZX_OK) {
-            return status;
+    PageRequest page_request;
+    bool need_retry = false;
+    do {
+        if (need_retry) {
+            zx_status_t status = page_request.Wait();
+            if (status != ZX_OK) {
+                return status;
+            }
+            need_retry = false;
         }
 
-        // compute the kernel mapping of this page
-        uint8_t* page_ptr = reinterpret_cast<uint8_t*>(paddr_to_physmap(pa));
+        Guard<fbl::Mutex> guard{&lock_};
 
-        // call the copy routine
-        auto err = copyfunc(page_ptr + page_offset, dest_offset, tocopy);
-        if (err < 0) {
-            return err;
+        while (len > 0) {
+            size_t page_offset = src_offset % PAGE_SIZE;
+            size_t tocopy = MIN(PAGE_SIZE - page_offset, len);
+
+            // fault in the page
+            paddr_t pa;
+            auto status = GetPageLocked(src_offset,
+                                        VMM_PF_FLAG_SW_FAULT | (write ? VMM_PF_FLAG_WRITE : 0),
+                                        nullptr, &page_request, nullptr, &pa);
+            if (status == ZX_ERR_SHOULD_WAIT) {
+                need_retry = true;
+                break;
+            } else if (status != ZX_OK) {
+                return status;
+            }
+
+            // compute the kernel mapping of this page
+            uint8_t* page_ptr = reinterpret_cast<uint8_t*>(paddr_to_physmap(pa));
+
+            // call the copy routine
+            auto err = copyfunc(page_ptr + page_offset, dest_offset, tocopy);
+            if (err < 0) {
+                return err;
+            }
+
+            src_offset += tocopy;
+            dest_offset += tocopy;
+            len -= tocopy;
         }
-
-        src_offset += tocopy;
-        dest_offset += tocopy;
-        len -= tocopy;
-    }
+    } while (need_retry);
 
     return ZX_OK;
 }

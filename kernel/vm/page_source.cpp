@@ -97,6 +97,7 @@ void PageSource::OnPagesSupplied(uint64_t offset, uint64_t len) {
 zx_status_t PageSource::GetPage(uint64_t offset, PageRequest* request,
                                 vm_page_t** const page_out, paddr_t* const pa_out) {
     ASSERT(request);
+    offset = ROUNDDOWN(offset, PAGE_SIZE);
 
     fbl::AutoLock info_lock(&mtx_);
     if (detached_) {
