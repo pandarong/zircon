@@ -20,6 +20,7 @@ group("utest") {
     "$zx/system/ulib/inspect/test",
     "$zx/system/ulib/kvstore:kvstore-test",
     "$zx/system/ulib/tftp:tftp-test",
+    "$zx/system/ulib/zxtest/test",
     "abigen",
     "async",
     "async-loop",
