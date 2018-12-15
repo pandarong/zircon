@@ -46,7 +46,7 @@ source_set("image") {
     "$zx/kernel/lib/vdso",
   ]
 
-  if (false) {  # TODO(get_metadata)
+  if (false) {  # TODO(get_metadata): as of refs/changes/82/3482/3 provokes a bug where include_dirs is then said to be unused
     # userboot-image.S includes the userboot contents and so must be
     # reassembled when that changes.  Note we can't have core/userboot in
     # deps here because that would try to link it into the kernel.

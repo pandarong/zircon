@@ -1129,8 +1129,8 @@ template("driver") {
     # It's an error to link against any shared library that's not on the
     # whitelist.  Those libraries set `driver_blackist=[]` while others (by
     # default, see shared_library() above) set `driver_blacklist=[true]`.
-    if (false) {  # TODO(get_metadata)
-      assert_no_metadata("",
+    if (false) {  # TODO(get_metadata): add assert_no_metadata feature
+      assert_no_metadata([ "" ],
                          [ "driver_blacklist" ],
                          [ "driver_blacklist_barrier" ],
                          "driver() targets cannot depend on shared libraries")
