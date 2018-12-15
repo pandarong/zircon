@@ -28,7 +28,8 @@ static void usb_util_control_complete(void* ctx, usb_request_t* req) {
 }
 
 zx_status_t usb_util_control(usb_device_t* dev, uint8_t request_type, uint8_t request,
-                             uint16_t value, uint16_t index, void* data, size_t length) {
+                             uint16_t value, uint16_t index, void* data, size_t length,
+                             size_t* out_actual) {
     usb_request_t* req = NULL;
     bool use_free_list = length == 0;
     if (use_free_list) {
@@ -43,9 +44,9 @@ zx_status_t usb_util_control(usb_device_t* dev, uint8_t request_type, uint8_t re
     usb_setup_t* setup = &req->setup;
     setup->bmRequestType = request_type;
     setup->bRequest = request;
-    setup->wValue = value;
-    setup->wIndex = index;
-    setup->wLength = length;
+    setup->wValue = htole16(value);
+    setup->wIndex = htole16(index);
+    setup->wLength = htole16(static_cast<uint16_t>(length));
     req->header.device_id = dev->device_id;
 
     bool out = !!((request_type & USB_DIR_MASK) == USB_DIR_OUT);
@@ -53,7 +54,7 @@ zx_status_t usb_util_control(usb_device_t* dev, uint8_t request_type, uint8_t re
         usb_request_copy_to(req, data, length, 0);
     }
 
-    sync_completion_t completion = SYNC_COMPLETION_INIT;
+    sync_completion_t completion;
 
     req->header.length = length;
 
@@ -104,7 +105,7 @@ zx_status_t usb_util_get_string_descriptor(usb_device_t* dev, uint8_t desc_id, u
     //  If we have never attempted to load our language ID table, do so now.
     zx_status_t result;
     if (!atomic_load_explicit(&dev->langids_fetched, memory_order_relaxed)) {
-        usb_langid_desc_t* id_desc = calloc(1, sizeof(usb_langid_desc_t));
+        auto* id_desc = static_cast<usb_langid_desc_t*>(calloc(1, sizeof(usb_langid_desc_t)));
 
         if (id_desc != NULL) {
             result = usb_util_get_descriptor(dev, USB_DT_STRING, 0, 0, id_desc, sizeof(*id_desc));
@@ -155,7 +156,7 @@ zx_status_t usb_util_get_string_descriptor(usb_device_t* dev, uint8_t desc_id, u
     // tried to obtain or synthesize one in the past, we are not going to get
     // one.  Just fail.
     usb_langid_desc_t* lang_ids =
-        (usb_langid_desc_t*)(atomic_load_explicit(&dev->lang_ids, memory_order_relaxed));
+        (usb_langid_desc_t*)(dev->lang_ids.load(memory_order_relaxed));
     if (!lang_ids) {
         return ZX_ERR_BAD_STATE;
     }

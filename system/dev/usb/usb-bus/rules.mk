@@ -9,13 +9,14 @@ MODULE := $(LOCAL_DIR)
 MODULE_TYPE := driver
 
 MODULE_SRCS := \
-    $(LOCAL_DIR)/usb-bus.c \
-    $(LOCAL_DIR)/usb-device.c \
-    $(LOCAL_DIR)/util.c \
+    $(LOCAL_DIR)/usb-bus.cpp \
+    $(LOCAL_DIR)/usb-device.cpp \
+    $(LOCAL_DIR)/util.cpp \
 
 MODULE_STATIC_LIBS := \
     system/dev/lib/usb \
     system/ulib/ddk \
+    system/ulib/fbl \
     system/ulib/fidl \
     system/ulib/sync \
     system/ulib/utf_conversion \

@@ -14,7 +14,7 @@
 
 static zx_status_t bus_add_device(void* ctx, uint32_t device_id, uint32_t hub_id,
                                       usb_speed_t speed) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
 
     if (device_id >= bus->max_device_count) return ZX_ERR_INVALID_ARGS;
 
@@ -24,7 +24,7 @@ static zx_status_t bus_add_device(void* ctx, uint32_t device_id, uint32_t hub_id
 }
 
 static zx_status_t bus_remove_device(void* ctx, uint32_t device_id) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     if (device_id >= bus->max_device_count) {
         zxlogf(ERROR, "device_id out of range in usb_bus_remove_device\n");
         return ZX_ERR_INVALID_ARGS;
@@ -39,7 +39,7 @@ static zx_status_t bus_remove_device(void* ctx, uint32_t device_id) {
 }
 
 static zx_status_t bus_reset_hub_port(void* ctx, uint32_t hub_id, uint32_t port) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     if (hub_id >= bus->max_device_count) {
         zxlogf(ERROR, "hub_id out of range in usb_bus_reset_hub_port\n");
         return ZX_ERR_INVALID_ARGS;
@@ -73,7 +73,7 @@ static zx_status_t bus_get_device_id(zx_device_t* device, uint32_t* out) {
 
 static zx_status_t bus_configure_hub(void* ctx, zx_device_t* hub_device, usb_speed_t speed,
                                      const usb_hub_descriptor_t* desc) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     uint32_t hub_id;
     if (bus_get_device_id(hub_device, &hub_id) != ZX_OK) {
         return ZX_ERR_INTERNAL;
@@ -83,7 +83,7 @@ static zx_status_t bus_configure_hub(void* ctx, zx_device_t* hub_device, usb_spe
 
 static zx_status_t bus_device_added(void* ctx, zx_device_t* hub_device, uint32_t port,
                                     usb_speed_t speed) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     uint32_t hub_id;
     if (bus_get_device_id(hub_device, &hub_id) != ZX_OK) {
         return ZX_ERR_INTERNAL;
@@ -92,7 +92,7 @@ static zx_status_t bus_device_added(void* ctx, zx_device_t* hub_device, uint32_t
 }
 
 static zx_status_t bus_device_removed(void* ctx, zx_device_t* hub_device, uint32_t port) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     uint32_t hub_id;
     if (bus_get_device_id(hub_device, &hub_id) != ZX_OK) {
         return ZX_ERR_INTERNAL;
@@ -102,7 +102,7 @@ static zx_status_t bus_device_removed(void* ctx, zx_device_t* hub_device, uint32
 
 static zx_status_t bus_set_hub_interface(void* ctx, zx_device_t* usb_device,
                                          const usb_hub_interface_t* hub) {
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     uint32_t usb_device_id;
     if (bus_get_device_id(usb_device, &usb_device_id) != ZX_OK) {
         return ZX_ERR_INTERNAL;
@@ -125,7 +125,7 @@ static usb_bus_protocol_ops_t _bus_protocol = {
 
 static void usb_bus_unbind(void* ctx) {
     zxlogf(INFO, "usb_bus_unbind\n");
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     usb_hci_set_bus_interface(&bus->hci, NULL);
 
     for (size_t i = 0; i < bus->max_device_count; i++) {
@@ -140,19 +140,21 @@ static void usb_bus_unbind(void* ctx) {
 
 static void usb_bus_release(void* ctx) {
     zxlogf(INFO, "usb_bus_release\n");
-    usb_bus_t* bus = ctx;
+    auto* bus = static_cast<usb_bus_t*>(ctx);
     free(bus->devices);
     free(bus);
 }
 
-static zx_protocol_device_t usb_bus_device_proto = {
-    .version = DEVICE_OPS_VERSION,
-    .unbind = usb_bus_unbind,
-    .release = usb_bus_release,
-};
+static zx_protocol_device_t usb_bus_device_proto = [](){
+    zx_protocol_device_t proto;
+    proto.version = DEVICE_OPS_VERSION;
+    proto.unbind = usb_bus_unbind;
+    proto.release = usb_bus_release;
+    return proto;
+}();
 
 static zx_status_t usb_bus_bind(void* ctx, zx_device_t* device) {
-    usb_bus_t* bus = calloc(1, sizeof(usb_bus_t));
+    auto* bus = static_cast<usb_bus_t*>(calloc(1, sizeof(usb_bus_t)));
     if (!bus) {
         zxlogf(ERROR, "Not enough memory for usb_bus_t.\n");
         return ZX_ERR_NO_MEMORY;
@@ -165,7 +167,7 @@ static zx_status_t usb_bus_bind(void* ctx, zx_device_t* device) {
 
     bus->hci_zxdev = device;
     bus->max_device_count = usb_hci_get_max_device_count(&bus->hci);
-    bus->devices = calloc(bus->max_device_count, sizeof(usb_device_t *));
+    bus->devices = static_cast<usb_device_t**>(calloc(bus->max_device_count, sizeof(usb_device_t *)));
     if (!bus->devices) {
         zxlogf(ERROR, "Not enough memory for usb_bus_t->devices. max_device_count: %zu\n",
                bus->max_device_count);

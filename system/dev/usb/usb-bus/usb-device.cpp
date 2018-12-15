@@ -93,7 +93,7 @@ static void stop_callback_thread(usb_device_t* dev) {
 
 // usb request completion for the requests passed down to the HCI driver
 static void request_complete(void* ctx, usb_request_t* req) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
 
     mtx_lock(&dev->callback_lock);
     // move original request to completed_reqs list so it can be completed on the callback_thread
@@ -133,12 +133,12 @@ static zx_status_t usb_device_get_protocol(void* ctx, uint32_t proto_id, void* p
 }
 
 static void usb_device_unbind(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     device_remove(dev->zxdev);
 }
 
 static void usb_device_release(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
 
     stop_callback_thread(dev);
 
@@ -159,7 +159,7 @@ static void usb_control_complete(void* ctx, usb_request_t* req) {
 static zx_status_t usb_device_control(void* ctx, uint8_t request_type, uint8_t request,
                                       uint16_t value, uint16_t index, void* data, size_t length,
                                       zx_time_t timeout, size_t* out_length) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
 
     usb_request_t* req = NULL;
     bool use_free_list = length == 0;
@@ -234,7 +234,7 @@ static zx_status_t usb_device_control(void* ctx, uint8_t request_type, uint8_t r
 
 static void usb_device_request_queue(void* ctx, usb_request_t* req, usb_request_complete_cb cb,
                                      void* cookie) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
 
     usb_device_req_internal_t* req_int = USB_REQ_TO_DEV_INTERNAL(req, dev->parent_req_size);
     req_int->complete_cb = cb;
@@ -258,24 +258,24 @@ static zx_status_t usb_device_configure_batch_callback(void* ctx, uint8_t ep_add
 }
 
 static usb_speed_t usb_device_get_speed(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return dev->speed;
 }
 
 static zx_status_t usb_device_set_interface(void* ctx, uint8_t interface_number,
                                             uint8_t alt_setting) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_util_control(dev, USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_INTERFACE,
                             USB_REQ_SET_INTERFACE, alt_setting, interface_number, NULL, 0);
 }
 
 static uint8_t usb_device_get_configuration(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return dev->config_descs[dev->current_config_index]->bConfigurationValue;
 }
 
 static zx_status_t usb_device_set_configuration(void* ctx, uint8_t configuration) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     for (uint8_t i = 0; i < dev->num_configurations; i++) {
         usb_configuration_descriptor_t* descriptor = dev->config_descs[i];
         if (descriptor->bConfigurationValue == configuration) {
@@ -294,34 +294,34 @@ static zx_status_t usb_device_set_configuration(void* ctx, uint8_t configuration
 static zx_status_t usb_device_enable_endpoint(void* ctx, usb_endpoint_descriptor_t* ep_desc,
                                               usb_ss_ep_comp_descriptor_t* ss_comp_desc,
                                               bool enable) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_hci_enable_endpoint(&dev->hci, dev->device_id, ep_desc, ss_comp_desc, enable);
 }
 
 static zx_status_t usb_device_reset_endpoint(void* ctx, uint8_t ep_address) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_hci_reset_endpoint(&dev->hci, dev->device_id, ep_address);
 }
 
 static size_t usb_device_get_max_transfer_size(void* ctx, uint8_t ep_address) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_hci_get_max_transfer_size(&dev->hci, dev->device_id, ep_address);
 }
 
 static uint32_t _usb_device_get_device_id(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return dev->device_id;
 }
 
 static void usb_device_get_device_descriptor(void* ctx, usb_device_descriptor_t* out_desc) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     memcpy(out_desc, &dev->device_desc, sizeof(usb_device_descriptor_t));
 }
 
 static zx_status_t usb_device_get_configuration_descriptor(void* ctx, uint8_t configuration,
                                                            usb_configuration_descriptor_t** out,
                                                            size_t* out_length) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     for (int i = 0; i <  dev->num_configurations; i++) {
         usb_configuration_descriptor_t* config_desc = dev->config_descs[i];
         if (config_desc->bConfigurationValue == configuration) {
@@ -343,7 +343,7 @@ static zx_status_t usb_device_get_configuration_descriptor(void* ctx, uint8_t co
 
 static zx_status_t usb_device_get_descriptor_list(void* ctx, void** out_descriptors,
                                                   size_t* out_length) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     usb_configuration_descriptor_t* config_desc = dev->config_descs[dev->current_config_index];
     size_t length = le16toh(config_desc->wTotalLength);
 
@@ -362,23 +362,23 @@ static zx_status_t usb_device_get_descriptor_list(void* ctx, void** out_descript
 zx_status_t usb_device_get_string_descriptor(void* ctx, uint8_t desc_id, uint16_t lang_id,
                                              uint8_t* buf, size_t buflen, size_t* out_actual,
                                              uint16_t* out_actual_lang_id) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_util_get_string_descriptor(dev, desc_id, lang_id, buf, buflen,
                                           out_actual, out_actual_lang_id);
 }
 
 static zx_status_t usb_device_cancel_all(void* ctx, uint8_t ep_address) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_hci_cancel_all(&dev->hci, dev->device_id, ep_address);
 }
 
 static uint64_t usb_device_get_current_frame(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return usb_hci_get_current_frame(&dev->hci);
 }
 
 static size_t usb_device_get_request_size(void* ctx) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return dev->req_size;
 }
 
@@ -404,17 +404,17 @@ static usb_protocol_ops_t _usb_protocol = {
 };
 
 static zx_status_t fidl_GetDeviceSpeed(void* ctx, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return zircon_usb_device_DeviceGetDeviceSpeed_reply(txn, dev->speed);
 }
 
 static zx_status_t fidl_GetDeviceDescriptor(void* ctx, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return zircon_usb_device_DeviceGetDeviceDescriptor_reply(txn, (uint8_t*)&dev->device_desc);
 }
 
 static zx_status_t fidl_GetConfigurationDescriptorSize(void* ctx, uint8_t config, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     usb_configuration_descriptor_t* descriptor = get_config_desc(dev, config);
     if (!descriptor) {
         return zircon_usb_device_DeviceGetConfigurationDescriptorSize_reply(txn,
@@ -426,7 +426,7 @@ static zx_status_t fidl_GetConfigurationDescriptorSize(void* ctx, uint8_t config
 }
 
 static zx_status_t fidl_GetConfigurationDescriptor(void* ctx, uint8_t config, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     usb_configuration_descriptor_t* descriptor = get_config_desc(dev, config);
     if (!descriptor) {
         return zircon_usb_device_DeviceGetConfigurationDescriptor_reply(txn, ZX_ERR_INVALID_ARGS,
@@ -440,7 +440,7 @@ static zx_status_t fidl_GetConfigurationDescriptor(void* ctx, uint8_t config, fi
 
 static zx_status_t fidl_GetStringDescriptor(void* ctx, uint8_t desc_id, uint16_t lang_id,
                                             fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     uint8_t buffer[zircon_usb_device_MAX_STRING_DESC_SIZE];
     size_t actual;
     zx_status_t status = usb_util_get_string_descriptor(dev, desc_id, lang_id, buffer,
@@ -450,29 +450,29 @@ static zx_status_t fidl_GetStringDescriptor(void* ctx, uint8_t desc_id, uint16_t
 
 static zx_status_t fidl_SetInterface(void* ctx, uint8_t interface_number, uint8_t alt_setting,
                                      fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     zx_status_t status = usb_device_set_interface(dev, interface_number, alt_setting);
     return zircon_usb_device_DeviceSetInterface_reply(txn, status);
 }
 
 static zx_status_t fidl_GetDeviceId(void* ctx, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return zircon_usb_device_DeviceGetDeviceId_reply(txn, dev->device_id);
 }
 
 static zx_status_t fidl_GetHubDeviceId(void* ctx, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     return zircon_usb_device_DeviceGetHubDeviceId_reply(txn, dev->hub_id);
 }
 
 static zx_status_t fidl_GetConfiguration(void* ctx, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     usb_configuration_descriptor_t* descriptor = dev->config_descs[dev->current_config_index];
     return zircon_usb_device_DeviceGetConfiguration_reply(txn, descriptor->bConfigurationValue);
 }
 
 static zx_status_t fidl_SetConfiguration(void* ctx, uint8_t configuration, fidl_txn_t* txn) {
-    usb_device_t* dev = ctx;
+    auto* dev = static_cast<usb_device_t*>(ctx);
     zx_status_t status = usb_device_set_configuration(dev, configuration);
     return zircon_usb_device_DeviceSetConfiguration_reply(txn, status);
 }

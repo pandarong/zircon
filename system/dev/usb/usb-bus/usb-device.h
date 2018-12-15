@@ -9,12 +9,12 @@
 #include <ddk/protocol/usb/hci.h>
 #include <ddk/protocol/usb/hub.h>
 #include <ddk/protocol/usb-old.h>
+#include <fbl/atomic.h>
 #include <usb/usb-request.h>
 #include <lib/sync/completion.h>
 #include <zircon/hw/usb.h>
 
 #include <threads.h>
-#include <stdatomic.h>
 
 typedef struct usb_bus usb_bus_t;
 
@@ -39,8 +39,8 @@ typedef struct usb_device {
     uint8_t current_config_index;
     uint8_t num_configurations;
 
-    atomic_bool langids_fetched;
-    atomic_uintptr_t lang_ids;
+    fbl::atomic<bool> langids_fetched;
+    fbl::atomic<uintptr_t> lang_ids;
 
     // thread for calling client's usb request complete callback
     thrd_t callback_thread;
