@@ -48,8 +48,5 @@ executable("devmgr") {
     "$zx/system/core/svchost",
     "$zx/system/core/virtcon:virtual-console",
     "$zx/system/core/pwrbtn-monitor",
-
-    # TODO(get_metadata): only needed for the dismal kludges
-    "../devhost",
   ]
 }

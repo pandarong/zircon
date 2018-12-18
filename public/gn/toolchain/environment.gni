@@ -376,12 +376,16 @@ template("define_environment") {
     }
     if (excluded_variants != []) {
       # Weed out the selectors that would choose an excluded variant.
+      excluded_selectors = []
       foreach(selector, variant_selectors) {
         if (excluded_variants + [ selector.variant ] - [ selector.variant ] !=
             excluded_variants) {
-          variant_selectors -= [ selector ]
+          excluded_selectors += [ selector ]
+          excluded_selectors -= [ selector ]
+          excluded_selectors += [ selector ]
         }
       }
+      variant_selectors -= excluded_selectors
     }
   }
 

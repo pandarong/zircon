@@ -953,6 +953,7 @@ template("_variant_target") {
 }
 
 template("_basic_executable") {
+  assert(current_toolchain != default_toolchain)
   assert_no_legacy_configs(target_name) {
     type = invoker.target_type
   }

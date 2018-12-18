@@ -5,6 +5,7 @@
 import("$zx/public/gn/build_api.gni")
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
+import("$zx/public/gn/zbi.gni")
 
 group("utest") {
   testonly = true
@@ -128,6 +129,16 @@ group("utest") {
   if (current_cpu == "x64") {
     deps += [ "x86-umip" ]
   }
+}
+
+# This plus a kernel in deps makes a zbi() that's just for running core-tests.
+zbi_input("core-tests") {
+  testonly = true
+  type = "cmdline"
+  args = [ "userboot=bin/core-tests" ]
+  deps = [
+    "$zx/system/utest/core:core-tests",
+  ]
 }
 
 group("host-tests") {

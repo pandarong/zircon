@@ -5,6 +5,7 @@
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/host_tool_action.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
+import("$zx/public/gn/zbi.gni")
 
 # Build the native host tools intended for developer use.
 foreach(host, standard_build_hosts) {
@@ -74,9 +75,6 @@ foreach(cpu, standard_fuchsia_cpus) {
     foreach(target, public_targets + testonly_public_targets) {
       deps += [ "$zx/public/$target:$cpu" ]
     }
-
-    # TODO(get_metadata): dismal kludge
-    #deps += [ ":$cpu.zbi" ]
   }
 }
 
@@ -95,11 +93,8 @@ group("all-cpu") {
   testonly = true
   deps = []
   foreach(cpu, standard_fuchsia_cpus) {
-    deps += [ ":$cpu.zbi" ]
+    deps += [ ":$cpu" ]
   }
-
-  # TODO(get_metadata): dismal kludge, used below
-  write_runtime_deps = "$root_build_dir/runtime_deps"
 }
 
 group("default") {
@@ -110,74 +105,31 @@ group("default") {
   ]
 }
 
-# TODO(get_metadata): dismal kludge
-foreach(cpu, standard_fuchsia_cpus) {
-  if (false) {
-    action("bootfs-$cpu.manifest") {
-      testonly = true
-      script = "munge-manifest.sh"
-      deps = [
-        ":fmh",
-      ]
-      outputs = [
-        "$root_build_dir/$target_name",
-      ]
-      sources = [
-        "$root_build_dir/runtime_deps",
-      ]
-      depfile = "${outputs[0]}.d"
-      args = rebase_path(outputs + sources + [ depfile ], root_build_dir) +
-             [ "bootfs-$cpu" ]
-    }
-  } else {
-    write_data("bootfs-$cpu.manifest") {
-      testonly = true
-      deps = [
-        ":$cpu",
-      ]
-      outputs = [
-        "$root_build_dir/$target_name",
-      ]
-      output_conversion = "list lines"
-      data_keys = [ "manifest_lines" ]
-    }
-  }
+# TODO: example
 
-  host_tool_action("$cpu.zbi") {
-    testonly = true
-    tool = "$zx/system/host/zbi"
-    outputs = [
-      "$root_build_dir/$target_name",
-    ]
-    depfile = "${outputs[0]}.d"
-    args = [
-      "--complete=$cpu",
-      "--output=" + rebase_path(outputs[0], root_build_dir),
-      "--depfile=" + rebase_path(depfile, root_build_dir),
-    ]
-    deps = [
-      ":bootfs-$cpu.manifest",
-    ]
-    sources = [
-      "$root_build_dir/bootfs-$cpu.manifest",
-    ]
-
-    #sources = get_target_outputs(deps[0])
-    foreach(target, public_targets + testonly_public_targets) {
-      deps += [ "$zx/public/$target:$cpu" ]
-    }
-    sources += [ get_label_info("$zx/kernel($zx/kernel:kernel-$cpu-clang)",
-                                "root_out_dir") + "/kernel.zbi" ]
-    args += rebase_path(sources, root_build_dir)
-  }
+bootimage("sherlock-zedboot") {
+  cpu = "arm64"
+  deps = [
+    ":zedboot",
+    "$zx/system/dev/board/sherlock",
+  ]
 }
 
-# TODO(get_metadata): oy
-action("fmh") {
-  visibility = [ ":*" ]
-  outputs = [
-    "$root_build_dir/runtime_deps",
-  ]
-  script = "/usr/bin/touch"
-  args = rebase_path(outputs, root_build_dir)
+if (current_cpu != "") {
+  group("zedboot") {
+    deps = [
+      "$zx/public/core",
+      # TODO: some group() of useful diag/debug tools
+    ]
+    metadata = {
+      devmgr_config = [ "netsvc.netboot=true" ]
+    }
+  }
+
+  group("recovery") {
+    deps = [
+      "$zx/public/core",
+      # TODO: some group() of useful diag/recovery tools
+    ]
+  }
 }

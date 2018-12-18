@@ -3,71 +3,116 @@
 # found in the LICENSE file.
 
 import("$zx/public/gn/host_tool_action.gni")
+import("$zx/public/gn/resource.gni")
+import("$zx/public/gn/toolchain/select_toolchain.gni")
 
+# The target generates a manifest that collects any manifest_lines from its
+# dependencies' metadata, e.g. contributed by resource() targets.  It
+# contributes metadata that will drive zbi() to use this manifest, as well
+# as any non-BOOTFS inputs given via $sources and $args.
 template("zbi_input") {
-  manifest_args = []
-  manifest_inputs = []
+  input_target = target_name
+  manifest_target = "$target_name._manifest"
+  manifest_file = "$target_gen_dir/${target_name}.manifest"
 
-  # Dependencies on resource() targets feed into the manifest file.
-  if (defined(invoker.deps) || defined(invoker.data_deps)) {
-    manifest_file = "$target_gen_dir/${target_name}.manifest"
-    write_file(manifest_file, [ get_metadata("", [ "manifest_lines" ]) ])
-    manifest_args += [ rebase_path(manifest_file, root_build_dir) ]
-    manifest_inputs += [
-      manifest_file,
-      get_metadata("", [ "manifest_inputs" ]),
-    ]
-  }
-
-  if (defined(invoker.manifest)) {
-    foreach(entry, invoker.manifest) {
-      if (entry == "$entry") {
-        # It's a literal manifest entry string.
-        manifest_args += [ "--entry=$entry" ]
-      } else {
-        # It's a manifest entry in the style of a copy() target.
-        foreach(source, entry.sources) {
-          manifest_inputs += [ source ]
-          source_path = rebase_path(source, root_build_dir)
-          foreach(target, process_file_template([ source ], entry.outputs)) {
-            manifest_args += [ "--entry=${target}=${source_path}" ]
-          }
-        }
-      }
-    }
-  }
-
-  group(target_name) {
+  write_data(manifest_target) {
+    visibility = [ ":$input_target" ]
     forward_variables_from(invoker,
                            [
                              "data_deps",
                              "deps",
                              "testonly",
-                             "visibility",
                            ])
-    metadata = {
-      if (defined(invoker.type) && invoker.type != "") {
-        zbi_input_args = [ "--type=${invoker.type}" ]
-      } else {
-        zbi_input_args = [ "--files" ]
+    outputs = [
+      manifest_file,
+    ]
+    output_conversion = "list lines"
+    data_keys = [ "manifest_lines" ]
+    walk_keys = [ "zbi_input_barrier" ]
+
+    # An embedded manifest contributes to metadata.manifest_lines directly.
+    if (defined(invoker.manifest)) {
+      entries = []
+      foreach(entry, invoker.manifest) {
+        if (entry == "$entry") {
+          # It's a literal manifest entry string.
+          # Note this doesn't express any dependency on its source file!
+          entries += [ entry ]
+        } else {
+          # It's a manifest entry in the style of a copy() target.
+          foreach(source, entry.sources) {
+            inputs += [ source ]
+            source_path = rebase_path(source, root_build_dir)
+            foreach(target, process_file_template([ source ], entry.outputs)) {
+              entries += [ "${target}=${source_path}" ]
+            }
+          }
+        }
       }
+      metadata = {
+        manifest_lines = entries
+      }
+    }
+  }
+
+  # This is separate from the manifest target just because the metadata
+  # contributed here must not be included in the manifest metadata query.
+  group(input_target) {
+    forward_variables_from(invoker,
+                           [
+                             "visibility",
+                             "testonly",
+                           ])
+    deps = [
+      ":$manifest_target",
+    ]
+
+    metadata = {
+      zbi_input_args = []
+
+      # An explicit type applies only to $sources and $args.
+      if (defined(invoker.type) && invoker.type != "") {
+        zbi_input_args += [ "--type=${invoker.type}" ]
+      }
+
+      # Explicit $args come first, for e.g. "-u" or "-g" to affect inputs.
+      # $args may also contain "--entry=..." payloads directly.
       if (defined(invoker.args)) {
         zbi_input_args += invoker.args
       }
-      zbi_inputs = manifest_inputs
+
       if (defined(invoker.sources)) {
-        zbi_inputs += invoker.sources
-        zbi_input_args += rebase_path(zbi_inputs, root_build_dir)
+        zbi_input_args += rebase_path(invoker.sources, root_build_dir)
       }
-      zbi_input_args += manifest_args
+
+      # Always include the manifest generated from the deps here.  The
+      # barrier will prevent zbi() from collecting manifest_lines that are
+      # redundant with this manifest.
+      zbi_input_args += [
+        "--files",
+        rebase_path(manifest_file, root_build_dir),
+      ]
+      zbi_input_barrier = []
+
       if (defined(invoker.metadata)) {
-        forward_variables_from(invoker.metadata, "*")
+        forward_variables_from(invoker.metadata,
+                               "*",
+                               [
+                                 "manifest_lines",
+                                 "zbi_input_args",
+                                 "zbi_input_barrier",
+                               ])
       }
     }
   }
 }
 
 template("zbi") {
+  zbi_target = target_name
+  input_target = "$target_name._zbi.input"
+  rspfile_target = "$target_name._zbi.rsp"
+  rspfile = "$target_gen_dir/$target_name._zbi.rsp"
+
   if (defined(invoker.output_name)) {
     output_file = invoker.output_name
   } else {
@@ -82,33 +127,58 @@ template("zbi") {
     output_file += ".zbi"
   }
 
-  output_file = "$root_out_dir/$output_file"
+  output_file = "$target_out_dir/$output_file"
 
-  host_tool_action(target_name) {
-    deps = []
+  zbi_input(input_target) {
+    visibility = [ ":$rspfile_target" ]
     forward_variables_from(invoker,
                            [
                              "deps",
-                             "metadata",
+                             "testonly",
+                           ])
+    assert(defined(deps), "zbi(\"$zbi_target\") must have `deps`")
+  }
+
+  # Generate a response file of input arguments collected from metadata.
+  write_data(rspfile_target) {
+    visibility = [ ":$zbi_target" ]
+    forward_variables_from(invoker, [ "testonly" ])
+    deps = [ ":$input_target" ]
+    outputs = [
+      rspfile,
+    ]
+    data_keys = [ "zbi_input_args" ]
+    walk_keys = [ "zbi_input_barrier" ]
+    output_conversion = "list lines"
+  }
+
+  host_tool_action(zbi_target) {
+    forward_variables_from(invoker,
+                           [
+                             "data_deps",
                              "visibility",
                              "testonly",
                            ])
-
+    deps = [
+      ":$rspfile_target",
+    ]
     outputs = [
       output_file,
     ]
     depfile = "${output_file}.d"
+    sources = [
+      rspfile,
+    ]
 
     tool = "$zx/system/host/zbi"
     args = [
       "--output=" + rebase_path(output_file, root_build_dir),
       "--depfile=" + rebase_path(depfile, root_build_dir),
+      "@" + rebase_path(rspfile, root_build_dir),
     ]
 
-    if (defined(invoker.compress) && !invoker.compress) {
-      args += [ "--uncompressed" ]
-    }
-
+    # Require a complete ZBI for the specified $cpu (or $current_cpu).
+    # A value of "" means it need not be a complete ZBI.
     if (defined(invoker.cpu)) {
       cpu = invoker.cpu
     } else {
@@ -118,141 +188,157 @@ template("zbi") {
       args += [ "--complete=$cpu" ]
     }
 
-    sources = [
-      get_metadata(deps, [ "zbi_inputs" ]),
-    ]
-    args += [ get_metadata(deps, [ "zbi_input_args" ]) ]
+    # This comes last to affect the output despite any earlier
+    # "-c" or "-u" from metadata.zbi_input_args meant to affect
+    # a particular input (e.g. for "--type=ramdisk").
+    if (defined(invoker.compress) && !invoker.compress) {
+      args += [ "--uncompressed" ]
+    } else {
+      args += [ "--compressed" ]
+    }
+
+    # Provide metadata so that a zbi() target can also act as if it were a
+    # zbi_input() with `type = "zbi"` and `sources` of this target's $outputs.
+    # Thus a zbi() target can be a dependency of another zbi() target to
+    # combine them without requiring an intervening zbi_input() target.
+    metadata = {
+      zbi_input_args = [ "--type=zbi" ] + rebase_path(outputs, root_build_dir)
+      if (defined(invoker.metadata)) {
+        forward_variables_from(invoker.metadata, "*", [ "zbi_input_args" ])
+      }
+    }
   }
 }
 
 template("devmgr_config") {
-  zbi_input(target_name) {
-    args = []
+  main_target = target_name
+  contents_target = "$target_name._devmgr_config.txt"
+
+  metadata_resource(contents_target) {
+    visibility = [ ":$main_target" ]
     forward_variables_from(invoker,
                            [
-                             "args",
+                             "data_deps",
                              "deps",
                              "metadata",
                              "testonly",
-                             "visibility",
                            ])
-    if (defined(visibility)) {
-      visibility += [ ":$target_name" ]
-    }
-    devmgr_config = "$target_gen_dir/$target_name.devmgr_config.txt"
-    write_file(
-        devmgr_config,
-        args + [ get_metadata([ ":$target_name" ], [ "devmgr_config" ]) ])
-    manifest = {
-      sources = [
-        devmgr_config,
-      ]
-      outputs = [
-        "config/devmgr",
-      ]
+    outputs = [
+      "config/devmgr",
+    ]
+    output_conversion = "list lines"
+    data_keys = [ "devmgr_config" ]
+    walk_keys = [ "devmgr_config_barrier" ]
+  }
+
+  # This is separate just so that it can add the metadata barrier and not
+  # have it affect this metadata collection walk itself.
+  group(main_target) {
+    forward_variables_from(invoker,
+                           [
+                             "visibility",
+                             "testonly",
+                           ])
+    deps = [
+      ":$contents_target",
+    ]
+    metadata = {
+      devmgr_config_barrier = []
     }
   }
 }
 
 template("bootimage") {
-  zbi_target = target_name
-  img_target = "${target_name}.img"
-  devmgr_config_target = "${target_name}.devmgr_config"
-
-  # Always generate a /boot/config/devmgr file that rolls up
-  # the metadata.devmgr_config lists from deps.
-  devmgr_config(devmgr_config_target) {
-    visibility = [ ":$zbi_target" ]
-    forward_variables_from(invoker,
-                           [
-                             "deps",
-                             "testonly",
-                           ])
+  if (defined(invoker.cpu)) {
+    cpu = invoker.cpu
+  } else {
+    cpu = current_cpu
   }
-
-  # The main target is a bootable zbi() that rolls up every zbi_input() and
-  # metadata.devmgr_config list from deps.
-  zbi(zbi_target) {
-    deps = []
-    forward_variables_from(invoker,
-                           [
-                             "cpu",
-                             "deps",
-                             "metadata",
-                             "output_name",
-                             "testonly",
-                             "visibility",
-                           ])
-    if (!defined(cpu)) {
-      cpu = current_cpu
+  assert(cpu != "", "bootimage() requires `cpu`")
+  if (cpu != current_cpu) {
+    # Redirect to a CPU-specific toolchain.
+    select_toolchain(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      cpu = cpu
+      environment_label = "$zx/public/gn/toolchain:user"
+      deps = [
+        ":$target_name",
+      ]
     }
-    assert(cpu != "", "bootimage() requires `cpu`")
-    if (defined(visibility)) {
-      visibility += [ ":$img_target" ]
+    not_needed(invoker, "*")
+  } else {
+    zbi_target = target_name
+    devmgr_config_target = "${target_name}.devmgr_config"
+
+    # Always generate a /boot/config/devmgr file that rolls up
+    # the metadata.devmgr_config lists from deps.
+    devmgr_config(devmgr_config_target) {
+      visibility = [ ":$zbi_target._zbi.input._manifest" ]
+      forward_variables_from(invoker,
+                             [
+                               "deps",
+                               "testonly",
+                             ])
     }
-    deps += [ ":$devmgr_config" ]
-    data_deps = [  # TODO: probably counts as circular
-      ":$img_target",
-    ]
-  }
 
-  # The secondary target is a board-specific wrapping of the ZBI made
-  # above.  The metadata flowing up from $zx/system/dev/board/$board
-  # supplies the details of how this is made.
-  action(img_target) {
-    visibility = [ ":$zbi_target" ]
-    forward_variables_from(invoker,
-                           [
-                             "output_name",
-                             "testonly",
-                           ])
-    if (!defined(output_name)) {
-      output_name = target_name
+    # The main target is a bootable zbi() that rolls up every zbi_input() and
+    # metadata.devmgr_config list from deps.
+    zbi(zbi_target) {
+      cpu = cpu
+      forward_variables_from(invoker,
+                             [
+                               "deps",
+                               "metadata",
+                               "output_name",
+                               "testonly",
+                               "visibility",
+                             ])
+      if (defined(visibility)) {
+        visibility += [
+          ":$target_name",
+          ":$img_target",
+        ]
+      }
+      if (!defined(deps)) {
+        deps = []
+      }
+      deps += [ ":$devmgr_config_target" ]
     }
-    outputs = [
-      "$root_build_dir/$output_name",
-    ]
-    script = get_metadata([ ":$zbi_target" ], [ "bootimage_script" ])
-    sources = [
-      get_metadata([ ":$zbi_target" ], [ "bootimage_inputs" ]),
-    ]
-    args = [ get_metadata([ ":$zbi_target" ], [ "bootimage_args" ]) ] +
-           rebase_path(get_target_outputs(":$zbi_target") + outputs,
-                       root_build_dir)
+
+    if (false) {  # TODO(get_metadata): later
+      img_target = "${target_name}.img"
+
+      # The secondary target is a board-specific wrapping of the ZBI made
+      # above.  The metadata flowing up from $zx/system/dev/board/$board
+      # supplies the details of how this is made.
+      action(img_target) {
+        visibility = [ ":$zbi_target" ]
+        deps = [
+          ":$zbi_target",
+        ]
+        forward_variables_from(invoker,
+                               [
+                                 "output_name",
+                                 "testonly",
+                               ])
+        if (!defined(output_name)) {
+          output_name = target_name
+        }
+        outputs = [
+          "$root_build_dir/$output_name",
+        ]
+
+        # TODO(get_metadata): get_metadata([ "" ], [ "bootimage_script" ])
+        script = "/bin/echo"
+        sources = get_metadata([ "" ], [ "bootimage_inputs" ])
+        args = get_metadata([ ":$zbi_target" ], [ "bootimage_args" ]) +
+               rebase_path(get_target_outputs(":$zbi_target") + outputs,
+                           root_build_dir)
+      }
+    }
   }
-}
-
-# TODO: example
-
-bootimage("sherlock-zedboot") {
-  deps = [
-    ":zedboot",
-    "$zx/system/dev/board/sherlock",
-  ]
-}
-
-group("zedboot") {
-  deps = [
-    "$zx/public/core",
-    # TODO: some group() of useful diag/debug tools
-  ]
-  metadata = {
-    devmgr_config = [ "netsvc.netboot=true" ]
-  }
-}
-
-group("recovery") {
-  deps = [
-    "$zx/public/core",
-    # TODO: some group() of useful diag/recovery tools
-  ]
-}
-
-# This plus a kernel in deps makes a zbi() that's just for running core-tests.
-zbi_input("core-tests") {
-  type = "cmdline"
-  args = [ "userboot=bin/core-tests" ]
-  deps = [
-    "$zx/system/utest/core:core-tests",
-  ]
 }

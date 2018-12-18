@@ -227,10 +227,6 @@ default_variants = [
     variant = "clang"
   },
   {
-    # TODO(get_metadata): Others don't work because of kludgy literal deps
-    # in lieu of get_metadata.  Make this catch-all to default to gcc as the
-    # old makefile build does.
-    environment = [ "user" ]
     variant = "gcc"
   },
 ]

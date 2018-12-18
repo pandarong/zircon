@@ -265,5 +265,14 @@ if (current_toolchain == default_toolchain) {
     sources = [
       "$target_out_dir/image",
     ]
+
+    # This metadata makes the kernel act as a zbi_input() target so it can
+    # be a dependency of a zbi() target to get into the image.
+    metadata = {
+      zbi_input_args = [
+        "--type=zbi",
+        rebase_path(outputs[0], root_build_dir),
+      ]
+    }
   }
 }
