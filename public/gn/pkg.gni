@@ -1,0 +1,19 @@
+# Copyright 2018 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# TODO(mcgrathr): This is all temporary stuff to maintain rough compatibility
+# with the old makefile build as used by the higher-layer Fuchsia GN build.
+
+template("pkg_export") {
+  write_data(target_name) {
+    outputs = [
+      "$root_build_dir/export/$target_name",
+    ]
+    contents = invoker.contents
+    output_conversion = "list lines"
+    metadata = {
+      pkg_export_manifest = [ target_name ]
+    }
+  }
+}

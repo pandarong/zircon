@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import("$zx/public/gn/host_tool_action.gni")
+import("$zx/public/gn/pkg.gni")  # TODO: temporary hack
 
 template("banjo_library") {
   assert(defined(invoker.sources),
@@ -54,6 +55,27 @@ template("banjo_library") {
 
     banjo_path = string_replace(banjo_library_name, ".", "/")
     banjo_name = string_replace(banjo_path, "ddk/protocol/", "")
+
+    pkg_export("${banjo_target}.pkg") {  # TODO: temporary hack
+      contents = [
+        "[package]",
+        "name=$banjo_target",
+        "library=$banjo_library_name",
+        "arch=banjo",
+        "type=banjo",
+        "[banjo]",
+      ]
+      foreach(file, invoker.sources) {
+        contents += [ "$file=SOURCE/" + rebase_path(file, "//") ]
+      }
+      if (defined(invoker.deps)) {
+        contents += [ "[banjo-deps]" ]
+        foreach(label, invoker.deps) {
+          contents += [ get_label_info(label, "name") + "=SOURCE/" +
+                        rebase_path(get_label_info(label, "dir"), "//") ]
+        }
+      }
+    }
 
     gen_files = [
       {
