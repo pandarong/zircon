@@ -13,11 +13,11 @@ driver("imx8mevk") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-gpioimpl",
     "$zx/system/banjo/ddk-protocol-iommu",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/banjo/ddk-protocol-usb-mode-switch",
+    "$zx/system/banjo/ddk-protocol-usb-modeswitch",
     "$zx/system/dev/lib/imx8m",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",

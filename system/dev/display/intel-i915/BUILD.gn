@@ -19,8 +19,8 @@ driver("intel-i915") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-display-controller",
-    "$zx/system/banjo/ddk-protocol-i2c-impl",
-    "$zx/system/banjo/ddk-protocol-intel-gpu-core",
+    "$zx/system/banjo/ddk-protocol-i2cimpl",
+    "$zx/system/banjo/ddk-protocol-intelgpucore",
     "$zx/system/banjo/ddk-protocol-pci",
     "$zx/system/fidl/zircon-backlight:c",
     "$zx/system/ulib/ddk",

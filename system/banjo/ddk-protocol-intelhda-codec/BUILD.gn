@@ -2,12 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-executable("banjo-dummy") {
+import("$zx/public/gn/banjo.gni")
+
+banjo_library("ddk-protocol-intelhda-codec") {
   sources = [
-    "main.cpp",
-  ]
-  deps += [
-    "$zx/system/banjo/ddk-protocol-bt-gattsvc",
-    "$zx/system/ulib/zircon",
+    "intel-hda-codec.banjo",
   ]
 }

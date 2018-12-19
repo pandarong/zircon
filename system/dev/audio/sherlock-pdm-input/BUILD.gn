@@ -2,25 +2,24 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("dwc3") {
+driver("sherlock-pdm-input") {
   sources = [
-    "dwc3-commands.cpp",
-    "dwc3-endpoints.cpp",
-    "dwc3-ep0.cpp",
-    "dwc3-events.cpp",
-    "dwc3.cpp",
+    "audio-stream-in.cpp",
+    "binding.c",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/banjo/ddk-protocol-usb-dci",
-    "$zx/system/banjo/ddk-protocol-usb-modeswitch",
-    "$zx/system/banjo/ddk-protocol-usb-request",
-    "$zx/system/dev/lib/usb",
+    "$zx/system/dev/audio/lib/simple-audio-stream",
+    "$zx/system/dev/lib/amlogic",
+    "$zx/system/ulib/audio-driver-proto",
+    "$zx/system/ulib/audio-proto-utils",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
+    "$zx/system/ulib/dispatcher-pool",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/hwreg",
-    "$zx/system/ulib/pretty",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",

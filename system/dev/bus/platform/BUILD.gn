@@ -20,9 +20,9 @@ driver("platform-bus") {
   deps = [
     "$zx/system/banjo/ddk-protocol-clk",
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-gpioimpl",
     "$zx/system/banjo/ddk-protocol-i2c",
-    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-i2cimpl",
     "$zx/system/banjo/ddk-protocol-iommu",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
@@ -48,9 +48,9 @@ driver("platform-bus.proxy") {
   deps = [
     "$zx/system/banjo/ddk-protocol-clk",
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-gpioimpl",
     "$zx/system/banjo/ddk-protocol-i2c",
-    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-i2cimpl",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-platform-proxy",

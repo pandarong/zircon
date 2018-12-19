@@ -27,7 +27,6 @@ test("fit") {
     "traits_tests.cpp",
     "variant_tests.cpp",
   ]
-  configs += [ ":config" ]
   deps = [
     "$zx/system/ulib/fit",
     "$zx/system/ulib/unittest",
@@ -38,15 +37,4 @@ test("fit") {
       "$zx/system/ulib/zxcpp",
     ]
   }
-}
-
-config("config") {
-  visibility = [ ":*" ]
-
-  # Suppress warnings about self-move and self-assignment since we have
-  # tests that intentionally verify these behaviors.
-  cflags_cc = [
-    "-Wno-self-move",
-    "-Wno-self-assign-overloaded",
-  ]
 }

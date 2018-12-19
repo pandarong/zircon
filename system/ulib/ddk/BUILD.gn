@@ -17,6 +17,9 @@ library("ddk") {
 
     # <ddk/trace/event.h> has #include <trace/internal/event_common.h>.
     "$zx/system/ulib/trace:headers",
+
+    # <ddk/protocol/i2c-lib.h> has #include <ddk/protocol/i2c.h>.
+    "$zx/system/banjo/ddk-protocol-i2c",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [

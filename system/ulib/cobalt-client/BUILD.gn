@@ -17,6 +17,9 @@ library("cobalt-client") {
   public_deps = [
     # <cobalt-client/cpp/timer.h> has #include <lib/fzl/time.h>.
     "$zx/system/ulib/fzl",
+
+    # <cobalt-client/cpp/types-internal.h> has #include <fuchsia/cobalt/c/fidl.h>.
+    "$zx/system/fidl/fuchsia-cobalt:c.headers",
   ]
   deps = [
     "$zx/system/fidl/fuchsia-cobalt:c",

@@ -4,15 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-intel-hda-codec") {
-  # TODO: rename this dir
-  public_deps = [
-    ":ddk-protocol-intelhda-codec",
-  ]
-}
-
-banjo_library("ddk-protocol-intelhda-codec") {
+banjo_library("ddk-protocol-badblock") {
   sources = [
-    "intel-hda-codec.banjo",
+    "bad-block.banjo",
   ]
 }

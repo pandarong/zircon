@@ -11,6 +11,7 @@ library("fs") {
     "$zx/system/ulib/fbl:headers",
     "$zx/system/ulib/fdio:headers",
   ]
+
   deps = [
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/zircon-internal",
@@ -45,6 +46,9 @@ library("fs") {
 
       # <fs/vnode.h> has #include <fuchsia/io/c/fidl.h>.
       "$zx/system/fidl/fuchsia-io:c.headers",
+
+      # <fs/metrics.h> has #include <cobalt-client/cpp/collector.h>.
+      "$zx/system/ulib/cobalt-client:headers",
     ]
     configs += [ "$zx/public/gn/config:visibility_hidden" ]
     deps += [

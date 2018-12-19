@@ -9,7 +9,7 @@ banjo_library("ddk-protocol-usb-function") {
     "usb-function.banjo",
   ]
   deps = [
-    "$zx/system/banjo/ddk-driver",
+    "$zx/system/banjo/ddk-physiter",
     "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/banjo/zircon-hw-usb",
   ]

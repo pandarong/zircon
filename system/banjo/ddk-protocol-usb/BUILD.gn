@@ -4,15 +4,13 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-bad-block") {
-  # TODO: rename the dir
-  public_deps = [
-    ":ddk-protocol-badblock",
-  ]
-}
-
-banjo_library("ddk-protocol-badblock") {
+banjo_library("ddk-protocol-usb") {
   sources = [
-    "bad-block.banjo",
+    "usb.banjo",
+  ]
+  deps = [
+    "$zx/system/banjo/ddk-physiter",
+    "$zx/system/banjo/ddk-protocol-usb-request",
+    "$zx/system/banjo/zircon-hw-usb",
   ]
 }

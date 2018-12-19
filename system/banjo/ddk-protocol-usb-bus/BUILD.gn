@@ -12,5 +12,6 @@ banjo_library("ddk-protocol-usb-bus") {
     "$zx/system/banjo/ddk-driver",
     "$zx/system/banjo/ddk-protocol-usb-hub",
     "$zx/system/banjo/zircon-hw-usb",
+    "$zx/system/banjo/zircon-hw-usb-hub",
   ]
 }

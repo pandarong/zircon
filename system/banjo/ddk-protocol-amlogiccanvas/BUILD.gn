@@ -4,15 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-i2c-impl") {
-  # TODO: rename this dir
-  public_deps = [
-    ":ddk-protocol-i2cimpl",
-  ]
-}
-
-banjo_library("ddk-protocol-i2cimpl") {
+banjo_library("ddk-protocol-amlogiccanvas") {
   sources = [
-    "i2c-impl.banjo",
+    "amlogic-canvas.banjo",
   ]
 }

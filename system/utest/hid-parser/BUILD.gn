@@ -6,6 +6,7 @@ test("hid-parser") {
   sources = [
     "hid-parser-test.cpp",
     "hid-report-data.cpp",
+    "hid-utest-data.cpp",
   ]
   deps = [
     "$zx/system/ulib/fbl",

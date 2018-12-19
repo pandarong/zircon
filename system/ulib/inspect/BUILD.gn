@@ -6,6 +6,7 @@ library("inspect") {
   sources = [
     "heap.cpp",
     "scanner.cpp",
+    "snapshot.cpp",
   ]
   deps = [
     "$zx/public/gn/config:visibility_hidden",

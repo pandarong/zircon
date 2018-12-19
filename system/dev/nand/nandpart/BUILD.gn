@@ -11,7 +11,7 @@ driver("nandpart") {
     "nandpart.cpp",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-bad-block",
+    "$zx/system/banjo/ddk-protocol-badblock",
     "$zx/system/banjo/ddk-protocol-nand",
     "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",

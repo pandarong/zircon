@@ -15,10 +15,10 @@ driver("vim-display") {
     "vpp.cpp",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-amlogic-canvas",
+    "$zx/system/banjo/ddk-protocol-amlogiccanvas",
     "$zx/system/banjo/ddk-protocol-display-controller",
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-i2cimpl",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/audio/lib/simple-audio-stream",
     "$zx/system/dev/lib/amlogic",

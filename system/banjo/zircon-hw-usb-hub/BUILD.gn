@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-banjo_library("ddk-protocol-bt-gatt-svc") {
+banjo_library("zircon-hw-usb-hub") {
   sources = [
-    "bt-gatt-svc.banjo",
+    "usb-hub.banjo",
   ]
 }

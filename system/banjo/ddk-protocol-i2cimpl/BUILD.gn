@@ -4,15 +4,8 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-usb-mode-switch") {
-  # TODO: rename the dir
-  public_deps = [
-    ":ddk-protocol-usb-modeswitch",
-  ]
-}
-
-banjo_library("ddk-protocol-usb-modeswitch") {
+banjo_library("ddk-protocol-i2cimpl") {
   sources = [
-    "usb-mode-switch.banjo",
+    "i2c-impl.banjo",
   ]
 }

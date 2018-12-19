@@ -5,7 +5,6 @@
 driver("qemu") {
   sources = [
     "qemu-bus.c",
-    "qemu-test.c",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-platform-bus",
@@ -16,33 +15,6 @@ driver("qemu") {
   if (current_cpu == "arm64") {
     data_deps = [
       "$zx/kernel/target/arm64/boot-shim:qemu",
-    ]
-  }
-}
-
-test_drivers = [
-  "child-1",
-  "child-2",
-  "child-3",
-  "parent",
-]
-
-group("qemu-test") {
-  deps = []
-  foreach(test, test_drivers) {
-    deps += [ ":qemu-$test" ]
-  }
-}
-
-foreach(test, test_drivers) {
-  driver("qemu-$test") {
-    sources = [
-      "test/$test.c",
-    ]
-    deps = [
-      "$zx/system/banjo/ddk-protocol-platform-device",
-      "$zx/system/ulib/ddk",
-      "$zx/system/ulib/zircon",
     ]
   }
 }

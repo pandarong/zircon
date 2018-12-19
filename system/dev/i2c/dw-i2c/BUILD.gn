@@ -8,7 +8,7 @@ driver("dw-i2c") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-i2c",
-    "$zx/system/banjo/ddk-protocol-i2c-impl",
+    "$zx/system/banjo/ddk-protocol-i2cimpl",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",

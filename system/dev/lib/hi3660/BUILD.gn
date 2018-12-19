@@ -12,7 +12,7 @@ library("hi3660") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-gpioimpl",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/dev/gpio/pl061",
     "$zx/system/ulib/ddk",

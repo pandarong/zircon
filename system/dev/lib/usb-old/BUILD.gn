@@ -2,19 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-driver("usb-hub") {
+library("usb-old") {
   sources = [
-    "usb-hub.c",
+    "usb-request.c",
+    "usb.c",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-usb",
-    "$zx/system/banjo/ddk-protocol-usb-bus",
     "$zx/system/banjo/ddk-protocol-usb-composite",
-    "$zx/system/banjo/ddk-protocol-usb-hub",
     "$zx/system/banjo/ddk-protocol-usb-request",
-    "$zx/system/dev/lib/usb",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/sync",
-    "$zx/system/ulib/zircon",
   ]
 }

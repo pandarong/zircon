@@ -3,11 +3,15 @@
 # found in the LICENSE file.
 
 library("devmgr-integration-test") {
-  testonly = true
+  # TODO: testonly = true
   shared = true
   sources = [
     "file-wait.cpp",
     "launcher.cpp",
+  ]
+  public_deps = [
+    # <lib/devmgr-integration-test/fixture.h> has #include <lib/devmgr-launcher/launch.h>.
+    "$zx/system/ulib/devmgr-launcher:headers",
   ]
   deps = [
     "$zx/system/ulib/devmgr-launcher",

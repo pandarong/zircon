@@ -14,12 +14,13 @@ driver("mt8167s_ref") {
     "mt8167-sdio.cpp",
     "mt8167-soc.cpp",
     "mt8167-thermal.cpp",
+    "mt8167-touch.cpp",
     "mt8167-usb.cpp",
     "mt8167.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
-    "$zx/system/banjo/ddk-protocol-gpio-impl",
+    "$zx/system/banjo/ddk-protocol-gpioimpl",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-scpi",

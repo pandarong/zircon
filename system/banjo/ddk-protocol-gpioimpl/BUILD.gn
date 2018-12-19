@@ -4,18 +4,11 @@
 
 import("$zx/public/gn/banjo.gni")
 
-group("ddk-protocol-serial-impl") {
-  # TODO: rename this dir
-  public_deps = [
-    ":ddk-protocol-serialimpl",
-  ]
-}
-
-banjo_library("ddk-protocol-serialimpl") {
+banjo_library("ddk-protocol-gpioimpl") {
   sources = [
-    "serial-impl.banjo",
+    "gpio-impl.banjo",
   ]
   deps = [
-    "$zx/system/banjo/ddk-protocol-serial",
+    "$zx/system/banjo/ddk-protocol-gpio",
   ]
 }

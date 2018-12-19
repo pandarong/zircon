@@ -14,6 +14,8 @@ driver("aml-thermal-s905d2g") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-clk",
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-scpi",
     "$zx/system/dev/lib/amlogic",

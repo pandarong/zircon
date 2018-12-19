@@ -10,7 +10,6 @@ group("dev") {
     "block",
     "bluetooth",
     "board",
-    "board/qemu:qemu-test",
     "bus",
     "camera",
     "clk",

@@ -9,7 +9,7 @@ driver("hikey-usb") {
   deps = [
     "$zx/system/banjo/ddk-protocol-gpio",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/banjo/ddk-protocol-usb-mode-switch",
+    "$zx/system/banjo/ddk-protocol-usb-modeswitch",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
