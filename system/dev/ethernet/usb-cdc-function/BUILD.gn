@@ -8,6 +8,7 @@ driver("usb-cdc-function") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-ethernet",
+    "$zx/system/banjo/ddk-protocol-usb",
     "$zx/system/banjo/ddk-protocol-usb-function",
     "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",

@@ -21,7 +21,6 @@ library("trace-provider") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
-    "$zx/system/ulib/trace",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",

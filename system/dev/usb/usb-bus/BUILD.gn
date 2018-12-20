@@ -5,9 +5,7 @@
 driver("usb-bus") {
   sources = [
     "usb-bus.c",
-    "usb-device-old.c",
     "usb-device.c",
-    "util-old.c",
     "util.c",
   ]
   deps = [

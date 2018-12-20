@@ -9,6 +9,7 @@ library("fake_ddk") {
   ]
   deps = [
     "$zx/system/ulib/ddk",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/unittest",
     "$zx/system/ulib/zircon",
   ]

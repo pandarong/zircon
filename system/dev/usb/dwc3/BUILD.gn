@@ -12,6 +12,7 @@ driver("dwc3") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-platform-device",
+    "$zx/system/banjo/ddk-protocol-usb",
     "$zx/system/banjo/ddk-protocol-usb-dci",
     "$zx/system/banjo/ddk-protocol-usb-modeswitch",
     "$zx/system/banjo/ddk-protocol-usb-request",

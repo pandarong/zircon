@@ -5,14 +5,15 @@
 driver("hid") {
   sources = [
     "hid-fifo.c",
-    "hid-parser.c",
+    "hid-parser-lib.cpp",
     "hid.c",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/fidl/zircon-input:c",
     "$zx/system/ulib/ddk",
-    "$zx/system/ulib/fidl",
+    "$zx/system/ulib/fbl",
+    "$zx/system/ulib/hid-parser",
     "$zx/system/ulib/zircon",
   ]
 }
