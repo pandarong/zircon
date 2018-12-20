@@ -19,7 +19,7 @@ bool single_page_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
     TestThread t([vmo]() -> bool {
@@ -45,7 +45,7 @@ bool presupply_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
     ASSERT_TRUE(pager.SupplyPages(vmo, 0, 1));
@@ -72,7 +72,7 @@ bool early_supply_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     TestThread t1([vmo]() -> bool {
@@ -107,7 +107,7 @@ bool sequential_multipage_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     constexpr uint32_t kNumPages = 32;
     ASSERT_TRUE(pager.CreateVmo(kNumPages, &vmo));
 
@@ -135,7 +135,7 @@ bool concurrent_multipage_access_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     TestThread t([vmo]() -> bool {
@@ -166,7 +166,7 @@ bool concurrent_overlapping_access_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
     constexpr uint64_t kNumThreads = 32;
@@ -201,7 +201,7 @@ bool bulk_single_supply_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     constexpr uint32_t kNumPages = 8;
     ASSERT_TRUE(pager.CreateVmo(kNumPages, &vmo));
 
@@ -240,7 +240,7 @@ bool bulk_odd_supply_test_inner(bool use_src_offset) {
         sum += kSupplyLengths[i];
     }
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(sum, &vmo));
 
     uint64_t page_idx = 0;
@@ -290,7 +290,7 @@ bool overlap_supply_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     zx::vmo alt_data_vmo;
@@ -323,7 +323,7 @@ bool many_request_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     constexpr uint32_t kNumPages = 257; // Arbitrary large number
     ASSERT_TRUE(pager.CreateVmo(kNumPages, &vmo));
 
@@ -355,7 +355,7 @@ bool successive_vmo_test() {
 
     constexpr uint32_t kNumVmos = 64;
     for (unsigned i = 0; i < kNumVmos; i++) {
-        PagedVmo* vmo;
+        Vmo* vmo;
         ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
         TestThread t([vmo]() -> bool {
@@ -385,7 +385,7 @@ bool multiple_concurrent_vmo_test() {
     ASSERT_TRUE(pager.Init());
 
     constexpr uint32_t kNumVmos = 8;
-    PagedVmo* vmos[kNumVmos];
+    Vmo* vmos[kNumVmos];
     fbl::unique_ptr<TestThread> ts[kNumVmos];
     for (unsigned i = 0; i < kNumVmos; i++) {
         ASSERT_TRUE(pager.CreateVmo(1, vmos + i));
@@ -417,7 +417,7 @@ bool vmar_unmap_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
     TestThread t([vmo]() -> bool {
@@ -443,7 +443,7 @@ bool vmar_remap_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     constexpr uint32_t kNumPages = 8;
     ASSERT_TRUE(pager.CreateVmo(kNumPages, &vmo));
 
@@ -487,7 +487,7 @@ bool thread_kill_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     TestThread t1([vmo]() -> bool {
@@ -522,7 +522,7 @@ bool thread_kill_overlap_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(1, &vmo));
 
     TestThread t1([vmo]() -> bool {
@@ -559,7 +559,7 @@ bool close_pager_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     TestThread t([vmo]() -> bool {
@@ -587,7 +587,7 @@ bool close_port_test() {
 
     ASSERT_TRUE(pager.Init());
 
-    PagedVmo* vmo;
+    Vmo* vmo;
     ASSERT_TRUE(pager.CreateVmo(2, &vmo));
 
     TestThread t([vmo]() -> bool {
@@ -605,6 +605,152 @@ bool close_port_test() {
     pager.ClosePagerHandle();
 
     ASSERT_TRUE(t.WaitForCrash(vmo->GetBaseAddr()));
+
+    END_TEST;
+}
+
+// Tests reading from a clone populates the vmo
+bool clone_read_from_clone_test() {
+    BEGIN_TEST;
+    UserPager pager;
+
+    ASSERT_TRUE(pager.Init());
+
+    Vmo* vmo;
+    ASSERT_TRUE(pager.CreateVmo(1, &vmo));
+
+    auto clone = vmo->Clone();
+    ASSERT_NOT_NULL(clone);
+
+    TestThread t([clone = clone.get()]() -> bool {
+        return clone->CheckVmar(0, 1);
+    });
+
+    ASSERT_TRUE(t.Start());
+
+    ASSERT_TRUE(pager.WaitForPageRead(vmo, 0, 1, ZX_TIME_INFINITE));
+
+    ASSERT_TRUE(pager.SupplyPages(vmo, 0, 1));
+
+    ASSERT_TRUE(t.Wait());
+
+    END_TEST;
+}
+
+// Tests reading from the parent populates the clone
+bool clone_read_from_parent_test() {
+    BEGIN_TEST;
+
+    UserPager pager;
+
+    ASSERT_TRUE(pager.Init());
+
+    Vmo* vmo;
+    ASSERT_TRUE(pager.CreateVmo(1, &vmo));
+
+    auto clone = vmo->Clone();
+    ASSERT_NOT_NULL(clone);
+
+    TestThread t([vmo]() -> bool {
+        return vmo->CheckVmar(0, 1);
+    });
+
+    ASSERT_TRUE(t.Start());
+
+    ASSERT_TRUE(pager.WaitForPageRead(vmo, 0, 1, ZX_TIME_INFINITE));
+
+    ASSERT_TRUE(pager.SupplyPages(vmo, 0, 1));
+
+    ASSERT_TRUE(t.Wait());
+
+    TestThread t2([clone = clone.get()]() -> bool {
+        return clone->CheckVmar( 0, 1);
+    });
+
+    ASSERT_TRUE(t2.Start());
+    ASSERT_TRUE(t2.Wait());
+
+    ASSERT_FALSE(pager.WaitForPageRead(vmo, 0, 1, 0));
+
+    END_TEST;
+}
+
+// Tests that overlapping reads on clone and parent work
+bool clone_simultanious_read_test() {
+    BEGIN_TEST;
+
+    UserPager pager;
+
+    ASSERT_TRUE(pager.Init());
+
+    Vmo* vmo;
+    ASSERT_TRUE(pager.CreateVmo(1, &vmo));
+
+    auto clone = vmo->Clone();
+    ASSERT_NOT_NULL(clone);
+
+    TestThread t([vmo]() -> bool {
+        return vmo->CheckVmar(0, 1);
+    });
+    TestThread t2([clone = clone.get()]() -> bool {
+        return clone->CheckVmar(0, 1);
+    });
+
+    ASSERT_TRUE(t.Start());
+    ASSERT_TRUE(t2.Start());
+
+    ASSERT_TRUE(t.WaitForBlocked());
+    ASSERT_TRUE(t2.WaitForBlocked());
+
+    ASSERT_TRUE(pager.WaitForPageRead(vmo, 0, 1, ZX_TIME_INFINITE));
+
+    ASSERT_TRUE(pager.SupplyPages(vmo, 0, 1));
+
+    ASSERT_TRUE(t.Wait());
+    ASSERT_TRUE(t2.Wait());
+
+    ASSERT_FALSE(pager.WaitForPageRead(vmo, 0, 1, 0));
+
+    END_TEST;
+}
+
+// Tests that overlapping reads from two clones work
+bool clone_simultanious_child_read_test() {
+    BEGIN_TEST;
+
+    UserPager pager;
+
+    ASSERT_TRUE(pager.Init());
+
+    Vmo* vmo;
+    ASSERT_TRUE(pager.CreateVmo(1, &vmo));
+
+    auto clone = vmo->Clone();
+    ASSERT_NOT_NULL(clone);
+    auto clone2 = vmo->Clone();
+    ASSERT_NOT_NULL(clone2);
+
+    TestThread t([clone = clone2.get()]() -> bool {
+        return clone->CheckVmar(0, 1);
+    });
+    TestThread t2([clone = clone.get()]() -> bool {
+        return clone->CheckVmar(0, 1);
+    });
+
+    ASSERT_TRUE(t.Start());
+    ASSERT_TRUE(t2.Start());
+
+    ASSERT_TRUE(t.WaitForBlocked());
+    ASSERT_TRUE(t2.WaitForBlocked());
+
+    ASSERT_TRUE(pager.WaitForPageRead(vmo, 0, 1, ZX_TIME_INFINITE));
+
+    ASSERT_TRUE(pager.SupplyPages(vmo, 0, 1));
+
+    ASSERT_TRUE(t.Wait());
+    ASSERT_TRUE(t2.Wait());
+
+    ASSERT_FALSE(pager.WaitForPageRead(vmo, 0, 1, 0));
 
     END_TEST;
 }
@@ -637,6 +783,15 @@ RUN_TEST(thread_kill_overlap_test);
 RUN_TEST(close_pager_test);
 RUN_TEST(close_port_test);
 END_TEST_CASE(lifecycle_tests)
+
+// Tests focused on clones
+
+BEGIN_TEST_CASE(clone_tests);
+RUN_TEST(clone_read_from_clone_test);
+RUN_TEST(clone_read_from_parent_test);
+RUN_TEST(clone_simultanious_read_test);
+RUN_TEST(clone_simultanious_child_read_test);
+END_TEST_CASE(clone_tests);
 
 } // namespace pager_tests
 

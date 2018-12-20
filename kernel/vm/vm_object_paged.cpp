@@ -440,8 +440,9 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
         bool overflowed = add_overflow(parent_offset_, offset, &parent_offset);
         ASSERT(!overflowed);
 
-        // make sure we don't cause the parent to fault in new pages, just ask for any that already exist
-        uint parent_pf_flags = pf_flags & ~(VMM_PF_FLAG_FAULT_MASK);
+        // read a page out of the parent. if we're currently write faulting, we only need to
+        // read fault the parent to make sure we properly populate our page
+        uint parent_pf_flags = pf_flags & ~VMM_PF_FLAG_WRITE;
 
         zx_status_t status = parent_->GetPageLocked(parent_offset, parent_pf_flags,
                                                     nullptr, page_request, &p, &pa);
@@ -479,13 +480,18 @@ zx_status_t VmObjectPaged::GetPageLocked(uint64_t offset, uint pf_flags, list_no
 
             InitializeVmPage(p_clone);
 
-            // do a direct copy of the two pages
-            const void* src = paddr_to_physmap(pa);
             void* dst = paddr_to_physmap(pa_clone);
+            DEBUG_ASSERT(dst);
 
-            DEBUG_ASSERT(src && dst);
-
-            memcpy(dst, src, PAGE_SIZE);
+            if (pa != vm_get_zero_page_paddr()) {
+                // do a direct copy of the two pages
+                const void* src = paddr_to_physmap(pa);
+                DEBUG_ASSERT(src);
+                memcpy(dst, src, PAGE_SIZE);
+            } else {
+                // avoid pointless fetches by directly zeroing dst
+                memset(dst, 0, PAGE_SIZE);
+            }
 
             // add the new page and return it
             status = AddPageLocked(p_clone, offset);
