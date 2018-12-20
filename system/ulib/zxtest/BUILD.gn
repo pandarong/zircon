@@ -4,6 +4,8 @@
 
 library("zxtest") {
   sources = [
+    "test-case.cpp",
+    "test-info.cpp",
     "test.cpp",
   ]
   deps = [

@@ -4,7 +4,6 @@
 
 driver("mt-8167") {
   sources = [
-    "bind.c",
     "mt8167-gpio.cpp",
   ]
   deps = [
