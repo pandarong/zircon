@@ -11,15 +11,20 @@ group("aml-scpi-s912") {
 
 driver("aml-scpi-s912.mailbox") {
   sources = [
-    "aml-mailbox.c",
+    "aml-mailbox.cpp",
   ]
   deps = [
+    "$zx/system/banjo/ddk-protocol-gpio",
+    "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-mailbox",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/ulib/ddk",
+    "$zx/system/ulib/ddktl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zx",
+    "$zx/system/ulib/zxcpp",
   ]
 }
 
