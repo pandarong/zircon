@@ -98,6 +98,12 @@
 + [vmar_protect](syscalls/vmar_protect.md) - adjust memory access permissions
 + [vmar_destroy](syscalls/vmar_destroy.md) - destroy a VMAR and all of its children
 
+## Userspace Pagers
++ [pager_create](syscalls/pager_create.md) - create a new pager object
++ [pager_create_vmo](syscalls/pager_create_vmo.md) - create a vmo backed by a pager
++ [pager_detach_vmo](syscalls/pager_detach_vmo.md) - detaches a pager from a vmo
++ [pager_vmo_op](syscalls/pager_vmo_op.md) - perform a pager operation on a vmo
+
 ## Cryptographically Secure RNG
 + [cprng_draw](syscalls/cprng_draw.md)
 + [cprng_add_entropy](syscalls/cprng_add_entropy.md)
