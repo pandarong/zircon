@@ -4,6 +4,7 @@
 
 library("zxtest") {
   sources = [
+    "event-broadcaster.cpp",
     "test-case.cpp",
     "test-info.cpp",
     "test.cpp",

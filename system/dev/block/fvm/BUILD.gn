@@ -7,6 +7,7 @@ driver("fvm") {
     "fvm.c",
     "fvm.cpp",
     "slice-extent.cpp",
+    "vpartition.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-block",

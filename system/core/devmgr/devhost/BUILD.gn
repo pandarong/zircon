@@ -50,6 +50,7 @@ library("driver") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
     "$zx/system/ulib/zxio",
+    "../shared:env",
   ]
 
   if (enable_driver_tracing) {

@@ -5,6 +5,7 @@
 driver("mt8167s-display") {
   sources = [
     "mt8167s-display.cpp",
+    "ovl.cpp",
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-display-controller",
