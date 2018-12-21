@@ -80,7 +80,7 @@ zx_status_t sys_pager_detach_vmo(zx_handle_t pager, zx_handle_t vmo) {
     }
 
     fbl::RefPtr<VmObjectDispatcher> vmo_dispatcher;
-    status = up->GetDispatcherWithRights(vmo, ZX_RIGHT_READ | ZX_RIGHT_WRITE, &vmo_dispatcher);
+    status = up->GetDispatcher(vmo, &vmo_dispatcher);
     if (status != ZX_OK) {
         return status;
     }
@@ -105,8 +105,7 @@ zx_status_t sys_pager_vmo_op(zx_handle_t pager, zx_handle_t pager_vmo,
     }
 
     fbl::RefPtr<VmObjectDispatcher> pager_vmo_dispatcher;
-    status = up->GetDispatcherWithRights(pager_vmo,
-                                         ZX_RIGHT_READ | ZX_RIGHT_WRITE, &pager_vmo_dispatcher);
+    status = up->GetDispatcherWithRights(pager_vmo, 0, &pager_vmo_dispatcher);
     if (status != ZX_OK) {
         return status;
     }
@@ -115,18 +114,21 @@ zx_status_t sys_pager_vmo_op(zx_handle_t pager, zx_handle_t pager_vmo,
         return ZX_ERR_INVALID_ARGS;
     }
 
+    if (!IS_PAGE_ALIGNED(offset) || !IS_PAGE_ALIGNED(size)) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+
     switch (op) {
     case ZX_PAGER_OP_SUPPLY_PAGES: {
-
-        if (!IS_PAGE_ALIGNED(offset) || !IS_PAGE_ALIGNED(size) || !IS_PAGE_ALIGNED(aux_offset)) {
-            return ZX_ERR_INVALID_ARGS;
-        }
-
         fbl::RefPtr<VmObjectDispatcher> aux_vmo_dispatcher;
         status = up->GetDispatcherWithRights(aux_vmo_handle,
                                              ZX_RIGHT_READ | ZX_RIGHT_WRITE, &aux_vmo_dispatcher);
         if (status != ZX_OK) {
             return status;
+        }
+
+        if (!IS_PAGE_ALIGNED(aux_offset)) {
+            return ZX_ERR_INVALID_ARGS;
         }
 
         VmPageSpliceList pages;
