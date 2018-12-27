@@ -15,8 +15,8 @@ driver("nand-broker") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-nand",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/fidl/fuchsia-nand:c",
-    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -35,8 +35,8 @@ test("nand") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-nand",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/fidl/fuchsia-nand:c",
-    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/devmgr-integration-test",
     "$zx/system/ulib/devmgr-launcher",
     "$zx/system/ulib/fbl",

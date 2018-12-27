@@ -14,7 +14,7 @@ driver("imx227") {
     "$zx/system/banjo/ddk-protocol-mipicsi",
     "$zx/system/banjo/ddk-protocol-platform-bus",
     "$zx/system/banjo/ddk-protocol-platform-device",
-    "$zx/system/fidl/zircon-camera:c",
+    "$zx/system/fidl/fuchsia-hardware-camera:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

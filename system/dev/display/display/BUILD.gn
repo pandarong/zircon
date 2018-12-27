@@ -13,7 +13,7 @@ driver("display") {
   deps = [
     "$zx/system/banjo/ddk-protocol-display-controller",
     "$zx/system/banjo/ddk-protocol-i2cimpl",
-    "$zx/system/fidl/fuchsia-display:c",
+    "$zx/system/fidl/fuchsia-hardware-display:c",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/audio-proto-utils",

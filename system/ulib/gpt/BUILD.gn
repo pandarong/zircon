@@ -4,8 +4,8 @@
 
 library("gpt") {
   sources = [
-    "cros.c",
-    "gpt.c",
+    "cros.cpp",
+    "gpt.cpp",
   ]
   deps = [
     "$zx/system/ulib/zircon",

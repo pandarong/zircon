@@ -4,7 +4,7 @@
 
 library("chromeos-disk-setup") {
   sources = [
-    "chromeos-disk-setup.c",
+    "chromeos-disk-setup.cpp",
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [

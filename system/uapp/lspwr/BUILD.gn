@@ -4,11 +4,13 @@
 
 executable("lspwr") {
   sources = [
-    "lspwr.c",
+    "lspwr.cpp",
   ]
   deps = [
-    "$zx/system/fidl/fuchsia-power:c",
+    "$zx/system/fidl/fuchsia-hardware-power:c",
+    "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
+    "$zx/system/ulib/zxcpp",
   ]
 }

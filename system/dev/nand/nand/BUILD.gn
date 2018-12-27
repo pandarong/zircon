@@ -10,7 +10,7 @@ driver("nand") {
     "$zx/system/banjo/ddk-protocol-nand",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-rawnand",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

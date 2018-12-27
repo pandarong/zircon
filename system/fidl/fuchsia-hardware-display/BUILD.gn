@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-tee") {
+fidl_library("fuchsia-hardware-display") {
   sources = [
-    "tee.fidl",
+    "display-controller.fidl",
   ]
 }

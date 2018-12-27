@@ -12,6 +12,7 @@ group("utest") {
   deps = [
     ":host",  # TODO(mcgrathr): reach this differently?
     "$zx/system/core/virtcon:virtual-console-test",
+    "$zx/system/dev/block/ftl/test",
     "$zx/system/dev/nand/broker:nand",
     "$zx/system/dev/nand/nandpart:nandpart-test",
     "$zx/system/dev/nand/ram-nand:ram-nand-test",

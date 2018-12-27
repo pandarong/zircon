@@ -12,8 +12,8 @@ library("ddk") {
     # <ddk/io-buffer.h> has #include <zircon/syscalls.h>.
     "$zx/system/ulib/zircon:headers",
 
-    # <ddk/protocol/rawnand.h> has #include <zircon/nand/c/fidl.h>.
-    "$zx/system/fidl/zircon-nand:c.headers",
+    # <ddk/protocol/rawnand.h> has #include <fuchsia/hardware/nand/c/fidl.h>.
+    "$zx/system/fidl/fuchsia-hardware-nand:c.headers",
 
     # <ddk/trace/event.h> has #include <trace/internal/event_common.h>.
     "$zx/system/ulib/trace:headers",

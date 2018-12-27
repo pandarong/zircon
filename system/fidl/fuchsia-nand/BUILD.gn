@@ -9,6 +9,6 @@ fidl_library("fuchsia-nand") {
     "broker.fidl",
   ]
   deps = [
-    "$zx/system/fidl/zircon-nand",
+    "$zx/system/fidl/fuchsia-hardware-nand",
   ]
 }

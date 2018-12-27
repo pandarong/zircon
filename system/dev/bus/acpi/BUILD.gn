@@ -66,7 +66,7 @@ driver("bus-acpi") {
     "$zx/system/banjo/ddk-protocol-pciroot",
     "$zx/system/banjo/ddk-protocol-platform-device",
     "$zx/system/banjo/ddk-protocol-scpi",
-    "$zx/system/fidl/fuchsia-power:c",
+    "$zx/system/fidl/fuchsia-hardware-power:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

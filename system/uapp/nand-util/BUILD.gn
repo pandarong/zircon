@@ -8,8 +8,8 @@ executable("nand-util") {
     "main.cpp",
   ]
   deps = [
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/fidl/fuchsia-nand:c",
-    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fzl",

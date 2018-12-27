@@ -11,7 +11,7 @@ driver("intel-i2c") {
     "$zx/system/banjo/ddk-protocol-i2c",
     "$zx/system/banjo/ddk-protocol-i2cimpl",
     "$zx/system/banjo/ddk-protocol-pci",
-    "$zx/system/fidl/fuchsia-i2c:c",
+    "$zx/system/fidl/fuchsia-hardware-i2c:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

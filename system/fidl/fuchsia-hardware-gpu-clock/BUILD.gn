@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-camera") {
+fidl_library("fuchsia-hardware-gpu-clock") {
   sources = [
-    "camera_sensor.fidl",
+    "clock.fidl",
   ]
 }

@@ -17,7 +17,9 @@ library("blobfs") {
   if (is_fuchsia) {
     sources += [
       "allocator.cpp",
+      "blob-cache.cpp",
       "blobfs.cpp",
+      "cache-node.cpp",
       "iterator/node-populator.cpp",
       "journal.cpp",
       "metrics.cpp",

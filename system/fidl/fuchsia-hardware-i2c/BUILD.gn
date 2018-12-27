@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-sample") {
+fidl_library("fuchsia-hardware-i2c") {
   sources = [
-    "demo_number.fidl",
+    "i2c.fidl",
   ]
 }

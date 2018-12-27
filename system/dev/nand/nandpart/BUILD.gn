@@ -13,7 +13,7 @@ driver("nandpart") {
   deps = [
     "$zx/system/banjo/ddk-protocol-badblock",
     "$zx/system/banjo/ddk-protocol-nand",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -38,7 +38,7 @@ test("nandpart-test") {
   defines = [ "TEST" ]
   deps = [
     "$zx/system/banjo/ddk-protocol-nand",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",

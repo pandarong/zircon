@@ -10,7 +10,7 @@ driver("ram-nand") {
   deps = [
     ":common",
     "$zx/system/banjo/ddk-protocol-nand",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/fbl",
@@ -47,7 +47,7 @@ test("ram-nand-test") {
     ":common",
     "$zx/system/banjo/ddk-protocol-nand",
     "$zx/system/dev/lib/fake_ddk",
-    "$zx/system/fidl/zircon-nand:c",
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/devmgr-integration-test",

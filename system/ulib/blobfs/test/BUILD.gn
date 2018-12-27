@@ -12,6 +12,7 @@ test("blobfs-unit") {
   sources = [
     "allocated-extent-iterator-test.cpp",
     "allocator-test.cpp",
+    "blob-cache-test.cpp",
     "compressor-test.cpp",
     "extent-reserver-test.cpp",
     "journal-test.cpp",

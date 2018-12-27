@@ -9,7 +9,7 @@ driver("intel-rtc") {
     "intel-rtc.c",
   ]
   deps = [
-    "$zx/system/fidl/zircon-rtc:c",
+    "$zx/system/fidl/fuchsia-hardware-rtc:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/rtc",
     "$zx/system/ulib/zircon",

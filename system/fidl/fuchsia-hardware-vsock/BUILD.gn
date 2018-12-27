@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-backlight") {
+fidl_library("fuchsia-hardware-vsock") {
   sources = [
-    "backlight.fidl",
+    "vsock.fidl",
   ]
 }

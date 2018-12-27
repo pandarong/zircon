@@ -14,15 +14,15 @@ library("fs-management") {
     "ramdisk.cpp",
   ]
   public_deps = [
-    # <zircon/device/ram-nand.h> has #include <zircon/nand/c/fidl.h>.
-    "$zx/system/fidl/zircon-nand:c.headers",
+    # <zircon/device/ram-nand.h> has #include <fuchsia/hardware/nand/c/fidl.h>.
+    "$zx/system/fidl/fuchsia-hardware-nand:c.headers",
 
     # <fs-management/ram-nand.h> has #include <lib/devmgr-integration-test/fixture.h>.
     "$zx/system/ulib/devmgr-integration-test",
   ]
   deps = [
+    "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/fidl/fuchsia-io:c",
-    "$zx/system/fidl/zircon-nand:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",

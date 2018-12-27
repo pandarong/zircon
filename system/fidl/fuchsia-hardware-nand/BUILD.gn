@@ -4,8 +4,9 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-input") {
+fidl_library("fuchsia-hardware-nand") {
   sources = [
-    "input.fidl",
+    "nand.fidl",
+    "ram-nand.fidl",
   ]
 }

@@ -4,15 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-nand") {
+fidl_library("fuchsia-hardware-block") {
   sources = [
-    "nand.fidl",
-    "ram-nand.fidl",
-  ]
-}
-
-fidl_library("zircon.skipblock") {
-  sources = [
-    "skip-block.fidl",
+    "ftl.fidl",
   ]
 }

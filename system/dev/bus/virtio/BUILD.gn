@@ -25,7 +25,7 @@ driver("virtio") {
     "$zx/system/banjo/ddk-protocol-ethernet",
     "$zx/system/banjo/ddk-protocol-hidbus",
     "$zx/system/banjo/ddk-protocol-pci",
-    "$zx/system/fidl/fuchsia-device-vsock:c",
+    "$zx/system/fidl/fuchsia-hardware-vsock:c",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async-loop:async-loop-cpp",
     "$zx/system/ulib/ddk",

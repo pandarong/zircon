@@ -7,7 +7,7 @@ executable("backlight") {
     "main.c",
   ]
   deps = [
-    "$zx/system/fidl/zircon-backlight:c",
+    "$zx/system/fidl/fuchsia-hardware-backlight:c",
     "$zx/system/ulib/fdio",
   ]
 }

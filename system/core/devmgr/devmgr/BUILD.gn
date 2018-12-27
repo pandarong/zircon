@@ -13,11 +13,6 @@ executable("devmgr") {
   ]
 
   deps = [
-    "../shared",
-
-    # We can avoid the fuchsia.crash dependency if crashsvc connects directly
-    # to the analyzer.
-    "$zx/system/fidl/fuchsia-crash:c",
     "$zx/system/fidl/fuchsia-device-manager:c",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/fidl/fuchsia-mem:c",
@@ -41,6 +36,7 @@ executable("devmgr") {
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/lz4",
+    "../shared",
   ]
 
   # Bring the auxiliaries into the build and the image.  devhost isn't
@@ -48,7 +44,6 @@ executable("devmgr") {
   data_deps = [
     "../dmctl",
     "../fshost",
-    "$zx/system/core/crashsvc",
     "$zx/system/core/netsvc",
     "$zx/system/core/svchost",
     "$zx/system/core/virtcon:virtual-console",

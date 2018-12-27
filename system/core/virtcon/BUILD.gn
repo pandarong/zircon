@@ -20,9 +20,9 @@ common_sources = [
 ]
 
 common_deps = [
-  "$zx/system/fidl/fuchsia-display:c",
+  "$zx/system/fidl/fuchsia-hardware-display:c",
   "$zx/system/fidl/fuchsia-io:c",
-  "$zx/system/fidl/zircon-input:c",
+  "$zx/system/fidl/fuchsia-hardware-input:c",
   "$zx/system/ulib/fbl",
   "$zx/system/ulib/fdio",
   "$zx/system/ulib/fidl",

@@ -4,7 +4,7 @@
 
 executable("gpt") {
   sources = [
-    "gpt.c",
+    "gpt.cpp",
   ]
   deps = [
     "$zx/system/ulib/fdio",

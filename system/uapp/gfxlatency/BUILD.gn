@@ -7,8 +7,8 @@ executable("gfxlatency") {
     "main.cpp",
   ]
   deps = [
-    "$zx/system/fidl/fuchsia-display:c",
-    "$zx/system/fidl/zircon-input:c",
+    "$zx/system/fidl/fuchsia-hardware-display:c",
+    "$zx/system/fidl/fuchsia-hardware-input:c",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/async:async-default",

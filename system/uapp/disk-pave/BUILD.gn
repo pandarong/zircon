@@ -15,8 +15,8 @@ executable("install-disk-image") {
   ]
   deps = [
     ":pave-utils",
-    "$zx/system/fidl/zircon-block:c",
-    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
+    "$zx/system/fidl/fuchsia-hardware-block:c",
+    "$zx/system/fidl/fuchsia-hardware-skipblock:c",
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/crypto",
     "$zx/system/ulib/fbl",
@@ -36,8 +36,8 @@ source_set("pave-utils") {
     "pave-utils.cpp",
   ]
   deps = [
-    "$zx/system/fidl/zircon-block:c",
-    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
+    "$zx/system/fidl/fuchsia-hardware-block:c",
+    "$zx/system/fidl/fuchsia-hardware-skipblock:c",
     "$zx/system/ulib/block-client",
     "$zx/system/ulib/chromeos-disk-setup",
     "$zx/system/ulib/ddk",

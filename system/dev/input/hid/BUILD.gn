@@ -10,7 +10,7 @@ driver("hid") {
   ]
   deps = [
     "$zx/system/banjo/ddk-protocol-hidbus",
-    "$zx/system/fidl/zircon-input:c",
+    "$zx/system/fidl/fuchsia-hardware-input:c",
     "$zx/system/ulib/ddk",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/hid-parser",

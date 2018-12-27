@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-rtc") {
+fidl_library("fuchsia-hardware-input") {
   sources = [
-    "rtc.fidl",
+    "input.fidl",
   ]
 }

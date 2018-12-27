@@ -7,7 +7,7 @@ executable("lsblk") {
     "main.c",
   ]
   deps = [
-    "$zx/system/fidl/zircon-nand:zircon.skipblock.c",
+    "$zx/system/fidl/fuchsia-hardware-skipblock:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/gpt",
     "$zx/system/ulib/pretty",

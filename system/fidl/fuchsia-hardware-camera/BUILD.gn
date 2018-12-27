@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-block") {
+fidl_library("fuchsia-hardware-camera") {
   sources = [
-    "ftl.fidl",
+    "camera_sensor.fidl",
   ]
 }
