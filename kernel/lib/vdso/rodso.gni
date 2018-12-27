@@ -6,26 +6,68 @@
 
 import("$zx/public/gn/toolchain/c_utils.gni")
 
+template("link_output_rspfile") {
+  write_data(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "outputs",
+                             "testonly",
+                             "visibility",
+                           ])
+    data_keys = [ "link_output" ]
+    walk_keys = [ "link_barrier" ]
+    output_conversion = "list lines"
+  }
+}
+
 template("rodso_code_header") {
-  toolchain_utils_action(target_name) {
+  main_target_name = target_name
+  rspfile_target_name = "$main_target_name._rsp"
+  rspfile = "$target_gen_dir/$target_name.rsp"
+
+  link_output_rspfile(rspfile_target_name) {
     forward_variables_from(invoker,
                            [
                              "deps",
                              "testonly",
+                           ])
+    outputs = [
+      rspfile,
+    ]
+    visibility = [ ":$main_target_name" ]
+  }
+
+  toolchain_utils_action(main_target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "testonly",
                              "visibility",
                            ])
 
+    deps = [
+      ":$rspfile_target_name",
+    ]
     outputs = invoker.outputs
     assert(outputs == [ outputs[0] ],
            "rodso_code_header() outputs must have exactly one element")
+    depfile = "${outputs[0]}.d"
 
+    # TODO(mcgrathr): Move the script to this dir.
     script = "$zx/scripts/gen-rodso-code.sh"
     utils = [
       "nm",
       "readelf",
     ]
-    sources = get_metadata([ "" ], [ "link_output" ], [ "link_barrier" ], true)
-    args = rebase_path(outputs, root_build_dir) + [ invoker.name ] +
-           get_metadata([ "" ], [ "link_output_arg" ], [ "link_barrier" ])
+    sources = [
+      rspfile,
+    ]
+    args = [
+      "--depfile",
+      rebase_path(depfile, root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+      invoker.name,
+      "@" + rebase_path(rspfile, root_build_dir),
+    ]
   }
 }

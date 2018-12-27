@@ -38,10 +38,6 @@ library("vdso") {
       # <lib/rodso.h> has #include <object/handle.h>.
       "$zx/kernel/object",
     ]
-    inputs = get_metadata([ ":vdso-code-header" ],
-                          [ "link_output" ],
-                          [ "link_barrier" ],
-                          true)
   }
 }
 

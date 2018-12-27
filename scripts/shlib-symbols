@@ -36,7 +36,7 @@ else
 fi
 
 usage() {
-  echo >&2 "Usage: $0 NM [-a] [-z] DSO OUTPUT"
+  echo >&2 "Usage: $0 NM [-a] [-z] DSO OUTPUT [DEPFILE]"
   exit 2
 }
 
@@ -58,12 +58,26 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 2 -a $# -ne 3 ]; then
   usage
 fi
 
 DSO="$1"
 OUTPUT="$2"
+DEPFILE="$3"
+
+USED_FILES=()
+if [[ "$DSO" == @* ]]; then
+  rspfile="${DSO#@}"
+  DSO="$(< "$rspfile")"
+  USED_FILES+=("$rspfile" "$DSO")
+else
+  USED_FILES+=("$DSO")
+fi
+
+if [ -n "$DEPFILE" ]; then
+  echo "$OUTPUT: ${USED_FILES[*]}" > "$DEPFILE"
+fi
 
 dump_names() {
   "$NM" -P -g -D -S "$DSO"
@@ -122,5 +136,5 @@ massage() {
   done
 }
 
-trap 'rm -f "$OUTPUT"' ERR HUP INT TERM
+trap 'rm -f "$OUTPUT" ${DEPFILE:+$"DEPFILE"}' ERR HUP INT TERM
 dump_names | massage > "$OUTPUT"

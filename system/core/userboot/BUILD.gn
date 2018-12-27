@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT
 
+import("$zx/kernel/lib/vdso/rodso.gni")
 import("$zx/public/gn/config/levels.gni")
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/toolchain/c_utils.gni")
@@ -53,6 +54,7 @@ if (current_toolchain == default_toolchain) {
   }
 
   vdso_syms_ld = "$target_gen_dir/vdso-syms.ld"
+  vdso_syms_rspfile = "$target_gen_dir/vdso-syms.h.rsp"
 
   loadable_module("userboot") {
     sources = [
@@ -82,19 +84,34 @@ if (current_toolchain == default_toolchain) {
   # addresses.  It's used to generate vdso-syms.ld, below.
   toolchain_utils_action("gen-vdso-syms-header") {
     visibility = [ ":gen-vdso-syms-ld" ]
-    deps = [
-      "$zx/system/ulib/zircon",
+    sources = [
+      vdso_syms_rspfile,
     ]
-    sources = get_metadata(deps, [ "link_output" ], [ "link_barrier" ], true)
+    deps = [
+      ":gen-vdso-syms-header-rspfile",
+    ]
     outputs = [
       "$target_gen_dir/vdso-syms.h",
     ]
+    depfile = "${outputs[0]}.d"
     utils = [ "nm" ]
     script = "$zx/scripts/shlib-symbols"
-    args = [ "-a" ] +
-           # This is not "" so it doesn't get any tool deps from the action.
-           get_metadata(deps, [ "link_output_arg" ], [ "link_barrier" ]) +
-           rebase_path(outputs, root_build_dir)
+    args = [
+      "-a",
+      "@" + rebase_path(vdso_syms_rspfile, root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+      rebase_path(depfile, root_build_dir),
+    ]
+  }
+
+  link_output_rspfile("gen-vdso-syms-header-rspfile") {
+    visibility = [ ":gen-vdso-syms-header" ]
+    deps = [
+      "$zx/system/ulib/zircon",
+    ]
+    outputs = [
+      vdso_syms_rspfile,
+    ]
   }
 
   # This generated linker script defines symbols for each vDSO entry point

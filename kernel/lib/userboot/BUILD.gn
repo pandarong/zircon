@@ -46,13 +46,11 @@ source_set("image") {
     "$zx/kernel/lib/vdso",
   ]
 
-  if (false) {  # TODO(get_metadata): as of refs/changes/82/3482/3 provokes a bug where include_dirs is then said to be unused
-    # userboot-image.S includes the userboot contents and so must be
-    # reassembled when that changes.  Note we can't have core/userboot in
-    # deps here because that would try to link it into the kernel.
-    inputs = get_metadata([ ":gen-userboot-code-header" ],
-                          [ "link_output" ],
-                          [ "link_barrier" ],
-                          true)
-  }
+  # userboot-image.S includes the userboot contents and so must be
+  # reassembled when that changes.  We can't express that in $inputs
+  # here because we don't know the exact name of the file since that
+  # depends on the toolchain selected.  Fortunately, we already depend
+  # on the generated userboot-code.h header, which is always
+  # regenerated whenever the userboot binary itself changes.  So this
+  # indirect dependency is sufficient.
 }
