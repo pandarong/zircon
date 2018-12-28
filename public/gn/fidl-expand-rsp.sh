@@ -40,4 +40,6 @@ while [ $# -gt 0 ]; do
 done
 
 echo "$OUTPUT:" "${deps[@]}" > "$DEPFILE"
-echo "${args[@]}" > "$OUTPUT"
+for arg in "${args[@]}"; do
+  echo "$arg"
+done > "$OUTPUT"

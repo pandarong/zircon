@@ -29,9 +29,27 @@ read_rspfile() {
   done
 }
 
-read_rspfile < "$RSPFILE"
+process_args() {
+  local arg rspfile
+  while [ $# -gt 0 ]; do
+    arg="$1"
+    shift
+    if [[ "$arg" == @* ]]; then
+      rspfile="${arg#@}"
+      FILES+=("$rspfile")
+      while read arg; do
+        CMD+=("$arg")
+      done < "$rspfile"
+    else
+      CMD+=("$arg")
+    fi
+  done
+}
 
-"${CMD[@]}" "$@"
+read_rspfile < "$RSPFILE"
+process_args "$@"
+
+"${CMD[@]}"
 
 if [ "$ORIG_DEPFILE" = - ]; then
   # The host_tool_action() has no user-specified depfile, so just generate

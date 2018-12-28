@@ -191,7 +191,7 @@ template("fidl_library") {
                                        root_build_dir) ]
     }
     _fidl_rsp += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
-    write_file("$_fidl_gen_dir/${fidl_target}.rsp", _fidl_rsp)
+    write_file("$_fidl_gen_dir/${fidl_target}.rsp", _fidl_rsp, "list lines")
     action("${gen_target}.rsp") {
       visibility = [ ":$gen_target" ]
       sources = [

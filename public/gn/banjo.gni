@@ -148,7 +148,7 @@ template("banjo_library") {
       }
     }
     _banjo_rsp += [ "--files" ] + rebase_path(invoker.sources, root_build_dir)
-    write_file("$_banjo_gen_dir/${banjo_target}.rsp", _banjo_rsp)
+    write_file("$_banjo_gen_dir/${banjo_target}.rsp", _banjo_rsp, "list lines")
     action("${gen_target}.rsp") {
       visibility = [ ":$gen_target" ]
       sources = [
