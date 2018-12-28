@@ -3,18 +3,41 @@
 # found in the LICENSE file.
 
 # Write a JSON file for the $target_name "build API module".  The file goes
-# at `$root_build_dir/$target_name.json`.  The contents are exactly the GN
-# scope of the build_api_module() target, serialized as a JSON dictionary.
+# at `$root_build_dir/$target_name.json`.  The contents are in JSON format.
 #
 # The $target_name is the name of the build API module.  It's up to each
 # module to define the JSON schema that constitutes the API contract with
 # users of this build API module.  Usually somewhere in the JSON structure
 # will be strings naming Ninja targets (i.e. output files to produce, or
 # actions to take for side-effect such as running tests).
+#
+# Parameters
+#
+#   contents (optional)
+#     Fixed contents of the file, any GN type, serialized as JSON.
+#     This must be present if $data_keys et al are not.
+#
+#   deps, data_keys, walk_keys (optional)
+#     Specifies a metadata query to produce the contents of the file.
+#     In this case, the file always contains a JSON list.  If $contents
+#     is omitted then $data_keys is required.
+#
 template("build_api_module") {
-  write_file("$root_build_dir/$target_name.json",
-             {
-               forward_variables_from(invoker, "*", [ "target_name" ])
-             },
-             "json")
+  write_data(target_name) {
+    outputs = [
+      "$root_build_dir/$target_name.json",
+    ]
+    forward_variables_from(invoker,
+                           [
+                             "contents",
+                             "deps",
+                             "data_keys",
+                             "walk_keys",
+                             "testonly",
+                           ])
+    output_conversion = "json"
+    metadata = {
+      build_api_modules = [ target_name ]
+    }
+  }
 }

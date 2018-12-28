@@ -28,7 +28,7 @@ template("zbi_input") {
     ]
     output_conversion = "list lines"
     data_keys = [ "manifest_lines" ]
-    walk_keys = [ "zbi_input_barrier" ]
+    walk_keys = [ "manifest_barrier" ]
 
     # An embedded manifest contributes to metadata.manifest_lines directly.
     if (defined(invoker.manifest)) {
@@ -92,15 +92,15 @@ template("zbi_input") {
         "--files",
         rebase_path(manifest_file, root_build_dir),
       ]
-      zbi_input_barrier = []
+      manifest_barrier = []
 
       if (defined(invoker.metadata)) {
         forward_variables_from(invoker.metadata,
                                "*",
                                [
+                                 "manifest_barrier",
                                  "manifest_lines",
                                  "zbi_input_args",
-                                 "zbi_input_barrier",
                                ])
       }
     }
@@ -143,12 +143,13 @@ template("zbi") {
   write_data(rspfile_target) {
     visibility = [ ":$zbi_target" ]
     forward_variables_from(invoker, [ "testonly" ])
-    deps = [ ":$input_target" ]
+    deps = [
+      ":$input_target",
+    ]
     outputs = [
       rspfile,
     ]
     data_keys = [ "zbi_input_args" ]
-    walk_keys = [ "zbi_input_barrier" ]
     output_conversion = "list lines"
   }
 
@@ -202,7 +203,8 @@ template("zbi") {
     # Thus a zbi() target can be a dependency of another zbi() target to
     # combine them without requiring an intervening zbi_input() target.
     metadata = {
-      zbi_input_args = [ "--type=zbi" ] + rebase_path(outputs, root_build_dir)
+      zbi_input_args =
+          [ "--type=container" ] + rebase_path(outputs, root_build_dir)
       if (defined(invoker.metadata)) {
         forward_variables_from(invoker.metadata, "*", [ "zbi_input_args" ])
       }
@@ -212,7 +214,7 @@ template("zbi") {
 
 template("devmgr_config") {
   main_target = target_name
-  contents_target = "$target_name._devmgr_config.txt"
+  contents_target = "$target_name._devmgr_config"
 
   metadata_resource(contents_target) {
     visibility = [ ":$main_target" ]

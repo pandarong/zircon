@@ -33,6 +33,8 @@ if (current_toolchain == default_toolchain) {
     }
   }
 } else {
+  assert(is_kernel)
+
   # These are needed both in kernel sources (pervasively) and in the linker
   # scripts.
   kernel_defines = [
@@ -270,7 +272,7 @@ if (current_toolchain == default_toolchain) {
     # be a dependency of a zbi() target to get into the image.
     metadata = {
       zbi_input_args = [
-        "--type=zbi",
+        "--type=container",
         rebase_path(outputs[0], root_build_dir),
       ]
     }
