@@ -8,9 +8,9 @@ executable("usb-fwloader") {
     "usb-fwloader.cpp",
   ]
   deps = [
+    "$zx/system/fidl/fuchsia-hardware-usb-tester:c",
     "$zx/system/fidl/fuchsia-mem:c",
     "$zx/system/fidl/zircon-usb-test-fwloader:c",
-    "$zx/system/fidl/zircon-usb-tester:c",
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fzl",

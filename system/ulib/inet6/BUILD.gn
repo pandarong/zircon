@@ -13,7 +13,7 @@ library("inet6") {
   ]
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
-    "$zx/system/fidl/zircon-ethernet:c",
+    "$zx/system/fidl/fuchsia-hardware-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zircon-internal",

@@ -12,7 +12,7 @@ driver("usb-tester") {  # TODO: test_driver?
     "$zx/system/banjo/ddk-protocol-usb-composite",
     "$zx/system/banjo/ddk-protocol-usb-request",
     "$zx/system/dev/lib/usb",
-    "$zx/system/fidl/zircon-usb-tester:c",
+    "$zx/system/fidl/fuchsia-hardware-usb-tester:c",
     "$zx/system/ulib/ddktl",
     "$zx/system/ulib/sync",
     "$zx/system/ulib/zircon",

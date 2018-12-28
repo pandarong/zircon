@@ -9,7 +9,7 @@ fidl_library("fuchsia-net-stack") {
     "stack.fidl",
   ]
   deps = [
+    "$zx/system/fidl/fuchsia-hardware-ethernet",
     "$zx/system/fidl/fuchsia-net",
-    "$zx/system/fidl/zircon-ethernet",
   ]
 }

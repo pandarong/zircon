@@ -167,7 +167,7 @@ if (current_toolchain == default_toolchain) {
   zircon_elf = "$target_out_dir/zircon.elf"
 
   # These are needed only in image.S and in the linker scripts.
-  image_defines = [ "BOOT_HEADER_SIZE=$boot_header_size" ]
+  image_defines = [ "BOOT_HEADER_SIZE=0x50" ]
 
   # This supplies those variables for use in linker scripts.
   config("kernel_defsym") {

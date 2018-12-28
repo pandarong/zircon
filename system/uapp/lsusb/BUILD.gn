@@ -7,7 +7,7 @@ executable("lsusb") {
     "lsusb.c",
   ]
   deps = [
-    "$zx/system/fidl/zircon-usb-device:c",
+    "$zx/system/fidl/fuchsia-hardware-usb-device:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/pretty",
     "$zx/system/ulib/zircon",

@@ -44,11 +44,3 @@ declare_args() {
   # disabled.
   enable_lock_dep_tests = enable_lock_dep
 }
-
-if (current_cpu == "arm64") {
-  boot_header_size = "0x50"
-} else if (current_cpu == "x64") {
-  boot_header_size = "0x70"
-} else {
-  boot_header_size = "???"
-}

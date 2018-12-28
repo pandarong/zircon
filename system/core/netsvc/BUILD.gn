@@ -14,7 +14,7 @@ executable("netsvc") {
   ]
   deps = [
     "$zx/system/fidl/fuchsia-device-manager:c",
-    "$zx/system/fidl/zircon-ethernet:c",
+    "$zx/system/fidl/fuchsia-hardware-ethernet:c",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/inet6",
     "$zx/system/ulib/libzbi",

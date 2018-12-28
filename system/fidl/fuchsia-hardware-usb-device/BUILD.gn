@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("fuchsia-gpu-clock") {
+fidl_library("fuchsia-hardware-usb-device") {
   sources = [
-    "clock.fidl",
+    "usb-device.fidl",
   ]
 }

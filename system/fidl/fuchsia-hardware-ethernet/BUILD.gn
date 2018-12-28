@@ -4,8 +4,8 @@
 
 import("$zx/public/gn/fidl.gni")
 
-fidl_library("zircon-usb-device") {
+fidl_library("fuchsia-hardware-ethernet") {
   sources = [
-    "usb-device.fidl",
+    "ethernet.fidl",
   ]
 }
