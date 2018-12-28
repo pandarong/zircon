@@ -1263,14 +1263,11 @@ template("host_tool") {
 
         # See host_tool_action().
         host_tool_barrier = []
+        host_tool_rspfile = tool_executables + [ "--" ]
         if (defined(toolchain.host_run_env)) {  # TODO: sanitizer case
-          host_tool_action_script = [ "/usr/bin/env" ]
-          host_tool_action_inputs = tool_executables
-          host_tool_action_args = toolchain.host_run_env +
-                                  rebase_path(tool_executables, root_build_dir)
-        } else {
-          host_tool_action_script = tool_executables
+          host_tool_rspfile += toolchain.host_run_env
         }
+        host_tool_rspfile += tool_executables
       }
       variant_suffix_outputs = [ tool_executable + tool_extension ]
       variant_suffix_metadata = {
