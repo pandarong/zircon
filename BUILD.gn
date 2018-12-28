@@ -19,24 +19,40 @@ foreach(host, standard_build_hosts) {
   }
 }
 
-group("tools") {
+# Install the host developer tools for the running host platform in the
+# "$root_build_dir/tools/" directory.
+tools_rspfile = "$target_gen_dir/tools.rsp"
+write_data("tools._rsp") {
+  visibility = [ ":tools" ]
   testonly = true
-
+  outputs = [
+    tools_rspfile,
+  ]
   deps = [
     ":tools-${host_os}-${host_cpu}",
   ]
+  output_conversion = "list lines"
+  data_keys = [ "tool_executables" ]
+}
 
-  if (false) {  # TODO(get_metadata): later copy("tools")
-    # Install the host developer tools for the running host platform in the
-    # "$root_build_dir/tools/" directory.
-
-    sources = [
-      get_metadata(deps, [ "tool_executables" ]),
-    ]
-    outputs = [
-      "$root_build_dir/tools/{{source_file_part}}",
-    ]
-  }
+action("tools") {
+  testonly = true
+  deps = [
+    ":tools._rsp",
+  ]
+  script = "$zx/scripts/copy-files"
+  depfile = "$target_out_dir/$target_name.d"
+  outputs = [
+    depfile,
+  ]
+  sources = [
+    tools_rspfile,
+  ]
+  args = [
+    "tools",
+    rebase_path(depfile, root_build_dir),
+    rebase_path(tools_rspfile, root_build_dir),
+  ]
 }
 
 public_targets = [

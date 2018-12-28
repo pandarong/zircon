@@ -1256,9 +1256,10 @@ template("host_tool") {
       }
       metadata = {
         # List of tool binaries that could be presented to users' command line.
-        tool_executables = [ get_path_info(tool_executable, "dir") + "/" +
-                             get_path_info(tool_executable, "name") +
-                             toolchain.variant_suffix + tool_extension ]
+        tool_executables = [ rebase_path(
+                get_path_info(tool_executable, "dir") + "/" +
+                    get_path_info(tool_executable, "name") + tool_extension,
+                root_build_dir) ]
 
         # See host_tool_action().
         host_tool_barrier = []
