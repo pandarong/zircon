@@ -34,4 +34,17 @@ library("fdio") {
     "$zx/system/ulib/zxio",
     "$zx/system/ulib/zxs",
   ]
+
+  # TODO(mcgrathr): Temporary kludge for legacy Fuchsia GN build integration.
+  if (toolchain.variant == "gcc" || toolchain.variant == "clang") {
+    metadata = {
+      images = [
+        {
+          name = "fdio"
+          type = "so"
+          path = rebase_path("$target_out_dir/libfdio.so.debug", root_build_dir)
+        },
+      ]
+    }
+  }
 }
