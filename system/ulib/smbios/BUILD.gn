@@ -10,4 +10,7 @@ library("smbios") {
   sources = [
     "smbios.cpp",
   ]
+  deps = [
+    "$zx/system/ulib/fbl",
+  ]
 }
