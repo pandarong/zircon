@@ -21,40 +21,42 @@ foreach(host, standard_build_hosts) {
   }
 }
 
-# Install the host developer tools for the running host platform in the
-# "$root_build_dir/tools/" directory.
-tools_rspfile = "$target_gen_dir/tools.rsp"
-write_data("tools._rsp") {
-  visibility = [ ":tools" ]
-  testonly = true
-  outputs = [
-    tools_rspfile,
-  ]
-  deps = [
-    ":tools-${host_os}-${host_cpu}",
-  ]
-  output_conversion = "list lines"
-  data_keys = [ "tool_executables" ]
-}
+if (current_toolchain == default_toolchain) {
+  # Install the host developer tools for the running host platform in the
+  # "$root_build_dir/tools/" directory.
+  tools_rspfile = "$target_gen_dir/tools.rsp"
+  write_data("tools._rsp") {
+    visibility = [ ":tools" ]
+    testonly = true
+    outputs = [
+      tools_rspfile,
+    ]
+    deps = [
+      ":tools-${host_os}-${host_cpu}",
+    ]
+    output_conversion = "list lines"
+    data_keys = [ "tool_executables" ]
+  }
 
-action("tools") {
-  testonly = true
-  deps = [
-    ":tools._rsp",
-  ]
-  script = "$zx/scripts/copy-files"
-  depfile = "$target_out_dir/$target_name.d"
-  outputs = [
-    depfile,
-  ]
-  sources = [
-    tools_rspfile,
-  ]
-  args = [
-    "tools",
-    rebase_path(depfile, root_build_dir),
-    rebase_path(tools_rspfile, root_build_dir),
-  ]
+  action("tools") {
+    testonly = true
+    deps = [
+      ":tools._rsp",
+    ]
+    script = "$zx/scripts/copy-files"
+    depfile = "$target_out_dir/$target_name.d"
+    outputs = [
+      depfile,
+    ]
+    sources = [
+      tools_rspfile,
+    ]
+    args = [
+      "tools",
+      rebase_path(depfile, root_build_dir),
+      rebase_path(tools_rspfile, root_build_dir),
+    ]
+  }
 }
 
 public_targets = [
@@ -70,11 +72,25 @@ testonly_public_targets = [
 
 # Each cpu is a target name for all the public targets for that CPU.
 foreach(cpu, standard_fuchsia_cpus) {
-  group(cpu) {
+  bootimage(cpu) {
     testonly = true
+    cpu = cpu
     deps = []
     foreach(target, public_targets + testonly_public_targets) {
       deps += [ "$zx/public/$target:$cpu" ]
+    }
+  }
+
+  # TODO(mcgrathr): Temporary hacks for integrating with the legacy Fuchsia
+  # GN build.
+  if (current_toolchain == default_toolchain) {
+    build_api_module("legacy-$cpu") {
+      testonly = true
+      deps = [
+        ":$cpu",
+        "$zx/system/ulib:asan-manifest-$cpu",
+      ]
+      data_keys = [ "images" ]
     }
   }
 }
@@ -146,10 +162,12 @@ if (current_cpu != "") {
   }
 }
 
-build_api_module("api") {
-  testonly = true
-  deps = [
-    "system/utest:host_tests",
-  ]
-  data_keys = [ "build_api_modules" ]
+if (current_toolchain == default_toolchain) {
+  build_api_module("api") {
+    testonly = true
+    deps = [
+      "system/utest:host_tests",
+    ]
+    data_keys = [ "build_api_modules" ]
+  }
 }

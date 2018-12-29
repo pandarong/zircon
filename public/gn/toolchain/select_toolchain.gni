@@ -51,6 +51,7 @@ template("select_toolchain") {
                            "cpu",
                            "environment_label",
                            "os",
+                           "variant",
                          ])
   if (!defined(environment_label)) {
     assert(defined(toolchain.environment_label),

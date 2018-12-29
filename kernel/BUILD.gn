@@ -268,9 +268,17 @@ if (current_toolchain == default_toolchain) {
       "$target_out_dir/image",
     ]
 
-    # This metadata makes the kernel act as a zbi_input() target so it can
-    # be a dependency of a zbi() target to get into the image.
     metadata = {
+      images = [
+        {
+          type = "zbi"
+          name = "kernel"
+          path = rebase_path(outputs[0], root_build_dir)
+        },
+      ]
+
+      # This metadata makes the kernel act as a zbi_input() target so it can
+      # be a dependency of a zbi() target to get into the image.
       zbi_input_args = [
         "--type=container",
         rebase_path(outputs[0], root_build_dir),

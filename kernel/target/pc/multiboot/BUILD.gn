@@ -47,14 +47,23 @@ if (current_toolchain == default_toolchain) {
   # stripped ELF/Multiboot image.
   executable("multiboot") {
     output_extension = "bin"
+    output_path = rebase_path("$target_out_dir/$target_name.$output_extension",
+                              root_build_dir)
     metadata = {
-      image_files = [ "$root_out_dir/$target_name.$output_extension" ]
-      images = [
-        {
-          name = "multiboot"
-          path = rebase_path(image_files[0], root_build_dir)
-        },
-      ]
+      images = []
+      foreach(name,
+              [
+                "multiboot-kernel",
+                "vboot-kernel",
+              ]) {
+        images += [
+          {
+            name = name
+            type = "kernel"
+            path = output_path
+          },
+        ]
+      }
     }
     sources = [
       "multiboot-main.c",
