@@ -25,7 +25,7 @@ executable("bootsvc") {
     "$zx/system/ulib/launchpad",
     "$zx/system/ulib/loader-service",
     "$zx/system/ulib/memfs",
-    "$zx/system/ulib/memfs.cpp",
+    "$zx/system/ulib/memfs:memfs-cpp",
     "$zx/system/ulib/trace",
     "$zx/system/ulib/trace-engine",
     "$zx/system/ulib/zircon",
@@ -33,9 +33,12 @@ executable("bootsvc") {
     "$zx/system/ulib/zxcpp",
     "$zx/third_party/ulib/lz4",
   ]
+  data_deps = [
+    "$zx/system/core/devmgr/devmgr",
+  ]
 }
 
-test("bootsvc") {
+test("bootsvc-tests") {
   sources = [
     "integration-test.cpp",
     "util.cpp",
