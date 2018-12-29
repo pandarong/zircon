@@ -151,6 +151,7 @@ template("define_environment") {
       foreach(shorthand, variant_shorthands) {
         if (selector == shorthand.name) {
           selectors += shorthand.selectors
+          selector = false
         }
       }
     }
@@ -170,7 +171,9 @@ template("define_environment") {
         assert(false, "TODO: shorthand expansion")
       }
     }
-    selectors += [ selector ]
+    if (selector != false) {
+      selectors += [ selector ]
+    }
   }
 
   # Needed below because a.b.c doesn't work in GN.
