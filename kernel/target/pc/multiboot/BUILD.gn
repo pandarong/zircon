@@ -54,7 +54,7 @@ if (current_toolchain == default_toolchain) {
       foreach(name,
               [
                 "multiboot-kernel",
-                "vboot-kernel",
+                "qemu-kernel",
               ]) {
         images += [
           {

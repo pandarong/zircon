@@ -58,6 +58,18 @@ if (current_toolchain == default_toolchain) {
       "-Wl,/subsystem:efi_application",
       "-Wl,/entry:efi_main",
     ]
+
+    # TODO(mcgrathr): Temporary kludge for legacy Fuchsia GN build integration.
+    metadata = {
+      images = [
+        {
+          name = "bootloader"
+          type = "efi"
+          path = rebase_path("$root_out_dir/$output_name.$output_extension",
+                             root_build_dir)
+        },
+      ]
+    }
   }
 } else {
   # In any other toolchain, just redirect to the proper toolchain.
