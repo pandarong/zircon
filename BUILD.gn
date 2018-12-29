@@ -5,6 +5,7 @@
 import("$zx/public/gn/build_api.gni")
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/host_tool_action.gni")
+import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 import("$zx/public/gn/zbi.gni")
 
@@ -92,6 +93,65 @@ foreach(cpu, standard_fuchsia_cpus) {
       ]
       data_keys = [ "images" ]
     }
+  }
+}
+
+if (current_toolchain == default_toolchain) {
+  action("ids.txt") {
+    testonly = true
+    outputs = [
+      "$root_build_dir/ids.txt",
+    ]
+    deps = []
+    sources = []
+    foreach(cpu, standard_fuchsia_cpus) {
+      deps += [ ":ids-$cpu" ]
+      sources += [ "$root_build_dir/ids-$cpu.txt" ]
+    }
+    script = "/usr/bin/sort"
+    args = [
+             "-u",
+             "-o",
+           ] + rebase_path(outputs + sources, root_build_dir)
+  }
+
+  foreach(cpu, standard_fuchsia_cpus) {
+    select_toolchain("ids-$cpu") {
+      testonly = true
+      cpu = cpu
+      environment_label = "$zx/public/gn/toolchain:user"
+      deps = [
+        ":ids-$cpu.txt"
+      ]
+    }
+  }
+} else if (toolchain.environment == "user") {
+  write_data("elf-$current_cpu.list") {
+    testonly = true
+    outputs = [
+      "$root_build_dir/elf-$current_cpu.list",
+    ]
+    deps = [
+      ":legacy-$current_cpu($default_toolchain)",
+    ]
+    data_keys = [ "elf_link_output" ]
+  }
+
+  toolchain_utils_action("ids-$current_cpu.txt") {
+    testonly = true
+    deps = [
+      ":elf-$current_cpu.list",
+    ]
+    outputs = [
+      "$root_build_dir/$target_name",
+    ]
+    sources = [
+      "$root_build_dir/elf-$current_cpu.list",
+    ]
+    depfile = "${outputs[0]}.d"
+    script = "scripts/gen-ids-file"
+    utils = [ "readelf" ]
+    args = rebase_path(outputs + [ depfile ] + sources, root_build_dir)
   }
 }
 

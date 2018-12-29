@@ -342,6 +342,9 @@ template("shared_library") {
         link_output = [ rebase_path(output_file + toolchain.link_output_suffix,
                                     root_build_dir) ]
         link_barrier = []
+        if (current_os != "mac" && current_os != "win") {
+          elf_link_output = link_output
+        }
 
         # Each shared_library() that's not on the whitelist gets a poison
         # pill to flag it if it appears in the dependency graph from a
@@ -1009,6 +1012,9 @@ template("_basic_executable") {
       link_output = [ rebase_path(output_file + toolchain.link_output_suffix,
                                   root_build_dir) ]
       link_barrier = []
+      if (current_os != "mac" && current_os != "win") {
+        elf_link_output = link_output
+      }
     }
 
     if (!is_host && !is_kernel) {
@@ -1086,6 +1092,9 @@ template("loadable_module") {
       link_output = [ rebase_path(output_file + toolchain.link_output_suffix,
                                   root_build_dir) ]
       link_barrier = []
+      if (current_os != "mac" && current_os != "win") {
+        elf_link_output = link_output
+      }
     }
 
     if (defined(invoker.install_path)) {

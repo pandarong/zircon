@@ -8,6 +8,10 @@ import("gcc.gni")
 import("goma.gni")
 import("toolchain.gni")
 
+declare_args() {
+  build_id_dir = "$root_build_dir/.build-id"
+}
+
 template("define_c_toolchain") {
   # Translate GN cpu/os to GNU config tuple.
   if (invoker.cpu == "arm64") {
@@ -150,7 +154,7 @@ template("define_c_toolchain") {
     # All others are ELF and so might have build IDs.
     make_id_link = invoker.os != "mac" && invoker.os != "win"
     if (make_id_link) {
-      id_dir = ".build-id"
+      id_dir = rebase_path(build_id_dir, root_build_dir)
     }
 
     if (use_strip) {
