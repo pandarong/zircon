@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("backtrace") {
+  sdk = "shared"
   shared = true
   include_dirs = [ "include/backtrace" ]
   sources = [

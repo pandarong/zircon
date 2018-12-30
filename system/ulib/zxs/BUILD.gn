@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("zxs") {
+  sdk = "static"
   sources = [
     "zxs.cpp",
   ]

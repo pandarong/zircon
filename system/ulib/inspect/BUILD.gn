@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("inspect") {
+  sdk = "source"
   sources = [
     "heap.cpp",
     "scanner.cpp",

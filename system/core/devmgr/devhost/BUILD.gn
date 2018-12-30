@@ -24,6 +24,7 @@ executable("devhost") {
 
 # "$zx/system/ulib/driver" is an alias for this.
 library("driver") {
+  sdk = "shared"
   shared = true
   static = false
   sources = [

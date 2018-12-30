@@ -5,6 +5,7 @@
 import("$zx/public/gn/build_api.gni")
 import("$zx/public/gn/config/standard.gni")
 import("$zx/public/gn/host_tool_action.gni")
+import("$zx/public/gn/pkg.gni")
 import("$zx/public/gn/toolchain/c_utils.gni")
 import("$zx/public/gn/toolchain/select_toolchain.gni")
 import("$zx/public/gn/zbi.gni")
@@ -89,13 +90,46 @@ foreach(cpu, standard_fuchsia_cpus) {
       testonly = true
       deps = [
         ":$cpu",
+        ":boards-$cpu",
         "$zx/system/ulib:asan-manifest-$cpu",
       ]
       data_keys = [ "images" ]
     }
+
+    pkg_export("manifest-$cpu") {
+      testonly = true
+      data_keys = [ "pkg_export_manifest" ]
+      deps = [
+        ":$cpu",
+        ":tools",
+        ":ulib-$cpu",
+      ]
+    }
+
+    write_data("boards-$cpu") {
+      testonly = true
+      outputs = [
+        "$root_build_dir/export/$target_name.list",
+      ]
+      output_conversion = "list lines"
+      data_keys = [ "sdk_board_list" ]
+      deps = [
+        ":$cpu",
+      ]
+    }
+  }
+
+  select_toolchain("ulib-$cpu") {
+    testonly = true
+    cpu = cpu
+    environment_label = "$zx/public/gn/toolchain:user"
+    deps = [
+      "$zx/system/ulib",
+    ]
   }
 }
 
+# TODO(TC-303): ids.txt is deprecated and will be removed.
 if (current_toolchain == default_toolchain) {
   action("ids.txt") {
     testonly = true
@@ -121,7 +155,7 @@ if (current_toolchain == default_toolchain) {
       cpu = cpu
       environment_label = "$zx/public/gn/toolchain:user"
       deps = [
-        ":ids-$cpu.txt"
+        ":ids-$cpu.txt",
       ]
     }
   }

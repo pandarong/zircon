@@ -47,6 +47,10 @@ template("banjo_library") {
       not_needed(invoker, [ "sources" ])
       include_dirs = [ "$_banjo_gen_dir/include" ]
     }
+
+    data_deps = [
+      ":$banjo_target.pkg($default_toolchain)",
+    ]
   }
 
   if (current_toolchain == default_toolchain) {
@@ -114,7 +118,7 @@ template("banjo_library") {
                              ])
       visibility = [ ":*" ]
 
-      tool = "$zx/system/host/banjo:banjoc"
+      tool = "$zx/system/host/banjo/compiler"
 
       outputs = gen_outputs
 

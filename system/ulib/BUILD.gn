@@ -42,6 +42,9 @@ if (current_cpu != "") {
   group("ulib") {
     testonly = true
     deps = [
+      "$zx/system/dev/lib/broadcom",
+      "$zx/system/dev/lib/usb",
+      "$zx/system/fidl/fuchsia-net-stack:c",
       "async",
       "async-loop",
       "async-testutils",

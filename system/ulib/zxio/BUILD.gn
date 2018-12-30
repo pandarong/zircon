@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("zxio") {
+  sdk = "static"
   sources = [
     "debuglog.cpp",
     "null.cpp",

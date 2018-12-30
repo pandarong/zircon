@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("tee-client-api") {
+  sdk = "shared"
   shared = true
   sources = [
     "tee-client-api.c",

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("fs-management") {
+  sdk = "shared"
   shared = true
   sources = [
     "fsck.cpp",
@@ -18,15 +19,15 @@ library("fs-management") {
     "$zx/system/fidl/fuchsia-hardware-nand:c.headers",
 
     # <fs-management/ram-nand.h> has #include <lib/devmgr-integration-test/fixture.h>.
-    "$zx/system/ulib/devmgr-integration-test",
+    "$zx/system/ulib/devmgr-integration-test:headers",
   ]
   deps = [
     "$zx/system/fidl/fuchsia-hardware-nand:c",
     "$zx/system/fidl/fuchsia-io:c",
     "$zx/system/ulib/ddk",
+    "$zx/system/ulib/devmgr-integration-test",
     "$zx/system/ulib/digest",
     "$zx/system/ulib/fbl",
-    "$zx/system/ulib/fs",
     "$zx/system/ulib/fs",
     "$zx/system/ulib/fvm",
     "$zx/system/ulib/fzl",

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("ldmsg") {
+  sdk = "static"
   sources = [
     "ldmsg.c",
   ]

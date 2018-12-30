@@ -36,6 +36,7 @@ if (toolchain.tags + exclude_tags - exclude_tags != toolchain.tags ||
   }
 
   library("zircon") {
+    sdk = "shared"
     shared = true
     static = false
 

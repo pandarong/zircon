@@ -3,35 +3,10 @@
 # found in the LICENSE file.
 
 if (defined(zx)) {
-  library("banjo") {
-    host = true
-    sources = [
-      "lib/attributes.cpp",
-      "lib/ddk_generator.cpp",
-      "lib/error_reporter.cpp",
-      "lib/flat_ast.cpp",
-      "lib/formatter.cpp",
-      "lib/identifier_table.cpp",
-      "lib/json_generator.cpp",
-      "lib/lexer.cpp",
-      "lib/library_zx.cpp",
-      "lib/names.cpp",
-      "lib/parser.cpp",
-      "lib/raw_ast.cpp",
-      "lib/source_file.cpp",
-      "lib/source_location.cpp",
-      "lib/source_manager.cpp",
-      "lib/tables_generator.cpp",
-      "lib/tree_visitor.cpp",
-    ]
-  }
-
-  host_tool("banjoc") {
-    sources = [
-      "compiler/main.cpp",
-    ]
+  group("banjo") {
     deps = [
-      ":banjo",
+      "compiler",
+      "formatter",
     ]
   }
 } else {

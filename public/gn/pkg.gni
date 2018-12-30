@@ -10,8 +10,15 @@ template("pkg_export") {
     outputs = [
       "$root_build_dir/export/$target_name",
     ]
-    contents = invoker.contents
     output_conversion = "list lines"
+    forward_variables_from(invoker,
+                           [
+                             "contents",
+                             "data_keys",
+                             "deps",
+                             "walk_keys",
+                             "testonly",
+                           ])
     metadata = {
       pkg_export_manifest = [ target_name ]
     }

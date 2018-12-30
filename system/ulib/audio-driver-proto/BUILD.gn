@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("audio-driver-proto") {
+  sdk = "source"
   sources = [
     "audio-proto.cpp",
   ]

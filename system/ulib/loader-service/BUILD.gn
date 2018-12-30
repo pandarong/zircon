@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("loader-service") {
+  sdk = "static"
   sources = [
     "loader-service.c",
   ]

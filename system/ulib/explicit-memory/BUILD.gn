@@ -5,6 +5,7 @@
 # https://opensource.org/licenses/MIT
 
 library("explicit-memory") {
+  sdk = "static"
   kernel = true
   static = true
   sources = [

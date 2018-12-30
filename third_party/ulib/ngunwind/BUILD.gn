@@ -5,6 +5,7 @@
 import("$zx/public/gn/config/levels.gni")
 
 library("ngunwind") {
+  sdk = "shared"
   shared = true
   configs += [ ":private_config" ]
   deps = [

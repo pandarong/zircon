@@ -5,6 +5,7 @@
 assert(is_fuchsia)
 
 library("zx") {
+  sdk = "source"
   sources = [
     "bti.cpp",
     "channel.cpp",

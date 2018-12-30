@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("async") {
+  sdk = "source"
   sources = [
     "ops.c",
   ]
@@ -13,6 +14,7 @@ library("async") {
 }
 
 library("async-cpp") {
+  sdk = "source"
   sources = [
     "exception.cpp",
     "receiver.cpp",
@@ -30,6 +32,7 @@ library("async-cpp") {
 }
 
 library("async-default") {
+  sdk = "shared"
   shared = true
   sources = [
     "default.c",

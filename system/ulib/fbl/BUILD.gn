@@ -5,6 +5,8 @@
 # https://opensource.org/licenses/MIT
 
 library("fbl") {
+  sdk = "source"
+
   host = true
   kernel = true
   static = true

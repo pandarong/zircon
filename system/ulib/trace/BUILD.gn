@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("trace") {
+  sdk = "static"
   sources = [
     "event.cpp",
     "observer.cpp",

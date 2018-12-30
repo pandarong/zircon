@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("async-testutils") {
+  sdk = "source"
   testonly = true
   sources = [
     "dispatcher_stub.cpp",

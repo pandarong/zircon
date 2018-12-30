@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("audio-proto-utils") {
+  sdk = "source"
   sources = [
     "format-utils.cpp",
   ]

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("trace-provider") {
+  sdk = "static"
   sources = [
     "fdio_connect.cpp",
     "provider_impl.cpp",
@@ -16,6 +17,7 @@ library("trace-provider") {
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   deps = [
     ":trace-handler",
+    "$zx/system/fidl/fuchsia-tracelink:c.headers",
     "$zx/system/ulib/async",
     "$zx/system/ulib/async:async-cpp",
     "$zx/system/ulib/fbl",
@@ -32,6 +34,7 @@ library("trace-provider") {
 # These are usually test and benchmarking apps.
 # Normal apps are not expected to use this.
 library("trace-handler") {
+  sdk = "static"
   sources = [
     "handler.cpp",
   ]

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("simple-audio-stream") {
+  sdk = "source"
   sources = [
     "simple-audio-stream.cpp",
   ]

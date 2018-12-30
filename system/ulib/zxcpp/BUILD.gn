@@ -6,8 +6,8 @@
 
 if (is_kernel) {  # TODO(mcgrathr): just move the code into the kernel proper
   library("zxcpp") {
+    sdk = "source"
     kernel = true
-    static = true
     sources = [
       "new.cpp",
       "pure_virtual.cpp",

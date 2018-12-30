@@ -5,6 +5,7 @@
 # https://opensource.org/licenses/MIT
 
 library("pretty") {
+  sdk = "static"
   kernel = true
   host = true
   static = true
@@ -18,4 +19,14 @@ library("pretty") {
       "$zx/system/ulib/fdio",
     ]
   }
+}
+
+test("pretty-test") {
+  sources = [
+    "test.c",
+  ]
+  deps = [
+    ":pretty",
+    "$zx/system/ulib/unittest",
+  ]
 }

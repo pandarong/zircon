@@ -19,5 +19,14 @@ group("board") {
       "sherlock",
       "vim",
     ]
+    metadata = {
+      sdk_board_list = [
+        "gauss",
+        "hikey960",
+        "qemu",
+        "vim2",
+        "imx8mevk",
+      ]
+    }
   }
 }

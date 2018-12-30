@@ -56,7 +56,7 @@ if (current_toolchain == default_toolchain) {
     ]
     deps = [
       ":examples",
-      "$zx/system/host/banjo",
+      "$zx/system/host/banjo/lib",
       "$zx/system/ulib/unittest",
     ]
   }

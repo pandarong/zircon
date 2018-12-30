@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("trace-vthread") {
+  sdk = "static"
   sources = [
     "event_vthread.cpp",
   ]

@@ -25,6 +25,7 @@ if (current_cpu != "") {
       "$zx/system/ulib/kvstore:kvstore-test",
       "$zx/system/ulib/tftp:tftp-test",
       "$zx/system/ulib/zxtest/test",
+      "$zx/system/ulib/pretty:pretty-test",
       "abigen",
       "async",
       "async-loop",

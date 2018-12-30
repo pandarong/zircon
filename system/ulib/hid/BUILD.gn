@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("hid") {
+  sdk = "shared"
   shared = true
   sources = [
     "acer12.c",

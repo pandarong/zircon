@@ -3,5 +3,6 @@
 # found in the LICENSE file.
 
 library("backtrace-request") {
+  sdk = "source"
   sources = []
 }

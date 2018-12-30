@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("devmgr-integration-test") {
+  sdk = "shared"
   # TODO: testonly = true
   shared = true
   sources = [

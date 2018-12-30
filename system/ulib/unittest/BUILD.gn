@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("unittest") {
+  sdk = "source"
   testonly = true
   host = true
   shared = true

@@ -5,12 +5,14 @@
 # https://opensource.org/licenses/MIT
 
 library("libzbi") {
+  sdk = "static"
   host = true
   kernel = true
   static = true
   sources = [
     "zbi.c",
   ]
+  output_prefix_override = true
   if (is_fuchsia && !is_kernel) {
     sources += [ "zbi-zx.cpp" ]
     deps = [

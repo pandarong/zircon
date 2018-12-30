@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("dispatcher-pool") {
+  sdk = "source"
   sources = [
     "dispatcher-channel.cpp",
     "dispatcher-event-source.cpp",

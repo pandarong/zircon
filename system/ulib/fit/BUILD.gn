@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("fit") {
+  sdk = "source"
   host = true
   static = true
   configs += [ "$zx/public/gn/config:visibility_hidden" ]

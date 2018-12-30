@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("trace-test-utils") {
+  sdk = "source"
   testonly = true
   sources = [
     "compare_records.cpp",

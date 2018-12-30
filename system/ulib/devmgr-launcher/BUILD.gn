@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("devmgr-launcher") {
+  sdk = "shared"
   shared = true
   sources = [
     "launcher.cpp",

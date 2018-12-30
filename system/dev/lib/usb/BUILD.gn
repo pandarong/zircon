@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("usb") {
+  sdk = "source"
   sources = [
     "usb-request.c",
     "usb.c",

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("zxtest") {
+  sdk = "source"
   sources = [
     "event-broadcaster.cpp",
     "test-case.cpp",

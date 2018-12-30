@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("inspector") {
+  sdk = "static"
   sources = [
     "backtrace.cpp",
     "debug-info.cpp",

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("framebuffer") {
+  sdk = "static"
   sources = [
     "framebuffer.c",
   ]

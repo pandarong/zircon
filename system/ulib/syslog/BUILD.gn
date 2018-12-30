@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("syslog") {
+  sdk = "shared"
   shared = true
   sources = [
     "fx_logger.cpp",
@@ -16,8 +17,5 @@ library("syslog") {
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",
-  ]
-  public_deps = [
-    "$zx/system/ulib/svc:headers",
   ]
 }

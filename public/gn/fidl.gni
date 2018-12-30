@@ -90,6 +90,9 @@ template("fidl_library") {
 
       fidl_c_include_dirs = [ "$_fidl_gen_dir/include" ]
     }
+    data_deps = [
+      ":$fidl_target.pkg",
+    ]
   }
 
   template("_fidl_c_library") {

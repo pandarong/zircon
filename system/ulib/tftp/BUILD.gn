@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("tftp") {
+  sdk = "static"
   kernel = true
   host = true
   static = true

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("cobalt-client") {
+  sdk = "source"
   host = true
   sources = [
     "collector.cpp",
@@ -16,7 +17,7 @@ library("cobalt-client") {
   configs += [ "$zx/public/gn/config:visibility_hidden" ]
   public_deps = [
     # <cobalt-client/cpp/timer.h> has #include <lib/fzl/time.h>.
-    "$zx/system/ulib/fzl",
+    "$zx/system/ulib/fzl:headers",
 
     # <cobalt-client/cpp/types-internal.h> has #include <fuchsia/cobalt/c/fidl.h>.
     "$zx/system/fidl/fuchsia-cobalt:c.headers",
@@ -27,6 +28,7 @@ library("cobalt-client") {
     "$zx/system/ulib/fbl",
     "$zx/system/ulib/fdio",
     "$zx/system/ulib/fidl",
+    "$zx/system/ulib/fzl",
     "$zx/system/ulib/zircon",
     "$zx/system/ulib/zx",
     "$zx/system/ulib/zxcpp",

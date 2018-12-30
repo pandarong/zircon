@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("elf-search") {
+  sdk = "source"
   sources = [
     "elf-search.cpp",
   ]

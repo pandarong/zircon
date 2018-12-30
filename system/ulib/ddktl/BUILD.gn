@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("ddktl") {
+  sdk = "static"
   sources = [
     "pdev.cpp",
   ]

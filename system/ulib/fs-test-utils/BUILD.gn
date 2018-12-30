@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("fs-test-utils") {
+  sdk = "source"
   testonly = true
   sources = [
     "fixture.cpp",

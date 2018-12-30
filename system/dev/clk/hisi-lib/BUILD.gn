@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("hisi-lib") {
+  sdk = "static"
   sources = [
     "hisi-clk.c",
   ]

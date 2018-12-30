@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("perftest") {
+  sdk = "source"
   testonly = true
   sources = [
     "results.cpp",

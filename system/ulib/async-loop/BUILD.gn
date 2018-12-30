@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("async-loop") {
+  sdk = "source"
   sources = [
     "loop.c",
   ]
@@ -19,6 +20,7 @@ library("async-loop") {
 }
 
 library("async-loop-cpp") {
+  sdk = "source"
   sources = [
     "loop_wrapper.cpp",
   ]

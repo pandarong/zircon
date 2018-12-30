@@ -5,6 +5,7 @@
 # https://opensource.org/licenses/MIT
 
 library("hwreg") {
+  sdk = "source"
   kernel = true
   static = true
   sources = [

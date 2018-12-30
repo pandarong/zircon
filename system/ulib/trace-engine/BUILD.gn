@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 library("trace-engine") {
+  sdk = "shared"
   shared = true
   sources = [
     "context.cpp",
